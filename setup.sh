@@ -61,7 +61,7 @@ echo ""
 # STEP 5: エージェント起動
 log_info "🚀 エージェント起動中..."
 tmux send-keys -t agent "$AGENT_COMMAND" C-m
-sleep 5  # 少し待機してから次のコマンドを送信
+sleep 10  # 少し待機してから次のコマンドを送信
 log_success
 
 # STEP 6: エージェントの初期プロンプト実行
