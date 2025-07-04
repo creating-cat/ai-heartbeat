@@ -13,6 +13,74 @@ AI心臓システム(仮)は、AIに定期的に「ハートビート」を送�
 * **成果物生成**: マークダウンファイルやソースコードなどの形で思考結果を出力
 * **自己管理**: 思考ログの記録、Web検索クォータの管理、エラーからの回復など
 
+
+## システムアーキテクチャ
+
+このシステムは、`agent`と`heartbeat`という2つの独立した`tmux`セッションで構成されています。ユーザーが`setup.sh`を実行すると両方のセッションが起動し、`heartbeat`セッションが定期的に`agent`セッション（AI本体）に「鼓動」を送り続けることで、AIの自律的な活動を維持します。
+
+```mermaid
+graph TD
+    subgraph "ユーザー操作"
+        User(👤 ユーザー)
+        Start["./setup.sh [テーマ]"]
+        Stop["./stop.sh"]
+    end
+
+    subgraph "システム内部 (tmux)"
+        Agent["🤖 agentセッション<br>(AI本体)"]
+        Heartbeat["❤️ heartbeatセッション<br>(心臓部)"]
+    end
+    
+    subgraph "生成物"
+        Artifacts["📁 artifacts/ <br>(成果物・思考ログ)"]
+    end
+
+    User -- "実行" --> Start
+    Start -- "起動" --> Agent
+    Start -- "起動" --> Heartbeat
+    Heartbeat -- "定期的に<br>Heartbeat信号を送信" --> Agent
+    Agent -- "思考・処理" --> Agent
+    Agent -- "結果を出力" --> Artifacts
+    User -- "実行" --> Stop
+    Stop -- "停止信号" --> Heartbeat
+```
+
+以下のシーケンス図は、システムの起動から停止までの一連の処理が、時間と共にどのように連携して実行されるかを示しています。
+ユーザーがsetup.shでシステムを起動すると、heartbeatセッションが定期的にagentセッションへと思考のきっかけとなる「鼓動」を送り続けます。
+agentセッションはその都度、GEMINI.mdのルールに従って思考や創造を行い、成果物を生成します。
+このサイクルは、ユーザーがstop.shで停止信号を送るまで継続されます。
+
+
+```mermaid
+sequenceDiagram
+    participant User as 👤 ユーザー
+    participant setup_sh as setup.sh
+    participant tmux_agent as 🤖 AI Agent
+    participant tmux_heartbeat as ❤️ Heartbeat
+    participant stop_sh as stop.sh
+
+    User->>setup_sh: ./setup.sh "テーマ" を実行
+    activate setup_sh
+    setup_sh->>tmux_agent: 起動 & 初期プロンプト送信
+    setup_sh->>tmux_heartbeat: 起動 (./heartbeat.sh)
+    deactivate setup_sh
+
+    activate tmux_heartbeat
+    loop 定期的な鼓動 (例: 60秒ごと)
+        tmux_heartbeat->>tmux_agent: ❤️ Heartbeat信号を送信
+        activate tmux_agent
+        Note over tmux_agent: 思考・観測・創造...
+        tmux_agent-->>tmux_agent: artifacts/ にファイル出力
+        deactivate tmux_agent
+    end
+    
+    User->>stop_sh: ./stop.sh を実行
+    activate stop_sh
+    stop_sh->>tmux_heartbeat: 停止信号 (Ctrl-C)
+    deactivate stop_sh
+    deactivate tmux_heartbeat
+```
+
 ## システム要件
 
 * **Gemini CLI**: 最新版を推奨
@@ -44,7 +112,7 @@ AI心臓システム(仮)は、AIに定期的に「ハートビート」を送�
 
 ### 創造的タスク
 ```
-./setup.sh "html css javascriptを用いていろんなゲームで遊べるサイトを構築してください"
+./setup.sh "html css javascriptを用いていろんなゲームが遊べるサイトを構築してください"
 ```
 
 ### その他の例
@@ -86,4 +154,5 @@ tmux attach-session -t heartbeat
 
 ## その他
 
+* geminiは-yオプション(全アクション自動承認モード)で起動しています。ご注意ください。
 * geminiのweb検索はクォータ制限に達する可能性があります。tavily MCPなど別のweb検索ツールの利用も検討してください。
