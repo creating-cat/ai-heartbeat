@@ -17,6 +17,11 @@ mkdir -p stats
 # Web検索制限メッセージ用グローバル変数
 WEB_RESTRICTION_MESSAGE=""
 
+# スクリプト開始時刻を記録
+HEARTBEAT_START_TIME=$(date +%s)
+HEARTBEAT_START_TIME_FORMATTED=$(date -r $HEARTBEAT_START_TIME "+%F %T")
+log_info "Heartbeat started at $HEARTBEAT_START_TIME_FORMATTED"
+
 # 色付きログ関数
 log_warning() {
     echo -e "\033[1;33m[WARNING]\033[0m $1"
@@ -112,6 +117,13 @@ check_recent_activity() {
     # デバッグ情報
     echo "Latest file: $latest_filename ($(date -r $latest_time "+%F %T"))"
     echo "Inactivity duration: $((diff / 60)) minutes"
+    echo "Heartbeat start time: $HEARTBEAT_START_TIME_FORMATTED"
+    
+    # スクリプト開始時刻より前のファイルかチェック
+    if [ $latest_time -lt $HEARTBEAT_START_TIME ]; then
+        log_info "Latest file is older than heartbeat start time - ignoring for inactivity check"
+        return 0  # スクリプト開始より前のファイルは無活動とみなさない
+    fi
     
     # 警告レベルチェック
     if [ $diff -gt $INACTIVITY_STOP_THRESHOLD ]; then

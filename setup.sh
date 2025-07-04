@@ -13,6 +13,7 @@ if [ -z "$INIT_PROMPT" ]; then
     exit 1
 fi
 
+mkdir -p artifacts
 
 # 色付きログ関数
 log_info() {
