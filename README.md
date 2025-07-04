@@ -52,3 +52,5 @@ tmux attach-session -t heartbeat
 [FILES_OVERVIEW.md](FILES_OVERVIEW.md)参照
 
 
+## その他
+* geminiのweb検索はすぐにクォータ制限に引っかかって枯渇する可能性があります。tavily MCPなど別のweb検索ツールがあるといいかもしれません。
