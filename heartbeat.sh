@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ハートビートの間隔（秒）
-INTERVAL_SECONDS=60
+INTERVAL_SECONDS=60 # 1分
 
 # 無活動検知の閾値（秒）
 INACTIVITY_WARNING_THRESHOLD=300  # 5分
@@ -9,9 +9,13 @@ INACTIVITY_STOP_THRESHOLD=600     # 10分
 
 # Web検索制限時間（秒）
 WEB_SEARCH_RESTRICTION_TIME=600   # 10分
+WEB_SEARCH_QUOTA_RESTRICTION_TIME=3600  # 1時間（クォータ制限時）
 
 # statsディレクトリ作成
 mkdir -p stats
+
+# Web検索制限メッセージ用グローバル変数
+WEB_RESTRICTION_MESSAGE=""
 
 # 色付きログ関数
 log_warning() {
@@ -28,6 +32,34 @@ log_info() {
 
 # Web検索制限チェック関数
 check_web_search_restriction() {
+    WEB_RESTRICTION_MESSAGE=""
+    current_time=$(date +%s)
+    
+    # クォータ制限チェック（優先）
+    if [ -f "stats/quota_exceeded.txt" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS
+            quota_time=$(stat -f %m stats/quota_exceeded.txt)
+        else
+            # Linux
+            quota_time=$(stat -c %Y stats/quota_exceeded.txt)
+        fi
+        
+        diff=$((current_time - quota_time))
+        
+        if [ $diff -lt $WEB_SEARCH_QUOTA_RESTRICTION_TIME ]; then
+            # クォータ制限時間未満：Web検索禁止
+            WEB_RESTRICTION_MESSAGE="🚫 このハートビートでのWeb検索は使用禁止（クォータ制限のため長時間制限中）"
+            return 1
+        else
+            # クォータ制限時間経過：制限解除、ファイル削除
+            rm stats/quota_exceeded.txt
+            log_info "Web search quota restriction lifted"
+            return 0
+        fi
+    fi
+    
+    # 通常制限チェック
     if [ -f "stats/last_web_search.txt" ]; then
         if [[ "$OSTYPE" == "darwin"* ]]; then
             # macOS
@@ -37,13 +69,11 @@ check_web_search_restriction() {
             last_search=$(stat -c %Y stats/last_web_search.txt)
         fi
         
-        current_time=$(date +%s)
         diff=$((current_time - last_search))
         
         if [ $diff -lt $WEB_SEARCH_RESTRICTION_TIME ]; then
             # 制限時間未満：Web検索禁止
-            remaining_minutes=$(((WEB_SEARCH_RESTRICTION_TIME - diff + 59) / 60))  # 切り上げ
-            echo "🚫 Web検索は現在制限中（あと約${remaining_minutes}分待機）"
+            WEB_RESTRICTION_MESSAGE="🚫 このハートビートでのWeb検索は使用禁止（クォータ制限回避のため）"
             return 1
         else
             # 制限時間経過：制限解除、ファイル削除
@@ -130,14 +160,14 @@ while true; do
     echo "Sending heartbeat at $(date "+%F %T")"
     
     # Web検索制限チェック
-    web_restriction_msg=$(check_web_search_restriction)
+    check_web_search_restriction
     
     # ハートビートメッセージ作成
-    heartbeat_msg="Heartbeat: $(date "+%F %T")"
-    if [ ! -z "$web_restriction_msg" ]; then
+    heartbeat_msg="Heartbeat: $(date "+%Y%m%d%H%M%S")"
+    if [ ! -z "$WEB_RESTRICTION_MESSAGE" ]; then
         heartbeat_msg="$heartbeat_msg
 
-$web_restriction_msg"
+$WEB_RESTRICTION_MESSAGE"
     fi
     
     tmux send-keys -t agent "$heartbeat_msg"
