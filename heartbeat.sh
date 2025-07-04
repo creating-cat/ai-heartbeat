@@ -7,6 +7,12 @@ INTERVAL_SECONDS=60
 INACTIVITY_WARNING_THRESHOLD=300  # 5分
 INACTIVITY_STOP_THRESHOLD=600     # 10分
 
+# Web検索制限時間（秒）
+WEB_SEARCH_RESTRICTION_TIME=600   # 10分
+
+# statsディレクトリ作成
+mkdir -p stats
+
 # 色付きログ関数
 log_warning() {
     echo -e "\033[1;33m[WARNING]\033[0m $1"
@@ -18,6 +24,35 @@ log_error() {
 
 log_info() {
     echo -e "\033[1;32m[INFO]\033[0m $1"
+}
+
+# Web検索制限チェック関数
+check_web_search_restriction() {
+    if [ -f "stats/last_web_search.txt" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS
+            last_search=$(stat -f %m stats/last_web_search.txt)
+        else
+            # Linux
+            last_search=$(stat -c %Y stats/last_web_search.txt)
+        fi
+        
+        current_time=$(date +%s)
+        diff=$((current_time - last_search))
+        
+        if [ $diff -lt $WEB_SEARCH_RESTRICTION_TIME ]; then
+            # 制限時間未満：Web検索禁止
+            remaining_minutes=$(((WEB_SEARCH_RESTRICTION_TIME - diff + 59) / 60))  # 切り上げ
+            echo "🚫 Web検索は現在制限中（あと約${remaining_minutes}分待機）"
+            return 1
+        else
+            # 制限時間経過：制限解除、ファイル削除
+            rm stats/last_web_search.txt
+            log_info "Web search restriction lifted"
+            return 0
+        fi
+    fi
+    return 0
 }
 
 # artifacts配下の最新ファイル更新時刻をチェックする関数
@@ -93,7 +128,19 @@ while true; do
     printf "\r                                   \r"
 
     echo "Sending heartbeat at $(date "+%F %T")"
-    tmux send-keys -t agent "Heartbeat: $(date "+%F %T")"
+    
+    # Web検索制限チェック
+    web_restriction_msg=$(check_web_search_restriction)
+    
+    # ハートビートメッセージ作成
+    heartbeat_msg="Heartbeat: $(date "+%F %T")"
+    if [ ! -z "$web_restriction_msg" ]; then
+        heartbeat_msg="$heartbeat_msg
+
+$web_restriction_msg"
+    fi
+    
+    tmux send-keys -t agent "$heartbeat_msg"
     sleep 1
     tmux send-keys -t agent C-m
 done
