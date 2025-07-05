@@ -69,7 +69,9 @@ echo ""
 
 # STEP 6: エージェントの初期プロンプト実行
 log_info "💬 エージェントの初期プロンプト実行中..."
-tmux send-keys -t agent "$INIT_PROMPT"
+TIMESTAMP=$(date "+%Y%m%d%H%M%S")
+INIT_PROMPT_WITH_TIMESTAMP="Initial Theme (${TIMESTAMP}): ${INIT_PROMPT}"
+tmux send-keys -t agent "$INIT_PROMPT_WITH_TIMESTAMP"
 sleep 1
 tmux send-keys -t agent C-m
 log_success "✅ エージェントの初期プロンプト実行完了"
