@@ -156,4 +156,5 @@ tmux attach-session -t heartbeat
 ## その他
 
 * geminiは-yオプション(全アクション自動承認モード)で起動しています。ご注意ください。
+* geminiは結構運用を守らずに暴走しがちかもしれません。
 * geminiのweb検索はクォータ制限に達する可能性があります。tavily MCPなど別のweb検索ツールの利用も検討してください。
