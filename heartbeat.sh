@@ -17,11 +17,6 @@ mkdir -p stats
 # Web検索制限メッセージ用グローバル変数
 WEB_RESTRICTION_MESSAGE=""
 
-# スクリプト開始時刻を記録
-HEARTBEAT_START_TIME=$(date +%s)
-HEARTBEAT_START_TIME_FORMATTED=$(date -r $HEARTBEAT_START_TIME "+%F %T")
-log_info "Heartbeat started at $HEARTBEAT_START_TIME_FORMATTED"
-
 # 色付きログ関数
 log_warning() {
     echo -e "\033[1;33m[WARNING]\033[0m $1"
@@ -34,6 +29,11 @@ log_error() {
 log_info() {
     echo -e "\033[1;32m[INFO]\033[0m $1"
 }
+
+# スクリプト開始時刻を記録
+HEARTBEAT_START_TIME=$(date +%s)
+HEARTBEAT_START_TIME_FORMATTED=$(date -r $HEARTBEAT_START_TIME "+%F %T")
+log_info "Heartbeat started at $HEARTBEAT_START_TIME_FORMATTED"
 
 # Web検索制限チェック関数
 check_web_search_restriction() {
@@ -115,53 +115,68 @@ check_recent_activity() {
     diff=$((current_time - latest_time))
     
     # デバッグ情報
+    echo "DEBUG: Raw find output: $latest_file"
+    echo "DEBUG: Extracted time: $latest_time"
+    echo "DEBUG: Extracted filename: $latest_filename"
+    echo "DEBUG: Current time: $current_time"
+    echo "DEBUG: Heartbeat start time: $HEARTBEAT_START_TIME"
     echo "Latest file: $latest_filename ($(date -r $latest_time "+%F %T"))"
     echo "Inactivity duration: $((diff / 60)) minutes"
     echo "Heartbeat start time: $HEARTBEAT_START_TIME_FORMATTED"
+    echo "DEBUG: Comparison: $latest_time < $HEARTBEAT_START_TIME = $([ $latest_time -lt $HEARTBEAT_START_TIME ] && echo "true" || echo "false")"
     
-    # スクリプト開始時刻より前のファイルかチェック
+    # スクリプト開始時刻より前のファイルの場合、開始時刻からの経過時間で判定
     if [ $latest_time -lt $HEARTBEAT_START_TIME ]; then
-        log_info "Latest file is older than heartbeat start time - ignoring for inactivity check"
-        return 0  # スクリプト開始より前のファイルは無活動とみなさない
+        log_info "Latest file is older than heartbeat start time - checking from heartbeat start"
+        diff=$((current_time - HEARTBEAT_START_TIME))
+        echo "Time since heartbeat start: $((diff / 60)) minutes"
     fi
     
     # ファイル名タイムスタンプチェック（思考ログ・テーマログ）
-    filename_only=$(basename "$latest_filename")
-    if [[ "$filename_only" =~ ^[0-9]{14}(_[a-zA-Z]+_.*)?\.md$ ]]; then
-        # ファイル名からタイムスタンプを抽出（最初の14桁）
-        file_timestamp=$(echo "$filename_only" | grep -o '^[0-9]\{14\}')
-        if [ ! -z "$file_timestamp" ]; then
-            # タイムスタンプを秒に変換
-            file_year=${file_timestamp:0:4}
-            file_month=${file_timestamp:4:2}
-            file_day=${file_timestamp:6:2}
-            file_hour=${file_timestamp:8:2}
-            file_minute=${file_timestamp:10:2}
-            file_second=${file_timestamp:12:2}
-            
-            # dateコマンドで秒に変換
-            if [[ "$OSTYPE" == "darwin"* ]]; then
-                # macOS
-                file_time=$(date -j -f "%Y%m%d%H%M%S" "$file_timestamp" "+%s" 2>/dev/null)
-            else
-                # Linux
-                file_time=$(date -d "${file_year}-${file_month}-${file_day} ${file_hour}:${file_minute}:${file_second}" "+%s" 2>/dev/null)
-            fi
-            
-            if [ ! -z "$file_time" ]; then
-                timestamp_diff=$((current_time - file_time))
-                echo "File timestamp: $(date -r $file_time "+%F %T")"
-                echo "Timestamp age: $((timestamp_diff / 60)) minutes"
+    # ただし、開始時間より後に作成されたファイルがない場合はスキップ
+    if [ $latest_time -ge $HEARTBEAT_START_TIME ]; then
+        filename_only=$(basename "$latest_filename")
+        if [[ "$filename_only" =~ ^[0-9]{14}(_[a-zA-Z]+_.*)?\.md$ ]]; then
+            # ファイル名からタイムスタンプを抽出（最初の14桁）
+            file_timestamp=$(echo "$filename_only" | grep -o '^[0-9]\{14\}')
+            if [ ! -z "$file_timestamp" ]; then
+                # タイムスタンプを秒に変換
+                file_year=${file_timestamp:0:4}
+                file_month=${file_timestamp:4:2}
+                file_day=${file_timestamp:6:2}
+                file_hour=${file_timestamp:8:2}
+                file_minute=${file_timestamp:10:2}
+                file_second=${file_timestamp:12:2}
                 
-                # ファイル名タイムスタンプが古すぎる場合は異常検知
-                if [ $timestamp_diff -gt $INACTIVITY_STOP_THRESHOLD ]; then
-                    log_error "Agent appears to be stuck! File timestamp is too old: $((timestamp_diff / 60)) minutes."
-                    log_error "This suggests the agent is continuously updating the same old file."
-                    log_error "Stopping heartbeat to prevent runaway behavior..."
-                    return 2  # 停止レベル
+                # dateコマンドで秒に変換
+                if [[ "$OSTYPE" == "darwin"* ]]; then
+                    # macOS
+                    file_time=$(date -j -f "%Y%m%d%H%M%S" "$file_timestamp" "+%s" 2>/dev/null)
+                else
+                    # Linux
+                    file_time=$(date -d "${file_year}-${file_month}-${file_day} ${file_hour}:${file_minute}:${file_second}" "+%s" 2>/dev/null)
+                fi
+                
+                if [ ! -z "$file_time" ]; then
+                    timestamp_diff=$((current_time - file_time))
+                    echo "File timestamp: $(date -r $file_time "+%F %T")"
+                    echo "Timestamp age: $((timestamp_diff / 60)) minutes"
+                    
+                    # 未来のタイムスタンプの場合はスキップ
+                    if [ $timestamp_diff -lt 0 ]; then
+                        log_warning "File has future timestamp - skipping timestamp check"
+                    # ファイル名タイムスタンプが古すぎる場合は異常検知
+                    elif [ $timestamp_diff -gt $INACTIVITY_STOP_THRESHOLD ]; then
+                        log_error "Agent appears to be stuck! File timestamp is too old: $((timestamp_diff / 60)) minutes."
+                        log_error "This suggests the agent is continuously updating the same old file."
+                        log_error "Stopping heartbeat to prevent runaway behavior..."
+                        return 2  # 停止レベル
+                    fi
                 fi
             fi
         fi
+    else
+        echo "Skipping file timestamp check - latest file is older than heartbeat start"
     fi
     
     # 警告レベルチェック（ファイル更新時刻ベース）
