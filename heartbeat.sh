@@ -17,6 +17,10 @@ mkdir -p stats
 # Web検索制限メッセージ用グローバル変数
 WEB_RESTRICTION_MESSAGE=""
 
+# ループ検出用変数
+LOOP_DETECTION_FILE=""
+LOOP_DETECTION_START_TIME=""
+
 # 色付きログ関数
 log_warning() {
     echo -e "\033[1;33m[WARNING]\033[0m $1"
@@ -179,6 +183,28 @@ check_recent_activity() {
         echo "Skipping file timestamp check - latest file is older than heartbeat start"
     fi
     
+    # ループ検出チェック（同一ファイル継続更新）
+    if [ "$latest_filename" = "$LOOP_DETECTION_FILE" ]; then
+        # 同じファイルが継続して更新されている
+        if [ ! -z "$LOOP_DETECTION_START_TIME" ]; then
+            loop_duration=$((current_time - LOOP_DETECTION_START_TIME))
+            echo "Same file loop duration: $((loop_duration / 60)) minutes"
+            
+            if [ $loop_duration -gt $INACTIVITY_STOP_THRESHOLD ]; then
+                log_error "Agent appears to be stuck! Same file updated continuously for $((loop_duration / 60)) minutes."
+                log_error "File: $latest_filename"
+                log_error "This suggests the agent is in an update loop."
+                log_error "Stopping heartbeat to prevent runaway behavior..."
+                return 2  # 停止レベル
+            fi
+        fi
+    else
+        # 異なるファイルなのでループ検出記録をリセット
+        LOOP_DETECTION_FILE="$latest_filename"
+        LOOP_DETECTION_START_TIME="$current_time"
+        echo "Loop detection reset for new file: $latest_filename"
+    fi
+
     # 警告レベルチェック（ファイル更新時刻ベース）
     if [ $diff -gt $INACTIVITY_STOP_THRESHOLD ]; then
         log_error "Agent appears to be stuck! No file updates for $((diff / 60)) minutes."
