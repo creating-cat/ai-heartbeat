@@ -142,6 +142,14 @@ check_recent_activity() {
 stop_heartbeat() {
     log_info "Heartbeat stopping at $(date "+%F %T")"
     log_info "Reason: Agent inactivity detected"
+
+    # 暴走してるかもしれないエージェント処理をエスケープキーで中断させる
+    # 念の為２回エスケープキーを送る
+    log_info "The agent process will be interrupted...."
+    tmux send-keys -t agent Escape
+    sleep 1
+    tmux send-keys -t agent Escape
+    log_info "Agent processing has been interrupted."
         
     exit 0
 }
