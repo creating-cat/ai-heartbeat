@@ -14,6 +14,7 @@ if [ -z "$INIT_PROMPT" ]; then
 fi
 
 mkdir -p artifacts
+mkdir -p themebox
 
 # 色付きログ関数
 log_info() {
