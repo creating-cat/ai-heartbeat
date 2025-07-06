@@ -95,7 +95,7 @@ graph TD
 システムは主に以下のファイルを生成・管理します：
 * 成果物、思考ログ、システム状態ファイルなど
 
-詳細なファイル構成と役割については [FILES_OVERVIEW.md](FILES_OVERVIEW.md) を参照してください。
+詳細なシステム構成については [SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md) を参照してください。
 
 ## 実行状況をリアルタイムで見る
 
