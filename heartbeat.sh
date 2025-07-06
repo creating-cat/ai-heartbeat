@@ -176,7 +176,49 @@ check_recent_activity() {
         echo "Time since heartbeat start: $((diff / 60)) minutes"
     fi
     
-    # ファイル名タイムスタンプチェック（思考ログ・テーマログ）
+    # 1. 無活動検知（最優先）
+    if [ $diff -gt $INACTIVITY_STOP_THRESHOLD ]; then
+        if [ $RECOVERY_ATTEMPT_COUNT -lt $MAX_RECOVERY_ATTEMPTS ]; then
+            log_warning "Agent appears to be stuck! No file updates for $((diff / 60)) minutes."
+            return 3  # 無活動検知（回復試行）
+        else
+            log_error "Agent appears to be stuck! No file updates for $((diff / 60)) minutes."
+            log_error "Maximum recovery attempts exceeded. Stopping heartbeat..."
+            return 2  # 停止レベル
+        fi
+    elif [ $diff -gt $INACTIVITY_WARNING_THRESHOLD ]; then
+        log_warning "Agent activity is low. No file updates for $((diff / 60)) minutes."
+        return 1  # 警告レベル
+    fi
+    
+    # 2. 同一ファイルループ検知
+    if [ "$latest_filename" = "$LOOP_DETECTION_FILE" ]; then
+        # 同じファイルが継続して更新されている
+        if [ ! -z "$LOOP_DETECTION_START_TIME" ]; then
+            loop_duration=$((current_time - LOOP_DETECTION_START_TIME))
+            echo "Same file loop duration: $((loop_duration / 60)) minutes"
+            
+            if [ $loop_duration -gt $INACTIVITY_STOP_THRESHOLD ]; then
+                if [ $RECOVERY_ATTEMPT_COUNT -lt $MAX_RECOVERY_ATTEMPTS ]; then
+                    log_warning "Agent appears to be stuck! Same file updated continuously for $((loop_duration / 60)) minutes."
+                    log_warning "File: $latest_filename"
+                    return 4  # 同一ファイルループ検知（回復試行）
+                else
+                    log_error "Agent appears to be stuck! Same file updated continuously for $((loop_duration / 60)) minutes."
+                    log_error "File: $latest_filename"
+                    log_error "Maximum recovery attempts exceeded. Stopping heartbeat..."
+                    return 2  # 停止レベル
+                fi
+            fi
+        fi
+    else
+        # 異なるファイルなのでループ検出記録をリセット
+        LOOP_DETECTION_FILE="$latest_filename"
+        LOOP_DETECTION_START_TIME="$current_time"
+        echo "Loop detection reset for new file: $latest_filename"
+    fi
+
+    # 3. ファイル名タイムスタンプチェック（思考ログ・テーマログ）
     # ただし、開始時間より後に作成されたファイルがない場合はスキップ
     if [ $latest_time -ge $HEARTBEAT_START_TIME ]; then
         filename_only=$(basename "$latest_filename")
@@ -227,48 +269,6 @@ check_recent_activity() {
         fi
     else
         echo "Skipping file timestamp check - latest file is older than heartbeat start"
-    fi
-    
-    # ループ検出チェック（同一ファイル継続更新）
-    if [ "$latest_filename" = "$LOOP_DETECTION_FILE" ]; then
-        # 同じファイルが継続して更新されている
-        if [ ! -z "$LOOP_DETECTION_START_TIME" ]; then
-            loop_duration=$((current_time - LOOP_DETECTION_START_TIME))
-            echo "Same file loop duration: $((loop_duration / 60)) minutes"
-            
-            if [ $loop_duration -gt $INACTIVITY_STOP_THRESHOLD ]; then
-                if [ $RECOVERY_ATTEMPT_COUNT -lt $MAX_RECOVERY_ATTEMPTS ]; then
-                    log_warning "Agent appears to be stuck! Same file updated continuously for $((loop_duration / 60)) minutes."
-                    log_warning "File: $latest_filename"
-                    return 4  # 同一ファイルループ検知（回復試行）
-                else
-                    log_error "Agent appears to be stuck! Same file updated continuously for $((loop_duration / 60)) minutes."
-                    log_error "File: $latest_filename"
-                    log_error "Maximum recovery attempts exceeded. Stopping heartbeat..."
-                    return 2  # 停止レベル
-                fi
-            fi
-        fi
-    else
-        # 異なるファイルなのでループ検出記録をリセット
-        LOOP_DETECTION_FILE="$latest_filename"
-        LOOP_DETECTION_START_TIME="$current_time"
-        echo "Loop detection reset for new file: $latest_filename"
-    fi
-
-    # 警告レベルチェック（ファイル更新時刻ベース）
-    if [ $diff -gt $INACTIVITY_STOP_THRESHOLD ]; then
-        if [ $RECOVERY_ATTEMPT_COUNT -lt $MAX_RECOVERY_ATTEMPTS ]; then
-            log_warning "Agent appears to be stuck! No file updates for $((diff / 60)) minutes."
-            return 3  # 無活動検知（回復試行）
-        else
-            log_error "Agent appears to be stuck! No file updates for $((diff / 60)) minutes."
-            log_error "Maximum recovery attempts exceeded. Stopping heartbeat..."
-            return 2  # 停止レベル
-        fi
-    elif [ $diff -gt $INACTIVITY_WARNING_THRESHOLD ]; then
-        log_warning "Agent activity is low. No file updates for $((diff / 60)) minutes."
-        return 1  # 警告レベル
     fi
     
     return 0  # 正常
