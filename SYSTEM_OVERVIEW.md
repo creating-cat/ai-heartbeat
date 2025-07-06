@@ -140,6 +140,82 @@ sequenceDiagram
     deactivate tmux_heartbeat
 ```
 
+## ログ管理
+
+AI心臓システムは、運用監視とデバッグを支援するため、詳細なログ機能を提供します。
+
+### ログファイルの特徴
+
+#### 自動ログ出力
+- **heartbeat.sh**が自動的にログファイルに出力
+- **tmuxアタッチ不要**でシステム状況を確認可能
+- **リアルタイム監視**と**履歴分析**の両方に対応
+
+#### ファイル名形式
+```
+logs/heartbeat_YYYYMMDD_HHMMSS.log
+```
+
+**例**: `logs/heartbeat_20250106_143022.log` (2025年1月6日 14:30:22 開始)
+
+#### ログレベル
+- **[HEARTBEAT]**: ハートビート送信の記録
+- **[INFO]**: システム状態の情報
+- **[WARNING]**: 異常検知と回復試行
+- **[ERROR]**: 重大なエラーと停止処理
+
+### ディレクトリ構造
+```
+logs/
+├── heartbeat_20250106_143022.log    # 14:30:22 開始のセッション
+├── heartbeat_20250106_150145.log    # 15:01:45 開始のセッション
+├── heartbeat_20250106_162330.log    # 16:23:30 開始のセッション
+└── ...
+```
+
+### 自動管理機能
+- **セッション分離**: 各起動で独立したログファイルを作成
+- **自動クリーンアップ**: 30日以上古いログファイルを自動削除
+- **ファイル名衝突回避**: タイムスタンプにより重複を防止
+
+### 実用的な使用方法
+
+#### リアルタイム監視
+```bash
+# 最新のログをリアルタイム監視
+tail -f logs/heartbeat_*.log
+
+# 特定のログファイルを監視
+tail -f logs/heartbeat_20250106_143022.log
+```
+
+#### ログ分析
+```bash
+# エラーのみ確認
+grep "ERROR" logs/heartbeat_*.log
+
+# 回復関連のログ確認
+grep -E "(RECOVERY|recovery)" logs/heartbeat_*.log
+
+# 特定日のログ確認
+ls logs/heartbeat_20250106_*.log
+
+# 特定時間帯のログ確認
+ls logs/heartbeat_*_14*.log  # 14時台開始のセッション
+```
+
+#### ログ内容例
+```
+[2025-01-06 14:30:22] [INFO] Heartbeat started at 2025-01-06 14:30:22 (PID: 12345)
+[2025-01-06 14:30:22] [INFO] Log file: logs/heartbeat_20250106_143022.log
+[2025-01-06 14:31:22] [HEARTBEAT] Heartbeat sent to agent session
+[2025-01-06 14:32:22] [HEARTBEAT] Heartbeat sent to agent session
+[2025-01-06 14:40:15] [WARNING] Abnormal activity detected: 無活動状態 (attempt 1/3)
+[2025-01-06 14:45:20] [INFO] Agent recovery confirmed. Returning to normal state.
+```
+
+この包括的なログ機能により、システムの動作状況を詳細に追跡し、問題の早期発見と効率的なデバッグが可能になります。
+
 ## コアファイル
 
 ### GEMINI.md
