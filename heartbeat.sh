@@ -295,11 +295,19 @@ attempt_recovery() {
     tmux send-keys -t agent "/compress"
     sleep 1
     tmux send-keys -t agent C-m
-    sleep 5  # 圧縮処理の完了を待機
+    sleep 30  # 圧縮処理の完了を待機
     log_info "Context compression completed."
     
     # 回復メッセージを設定し、回復待機状態に移行
-    RECOVERY_MESSAGE="異常検知による回復処理: ${detection_type}を検知したため中断処理を行いました。コンテキストを圧縮してクリアな状態にリセットしました。この件についての内省活動をお勧めします。詳細な対処方法は ai-docs/TROUBLESHOOTING_GUIDE.md を参照してください。"
+    RECOVERY_MESSAGE="異常検知による回復処理: ${detection_type}を検知したため中断処理を行いました。コンテキストを圧縮してクリアな状態にリセットしました。
+
+以下のドキュメントからシステム仕様を再ロードし、あなた自身の動作ルールを再設定してください：
+1. GEMINI.md - AI心臓システムでの基本的な動作ルール
+2. ai-docs/OPERATION_DETAILS.md - 運用詳細ガイド（思考ログ記録、ファイル操作等）
+3. ai-docs/TROUBLESHOOTING_GUIDE.md - 異常状況への対処方法
+4. ai-docs/GUIDELINES.md - 運用ガイドライン
+
+システム仕様の再ロード完了後、適切な内省活動を行い、正常な処理を再開してください。"
     HEARTBEAT_STATE="recovery_waiting"
     RECOVERY_WAIT_CYCLES=0
     
