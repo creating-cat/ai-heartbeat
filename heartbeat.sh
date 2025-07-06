@@ -7,6 +7,9 @@ INTERVAL_SECONDS=60 # 1分
 INACTIVITY_WARNING_THRESHOLD=300  # 5分
 INACTIVITY_STOP_THRESHOLD=600     # 10分
 
+# 内省活動検知の閾値（秒）
+INTROSPECTION_THRESHOLD=900       # 15分
+
 # Web検索制限時間（秒）
 WEB_SEARCH_RESTRICTION_TIME=600   # 10分
 WEB_SEARCH_QUOTA_RESTRICTION_TIME=3600  # 1時間（クォータ制限時）
@@ -145,6 +148,47 @@ check_web_search_restriction() {
     return 0
 }
 
+# 内省活動をチェックする関数
+check_introspection_activity() {
+    local current_time=$(date +%s)
+    
+    # 内省を含むファイルから最新のタイムスタンプを取得
+    local latest_timestamp=$(grep -ril "内省" artifacts/*/histories/* 2>/dev/null | \
+        sed 's|.*/||' | \
+        grep -o '^[0-9]\{14\}' | \
+        sort -r | \
+        head -1)
+    
+    # 内省活動が見つからない場合は初回起動とみなして正常とする
+    if [ -z "$latest_timestamp" ]; then
+        return 0
+    fi
+    
+    # タイムスタンプを秒に変換（1回のみ）
+    local file_time
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        file_time=$(date -j -f "%Y%m%d%H%M%S" "$latest_timestamp" "+%s" 2>/dev/null)
+    else
+        # Linux
+        file_time=$(date -d "${latest_timestamp:0:8} ${latest_timestamp:8:2}:${latest_timestamp:10:2}:${latest_timestamp:12:2}" "+%s" 2>/dev/null)
+    fi
+    
+    if [ -z "$file_time" ]; then
+        return 0  # タイムスタンプ変換失敗時は正常とみなす
+    fi
+    
+    # 15分チェック
+    local introspection_diff=$((current_time - file_time))
+    echo "Last introspection: $((introspection_diff / 60)) minutes ago"
+    
+    if [ $introspection_diff -gt $INTROSPECTION_THRESHOLD ]; then
+        return 1  # 内省活動不足
+    fi
+    
+    return 0  # 正常
+}
+
 # artifacts配下の最新ファイル更新時刻をチェックする関数
 check_recent_activity() {
     if [ ! -d "artifacts" ]; then
@@ -271,6 +315,19 @@ check_recent_activity() {
         echo "Skipping file timestamp check - latest file is older than heartbeat start"
     fi
     
+    # 4. 内省活動不足検知
+    check_introspection_activity
+    if [ $? -eq 1 ]; then
+        if [ $RECOVERY_ATTEMPT_COUNT -lt $MAX_RECOVERY_ATTEMPTS ]; then
+            log_warning "Agent appears to be stuck! No introspection activity for 15 minutes."
+            return 6  # 内省活動不足検知（回復試行）
+        else
+            log_error "Agent appears to be stuck! No introspection activity for 15 minutes."
+            log_error "Maximum recovery attempts exceeded. Stopping heartbeat..."
+            return 2  # 停止レベル
+        fi
+    fi
+    
     return 0  # 正常
 }
 
@@ -299,7 +356,8 @@ attempt_recovery() {
     log_info "Context compression completed."
     
     # 回復メッセージを設定し、回復待機状態に移行
-    RECOVERY_MESSAGE="異常検知による回復処理: ${detection_type}を検知したため中断処理を行いました。コンテキストを圧縮してクリアな状態にリセットしました。
+    RECOVERY_MESSAGE="異常検知による回復処理: ${detection_type}を検知したため中断処理を行いました。
+コンテキストを圧縮してクリアな状態にリセットしました。
 
 以下のドキュメントからシステム仕様を再ロードし、あなた自身の動作ルールを再設定してください：
 1. GEMINI.md - AI心臓システムでの基本的な動作ルール
@@ -307,7 +365,8 @@ attempt_recovery() {
 3. ai-docs/TROUBLESHOOTING_GUIDE.md - 異常状況への対処方法
 4. ai-docs/GUIDELINES.md - 運用ガイドライン
 
-システム仕様の再ロード完了後、適切な内省活動を行い、正常な処理を再開してください。"
+システム仕様の再ロード完了後、適切な内省活動を行い、正常な処理を再開してください。
+また、異常検知に長期の活動による影響が考えられる場合、新規テーマ移行を検討してみてもいいかもしれません。"
     HEARTBEAT_STATE="recovery_waiting"
     RECOVERY_WAIT_CYCLES=0
     
@@ -416,6 +475,7 @@ while true; do
             3) attempt_recovery "無活動状態" ;;
             4) attempt_recovery "同一ファイル継続更新ループ" ;;
             5) attempt_recovery "最新ファイル名タイムスタンプ異常" ;;
+            6) attempt_recovery "内省活動不足" ;;
             2) stop_heartbeat ;;
         esac
     fi
