@@ -289,7 +289,7 @@ attempt_recovery() {
     log_info "Agent processing has been interrupted."
     
     # 回復メッセージを設定し、回復待機状態に移行
-    RECOVERY_MESSAGE="異常検知による回復処理: ${detection_type}を検知したため中断処理を行いました。この件についての内省活動をお勧めします。"
+    RECOVERY_MESSAGE="異常検知による回復処理: ${detection_type}を検知したため中断処理を行いました。この件についての内省活動をお勧めします。詳細な対処方法は ai-docs/TROUBLESHOOTING_GUIDE.md を参照してください。"
     HEARTBEAT_STATE="recovery_waiting"
     RECOVERY_WAIT_CYCLES=0
     
