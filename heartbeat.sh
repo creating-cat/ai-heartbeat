@@ -21,6 +21,16 @@ WEB_RESTRICTION_MESSAGE=""
 LOOP_DETECTION_FILE=""
 LOOP_DETECTION_START_TIME=""
 
+# 回復処理用変数
+RECOVERY_MESSAGE=""
+RECOVERY_ATTEMPT_COUNT=0
+MAX_RECOVERY_ATTEMPTS=3
+
+# 状態管理用変数
+HEARTBEAT_STATE="normal"  # normal / recovery_waiting
+RECOVERY_WAIT_CYCLES=0
+MAX_RECOVERY_WAIT_CYCLES=5
+
 # 色付きログ関数
 log_warning() {
     echo -e "\033[1;33m[WARNING]\033[0m $1"
@@ -171,10 +181,16 @@ check_recent_activity() {
                         log_warning "File has future timestamp - skipping timestamp check"
                     # ファイル名タイムスタンプが古すぎる場合は異常検知
                     elif [ $timestamp_diff -gt $INACTIVITY_STOP_THRESHOLD ]; then
-                        log_error "Agent appears to be stuck! File timestamp is too old: $((timestamp_diff / 60)) minutes."
-                        log_error "This suggests the agent is continuously updating the same old file."
-                        log_error "Stopping heartbeat to prevent runaway behavior..."
-                        return 2  # 停止レベル
+                        if [ $RECOVERY_ATTEMPT_COUNT -lt $MAX_RECOVERY_ATTEMPTS ]; then
+                            log_warning "Agent appears to be stuck! File timestamp is too old: $((timestamp_diff / 60)) minutes."
+                            log_warning "This suggests the agent is continuously updating the same old file."
+                            return 5  # タイムスタンプ異常検知（回復試行）
+                        else
+                            log_error "Agent appears to be stuck! File timestamp is too old: $((timestamp_diff / 60)) minutes."
+                            log_error "This suggests the agent is continuously updating the same old file."
+                            log_error "Maximum recovery attempts exceeded. Stopping heartbeat..."
+                            return 2  # 停止レベル
+                        fi
                     fi
                 fi
             fi
@@ -191,11 +207,16 @@ check_recent_activity() {
             echo "Same file loop duration: $((loop_duration / 60)) minutes"
             
             if [ $loop_duration -gt $INACTIVITY_STOP_THRESHOLD ]; then
-                log_error "Agent appears to be stuck! Same file updated continuously for $((loop_duration / 60)) minutes."
-                log_error "File: $latest_filename"
-                log_error "This suggests the agent is in an update loop."
-                log_error "Stopping heartbeat to prevent runaway behavior..."
-                return 2  # 停止レベル
+                if [ $RECOVERY_ATTEMPT_COUNT -lt $MAX_RECOVERY_ATTEMPTS ]; then
+                    log_warning "Agent appears to be stuck! Same file updated continuously for $((loop_duration / 60)) minutes."
+                    log_warning "File: $latest_filename"
+                    return 4  # 同一ファイルループ検知（回復試行）
+                else
+                    log_error "Agent appears to be stuck! Same file updated continuously for $((loop_duration / 60)) minutes."
+                    log_error "File: $latest_filename"
+                    log_error "Maximum recovery attempts exceeded. Stopping heartbeat..."
+                    return 2  # 停止レベル
+                fi
             fi
         fi
     else
@@ -207,9 +228,14 @@ check_recent_activity() {
 
     # 警告レベルチェック（ファイル更新時刻ベース）
     if [ $diff -gt $INACTIVITY_STOP_THRESHOLD ]; then
-        log_error "Agent appears to be stuck! No file updates for $((diff / 60)) minutes."
-        log_error "Stopping heartbeat to prevent runaway behavior..."
-        return 2  # 停止レベル
+        if [ $RECOVERY_ATTEMPT_COUNT -lt $MAX_RECOVERY_ATTEMPTS ]; then
+            log_warning "Agent appears to be stuck! No file updates for $((diff / 60)) minutes."
+            return 3  # 無活動検知（回復試行）
+        else
+            log_error "Agent appears to be stuck! No file updates for $((diff / 60)) minutes."
+            log_error "Maximum recovery attempts exceeded. Stopping heartbeat..."
+            return 2  # 停止レベル
+        fi
     elif [ $diff -gt $INACTIVITY_WARNING_THRESHOLD ]; then
         log_warning "Agent activity is low. No file updates for $((diff / 60)) minutes."
         return 1  # 警告レベル
@@ -218,14 +244,66 @@ check_recent_activity() {
     return 0  # 正常
 }
 
+# 回復処理
+attempt_recovery() {
+    local detection_type=$1
+    RECOVERY_ATTEMPT_COUNT=$((RECOVERY_ATTEMPT_COUNT + 1))
+    
+    log_warning "Abnormal activity detected: $detection_type"
+    log_info "Attempting recovery (attempt $RECOVERY_ATTEMPT_COUNT/$MAX_RECOVERY_ATTEMPTS)"
+    
+    # エージェント処理を中断
+    log_info "Interrupting agent process..."
+    tmux send-keys -t agent Escape
+    sleep 1
+    tmux send-keys -t agent Escape
+    log_info "Agent processing has been interrupted."
+    
+    # 回復メッセージを設定し、回復待機状態に移行
+    RECOVERY_MESSAGE="異常検知による回復処理: ${detection_type}を検知したため中断処理を行いました。この件についての内省活動をお勧めします。"
+    HEARTBEAT_STATE="recovery_waiting"
+    RECOVERY_WAIT_CYCLES=0
+    
+    log_info "Recovery message will be sent, then entering recovery waiting state."
+}
+
+# 回復状況確認
+check_recovery_status() {
+    if [ ! -d "artifacts" ]; then
+        return 1  # artifacts がない場合は回復していない
+    fi
+    
+    # 最新ファイルの更新時刻を取得
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        latest_file=$(find artifacts -type f -exec stat -f "%m %N" {} \; 2>/dev/null | sort -nr | head -1)
+    else
+        latest_file=$(find artifacts -type f -exec stat -c "%Y %n" {} \; 2>/dev/null | sort -nr | head -1)
+    fi
+    
+    if [ -z "$latest_file" ]; then
+        return 1  # ファイルがない場合は回復していない
+    fi
+    
+    latest_time=$(echo $latest_file | cut -d' ' -f1)
+    current_time=$(date +%s)
+    diff=$((current_time - latest_time))
+    
+    # 最新ファイルが新しい（5分以内）場合は回復とみなす
+    if [ $diff -le 300 ]; then
+        log_info "Recovery detected: New file activity found"
+        return 0  # 回復確認
+    else
+        return 1  # まだ回復していない
+    fi
+}
+
 # 停止処理
 stop_heartbeat() {
+    log_error "Maximum recovery attempts ($MAX_RECOVERY_ATTEMPTS) exceeded or critical error detected"
     log_info "Heartbeat stopping at $(date "+%F %T")"
-    log_info "Reason: Agent inactivity detected"
 
-    # 暴走してるかもしれないエージェント処理をエスケープキーで中断させる
-    # 念の為２回エスケープキーを送る
-    log_info "The agent process will be interrupted...."
+    # 最終的なエージェント処理中断
+    log_info "Final agent process interruption..."
     tmux send-keys -t agent Escape
     sleep 1
     tmux send-keys -t agent Escape
@@ -239,13 +317,60 @@ log_info "Warning threshold: $((INACTIVITY_WARNING_THRESHOLD / 60)) minutes"
 log_info "Stop threshold: $((INACTIVITY_STOP_THRESHOLD / 60)) minutes"
 
 while true; do
-    # 活動チェック
-    check_recent_activity
-    activity_status=$?
+    if [ "$HEARTBEAT_STATE" = "recovery_waiting" ]; then
+        # 回復待機状態：回復確認のみ実行
+        echo "Recovery waiting state (cycle $((RECOVERY_WAIT_CYCLES + 1))/$MAX_RECOVERY_WAIT_CYCLES)"
+        
+        check_recovery_status
+        if [ $? -eq 0 ]; then
+            # 回復確認
+            log_info "Agent recovery confirmed. Returning to normal state."
+            HEARTBEAT_STATE="normal"
+            RECOVERY_WAIT_CYCLES=0
+            RECOVERY_ATTEMPT_COUNT=0  # 回復成功時に試行回数をリセット
+        else
+            # まだ回復していない
+            RECOVERY_WAIT_CYCLES=$((RECOVERY_WAIT_CYCLES + 1))
+            log_info "Recovery not yet confirmed. Waiting... ($RECOVERY_WAIT_CYCLES/$MAX_RECOVERY_WAIT_CYCLES)"
+            
+            if [ $RECOVERY_WAIT_CYCLES -ge $MAX_RECOVERY_WAIT_CYCLES ]; then
+                # 回復待機タイムアウト
+                if [ $RECOVERY_ATTEMPT_COUNT -lt $MAX_RECOVERY_ATTEMPTS ]; then
+                    log_warning "Recovery wait timeout. Returning to normal state for next recovery attempt..."
+                    # 状態をリセットして通常状態に戻す（次のサイクルで再度異常検知→回復試行される）
+                    HEARTBEAT_STATE="normal"
+                    RECOVERY_WAIT_CYCLES=0
+                else
+                    log_error "Recovery wait timeout and maximum attempts exceeded."
+                    stop_heartbeat
+                fi
+            fi
+        fi
+        
+        # 回復待機中はハートビート送信をスキップ
+        if [ "$HEARTBEAT_STATE" = "recovery_waiting" ]; then
+            # カウントダウンのみ実行
+            for i in $(seq ${INTERVAL_SECONDS} -1 1); do
+                printf "\r[RECOVERY WAIT] Next check in %2d seconds... " "$i"
+                sleep 1
+            done
+            printf "\r                                           \r"
+            continue
+        fi
+    fi
     
-    if [ $activity_status -eq 2 ]; then
-        # 停止レベル
-        stop_heartbeat
+    # 通常状態：通常の活動チェックとハートビート送信
+    if [ "$HEARTBEAT_STATE" = "normal" ]; then
+        # 活動チェック
+        check_recent_activity
+        activity_status=$?
+        
+        case $activity_status in
+            3) attempt_recovery "無活動検知" ;;
+            4) attempt_recovery "同一ファイル継続更新ループ" ;;
+            5) attempt_recovery "ファイル名タイムスタンプ異常" ;;
+            2) stop_heartbeat ;;
+        esac
     fi
     
     # カウントダウン
@@ -264,10 +389,21 @@ while true; do
     
     # ハートビートメッセージ作成
     heartbeat_msg="Heartbeat: $(date "+%Y%m%d%H%M%S")"
+    
+    # Web検索制限メッセージ追加
     if [ ! -z "$WEB_RESTRICTION_MESSAGE" ]; then
         heartbeat_msg="$heartbeat_msg
 
 $WEB_RESTRICTION_MESSAGE"
+    fi
+    
+    # 回復メッセージ追加
+    if [ ! -z "$RECOVERY_MESSAGE" ]; then
+        heartbeat_msg="$heartbeat_msg
+
+$RECOVERY_MESSAGE"
+        RECOVERY_MESSAGE=""  # 一度使ったらクリア
+        log_info "Recovery message included in heartbeat"
     fi
     
     tmux send-keys -t agent "$heartbeat_msg"
