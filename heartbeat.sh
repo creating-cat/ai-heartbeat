@@ -286,14 +286,24 @@ attempt_recovery() {
     tmux send-keys -t agent Escape
     sleep 1
     tmux send-keys -t agent Escape
+    sleep 1
     log_info "Agent processing has been interrupted."
+
+
+    # コンテキスト圧縮を実行
+    log_info "Sending context compression command..."
+    tmux send-keys -t agent "/compress"
+    sleep 1
+    tmux send-keys -t agent C-m
+    sleep 5  # 圧縮処理の完了を待機
+    log_info "Context compression completed."
     
     # 回復メッセージを設定し、回復待機状態に移行
-    RECOVERY_MESSAGE="異常検知による回復処理: ${detection_type}を検知したため中断処理を行いました。この件についての内省活動をお勧めします。詳細な対処方法は ai-docs/TROUBLESHOOTING_GUIDE.md を参照してください。"
+    RECOVERY_MESSAGE="異常検知による回復処理: ${detection_type}を検知したため中断処理を行いました。コンテキストを圧縮してクリアな状態にリセットしました。この件についての内省活動をお勧めします。詳細な対処方法は ai-docs/TROUBLESHOOTING_GUIDE.md を参照してください。"
     HEARTBEAT_STATE="recovery_waiting"
     RECOVERY_WAIT_CYCLES=0
     
-    log_info "Recovery message will be sent, then entering recovery waiting state."
+    log_info "Context compression and recovery message prepared, entering recovery waiting state."
 }
 
 # 回復状況確認
