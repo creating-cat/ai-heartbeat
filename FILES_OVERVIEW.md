@@ -106,6 +106,40 @@ AIエージェント → TROUBLESHOOTING_GUIDE.md参照 → 内省・回復
 - **処理**: heartbeat.sh→AIエージェント→GEMINI.md→ai-docs/
 - **出力**: AIエージェント→artifacts/、AIエージェント→stats/
 
+### 詳細なシーケンス図
+
+以下のシーケンス図は、システムの起動から停止までの一連の処理が、時間と共にどのように連携して実行されるかを示しています。
+
+```mermaid
+sequenceDiagram
+    participant User as 👤 ユーザー
+    participant setup_sh as setup.sh
+    participant tmux_agent as 🤖 AI Agent
+    participant tmux_heartbeat as ❤️ Heartbeat
+    participant stop_sh as stop.sh
+
+    User->>setup_sh: ./setup.sh "テーマ" を実行
+    activate setup_sh
+    setup_sh->>tmux_agent: 起動 & 初期プロンプト送信
+    setup_sh->>tmux_heartbeat: 起動 (./heartbeat.sh)
+    deactivate setup_sh
+
+    activate tmux_heartbeat
+    loop 定期的な鼓動 (例: 60秒ごと)
+        tmux_heartbeat->>tmux_agent: ❤️ Heartbeat信号を送信
+        activate tmux_agent
+        Note over tmux_agent: 思考・観測・創造...
+        tmux_agent-->>tmux_agent: artifacts/ にファイル出力
+        deactivate tmux_agent
+    end
+    
+    User->>stop_sh: ./stop.sh を実行
+    activate stop_sh
+    stop_sh->>tmux_heartbeat: 停止信号 (Ctrl-C)
+    deactivate stop_sh
+    deactivate tmux_heartbeat
+```
+
 ## コアファイル
 
 ### GEMINI.md

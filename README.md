@@ -47,43 +47,7 @@ graph TD
     Stop -- "停止信号" --> Heartbeat
 ```
 
-以下のシーケンス図は、システムの起動から停止までの一連の処理が、時間と共にどのように連携して実行されるかを示しています。
-ユーザーがsetup.shでシステムを起動すると、heartbeatセッションが定期的にagentセッションへと思考のきっかけとなる「鼓動」を送り続けます。
-agentセッションはその都度、GEMINI.mdのルールに従って思考や創造を行い、成果物を生成します。
-このサイクルは、ユーザーがstop.shで停止信号を送るまで継続されます。
-
-
-```mermaid
-sequenceDiagram
-    participant User as 👤 ユーザー
-    participant setup_sh as setup.sh
-    participant tmux_agent as 🤖 AI Agent
-    participant tmux_heartbeat as ❤️ Heartbeat
-    participant stop_sh as stop.sh
-
-    User->>setup_sh: ./setup.sh "テーマ" を実行
-    activate setup_sh
-    setup_sh->>tmux_agent: 起動 & 初期プロンプト送信
-    setup_sh->>tmux_heartbeat: 起動 (./heartbeat.sh)
-    deactivate setup_sh
-
-    activate tmux_heartbeat
-    loop 定期的な鼓動 (例: 60秒ごと)
-        tmux_heartbeat->>tmux_agent: ❤️ Heartbeat信号を送信
-        activate tmux_agent
-        Note over tmux_agent: 思考・観測・創造...
-        tmux_agent-->>tmux_agent: artifacts/ にファイル出力
-        deactivate tmux_agent
-    end
-    
-    User->>stop_sh: ./stop.sh を実行
-    activate stop_sh
-    stop_sh->>tmux_heartbeat: 停止信号 (Ctrl-C)
-    deactivate stop_sh
-    deactivate tmux_heartbeat
-```
-
-最も重要なのはコンテキストです。ただ定期的にタスクをこなすのではなく、継続的に進化していくというコンテキストを与えていることで、このシステムはうまく機能しています。多分。
+最も重要なのは**継続的な成長**というコンテキストです。単なるタスク実行ではなく、積み重ねによる学習・発展・深化を通じて、AIがより高度で創造的な存在へと進化していくことを目指しています。
 
 
 ## システム要件
@@ -160,55 +124,11 @@ tmux attach-session -t heartbeat
 
 ## themebox機能（テーマ事前準備）
 
-システムを停止せずに新しいテーマを投入できる機能です：
-
-### 使用方法
-1. `themebox/`ディレクトリにマークダウンファイルを作成
-2. ファイル内容に新しいテーマを記述
-3. AIがテーマ移行を判断した際に自動的に選択・使用
-
-### ファイル命名ルール
-* **優先順位**: ソート順（連番推奨）
-* **編集中**: `draft.`プレフィックスで無視される
-* **使用済み**: 自動的に`processed.`プレフィックスが付与
-
-### 例
-```
-themebox/
-├── 001_量子コンピューティング研究.md
-├── 002_創作活動.md
-├── draft.003_まだ考え中.md          # 無視される
-└── processed.000_使用済み.md        # 使用済み
-```
+システムを停止せずに新しいテーマを投入できる機能です。`themebox/`ディレクトリにマークダウンファイルを作成すると、AIがテーマ移行時に自動選択します。
 
 ## テーマ履歴追跡システム
 
-AIの長期的な探求の変遷を自動記録・追跡するシステムです：
-
-### 自動記録される情報
-* **テーマ開始記録**: 新しいテーマの開始理由、活動内容、ディレクトリ名
-* **テーマ終了記録**: 終了理由、活動期間、主な成果の概要
-* **変遷の追跡**: テーマ間の関連性や移行の流れ
-
-### 記録ファイルの構成
-```
-artifacts/theme_histories/
-├── 20250705143000_start_ai_research.md      # テーマ開始記録
-├── 20250705180000_end_ai_research.md        # テーマ終了記録
-├── 20250705180100_start_quantum_study.md    # 次テーマ開始記録
-└── ...
-```
-
-### 活用方法
-* **探求の振り返り**: どのようなテーマを経て現在に至ったかを確認
-* **関心の変化分析**: AIの関心がどう変化・発展してきたかを分析
-* **成果の整理**: 各テーマでの主要な成果を一覧で把握
-* **再開時の参考**: システム再起動時に過去の探求履歴を参照
-
-### 記録タイミング
-* **自動記録**: テーマ開始・終了時にAIが自動的に記録
-* **themebox使用時**: 事前準備テーマ選択時も自動記録
-* **システム停止時**: 現在テーマの終了記録を作成
+AIの長期的な探求の変遷を自動記録・追跡するシステムです。テーマの開始・終了が自動記録され、AIの成長過程を可視化できます。
 
 ## ライセンス
 
