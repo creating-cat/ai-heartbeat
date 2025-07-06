@@ -366,9 +366,9 @@ while true; do
         activity_status=$?
         
         case $activity_status in
-            3) attempt_recovery "無活動検知" ;;
+            3) attempt_recovery "無活動状態" ;;
             4) attempt_recovery "同一ファイル継続更新ループ" ;;
-            5) attempt_recovery "ファイル名タイムスタンプ異常" ;;
+            5) attempt_recovery "最新ファイル名タイムスタンプ異常" ;;
             2) stop_heartbeat ;;
         esac
     fi
