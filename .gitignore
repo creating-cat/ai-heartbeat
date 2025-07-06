@@ -1,5 +1,6 @@
 artifacts/
 stats/
 themebox/
+logs/
 
 *.local

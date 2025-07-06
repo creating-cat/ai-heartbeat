@@ -31,23 +31,64 @@ HEARTBEAT_STATE="normal"  # normal / recovery_waiting
 RECOVERY_WAIT_CYCLES=0
 MAX_RECOVERY_WAIT_CYCLES=5
 
-# 色付きログ関数
+# ログファイル設定
+LOG_DIR="logs"
+# ログファイル名は起動時のタイムスタンプ付き（例: heartbeat_20250106_143022.log）
+LOG_FILE="$LOG_DIR/heartbeat_$(date "+%Y%m%d_%H%M%S").log"
+MAX_LOG_DAYS=30  # 30日以上古いログファイルを削除
+
+# 古いログファイルのクリーンアップ関数
+cleanup_old_logs() {
+    if [ -d "$LOG_DIR" ]; then
+        # 30日以上古いheartbeatログファイルを削除
+        find "$LOG_DIR" -name "heartbeat_*.log" -type f -mtime +$MAX_LOG_DAYS -delete 2>/dev/null
+    fi
+}
+
+# ログ初期化
+setup_logging() {
+    mkdir -p "$LOG_DIR"
+    touch "$LOG_FILE"
+    cleanup_old_logs
+}
+
+# 色付きログ関数（ファイル出力機能付き）
 log_warning() {
-    echo -e "\033[1;33m[WARNING]\033[0m $1"
+    local message="$1"
+    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+    echo -e "\033[1;33m[WARNING]\033[0m $message"
+    echo "[$timestamp] [WARNING] $message" >> "$LOG_FILE"
 }
 
 log_error() {
-    echo -e "\033[1;31m[ERROR]\033[0m $1"
+    local message="$1"
+    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+    echo -e "\033[1;31m[ERROR]\033[0m $message"
+    echo "[$timestamp] [ERROR] $message" >> "$LOG_FILE"
 }
 
 log_info() {
-    echo -e "\033[1;32m[INFO]\033[0m $1"
+    local message="$1"
+    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+    echo -e "\033[1;32m[INFO]\033[0m $message"
+    echo "[$timestamp] [INFO] $message" >> "$LOG_FILE"
 }
+
+log_heartbeat() {
+    local message="$1"
+    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+    echo "Sending heartbeat at $(date "+%F %T")"
+    echo "[$timestamp] [HEARTBEAT] $message" >> "$LOG_FILE"
+}
+
+# ログ初期化
+setup_logging
 
 # スクリプト開始時刻を記録
 HEARTBEAT_START_TIME=$(date +%s)
 HEARTBEAT_START_TIME_FORMATTED=$(date -r $HEARTBEAT_START_TIME "+%F %T")
-log_info "Heartbeat started at $HEARTBEAT_START_TIME_FORMATTED"
+log_info "Heartbeat started at $HEARTBEAT_START_TIME_FORMATTED (PID: $$)"
+log_info "Log file: $LOG_FILE"
 
 # Web検索制限チェック関数
 check_web_search_restriction() {
@@ -127,17 +168,6 @@ check_recent_activity() {
     latest_filename=$(echo $latest_file | cut -d' ' -f2-)
     current_time=$(date +%s)
     diff=$((current_time - latest_time))
-    
-    # デバッグ情報
-    echo "DEBUG: Raw find output: $latest_file"
-    echo "DEBUG: Extracted time: $latest_time"
-    echo "DEBUG: Extracted filename: $latest_filename"
-    echo "DEBUG: Current time: $current_time"
-    echo "DEBUG: Heartbeat start time: $HEARTBEAT_START_TIME"
-    echo "Latest file: $latest_filename ($(date -r $latest_time "+%F %T"))"
-    echo "Inactivity duration: $((diff / 60)) minutes"
-    echo "Heartbeat start time: $HEARTBEAT_START_TIME_FORMATTED"
-    echo "DEBUG: Comparison: $latest_time < $HEARTBEAT_START_TIME = $([ $latest_time -lt $HEARTBEAT_START_TIME ] && echo "true" || echo "false")"
     
     # スクリプト開始時刻より前のファイルの場合、開始時刻からの経過時間で判定
     if [ $latest_time -lt $HEARTBEAT_START_TIME ]; then
@@ -249,8 +279,7 @@ attempt_recovery() {
     local detection_type=$1
     RECOVERY_ATTEMPT_COUNT=$((RECOVERY_ATTEMPT_COUNT + 1))
     
-    log_warning "Abnormal activity detected: $detection_type"
-    log_info "Attempting recovery (attempt $RECOVERY_ATTEMPT_COUNT/$MAX_RECOVERY_ATTEMPTS)"
+    log_warning "Abnormal activity detected: $detection_type (attempt $RECOVERY_ATTEMPT_COUNT/$MAX_RECOVERY_ATTEMPTS)"
     
     # エージェント処理を中断
     log_info "Interrupting agent process..."
@@ -382,7 +411,7 @@ while true; do
     # カウントダウン表示をクリア
     printf "\r                                   \r"
 
-    echo "Sending heartbeat at $(date "+%F %T")"
+    log_heartbeat "Heartbeat sent to agent session"
     
     # Web検索制限チェック
     check_web_search_restriction
