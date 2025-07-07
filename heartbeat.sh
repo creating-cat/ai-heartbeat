@@ -14,6 +14,9 @@ INTROSPECTION_THRESHOLD=900       # 15分
 WEB_SEARCH_RESTRICTION_TIME=600   # 10分
 WEB_SEARCH_QUOTA_RESTRICTION_TIME=3600  # 1時間（クォータ制限時）
 
+# 監視対象ディレクトリ設定
+MONITORED_DIRS=("artifacts" "external_projects")
+
 # statsディレクトリ作成
 mkdir -p stats
 
@@ -189,19 +192,27 @@ check_introspection_activity() {
     return 0  # 正常
 }
 
-# artifacts配下の最新ファイル更新時刻をチェックする関数
+# 監視対象ディレクトリ配下の最新ファイル更新時刻をチェックする関数
 check_recent_activity() {
-    if [ ! -d "artifacts" ]; then
-        return 0  # artifacts がない場合は正常とみなす
+    # 監視対象ディレクトリの存在確認
+    local existing_dirs=()
+    for dir in "${MONITORED_DIRS[@]}"; do
+        if [ -d "$dir" ]; then
+            existing_dirs+=("$dir")
+        fi
+    done
+    
+    if [ ${#existing_dirs[@]} -eq 0 ]; then
+        return 0  # 監視対象ディレクトリがない場合は正常とみなす
     fi
     
-    # 最新ファイルの更新時刻を取得（macOS対応）
+    # 複数ディレクトリから最新ファイルの更新時刻を取得（macOS対応）
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS
-        latest_file=$(find artifacts -type f -exec stat -f "%m %N" {} \; 2>/dev/null | sort -nr | head -1)
+        latest_file=$(find "${existing_dirs[@]}" -type f -exec stat -f "%m %N" {} \; 2>/dev/null | sort -nr | head -1)
     else
         # Linux
-        latest_file=$(find artifacts -type f -exec stat -c "%Y %n" {} \; 2>/dev/null | sort -nr | head -1)
+        latest_file=$(find "${existing_dirs[@]}" -type f -exec stat -c "%Y %n" {} \; 2>/dev/null | sort -nr | head -1)
     fi
     
     if [ -z "$latest_file" ]; then
@@ -375,15 +386,23 @@ attempt_recovery() {
 
 # 回復状況確認
 check_recovery_status() {
-    if [ ! -d "artifacts" ]; then
-        return 1  # artifacts がない場合は回復していない
+    # 監視対象ディレクトリの存在確認
+    local existing_dirs=()
+    for dir in "${MONITORED_DIRS[@]}"; do
+        if [ -d "$dir" ]; then
+            existing_dirs+=("$dir")
+        fi
+    done
+    
+    if [ ${#existing_dirs[@]} -eq 0 ]; then
+        return 1  # 監視対象ディレクトリがない場合は回復していない
     fi
     
-    # 最新ファイルの更新時刻を取得
+    # 複数ディレクトリから最新ファイルの更新時刻を取得
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        latest_file=$(find artifacts -type f -exec stat -f "%m %N" {} \; 2>/dev/null | sort -nr | head -1)
+        latest_file=$(find "${existing_dirs[@]}" -type f -exec stat -f "%m %N" {} \; 2>/dev/null | sort -nr | head -1)
     else
-        latest_file=$(find artifacts -type f -exec stat -c "%Y %n" {} \; 2>/dev/null | sort -nr | head -1)
+        latest_file=$(find "${existing_dirs[@]}" -type f -exec stat -c "%Y %n" {} \; 2>/dev/null | sort -nr | head -1)
     fi
     
     if [ -z "$latest_file" ]; then
@@ -419,6 +438,7 @@ stop_heartbeat() {
 }
 
 log_info "Heartbeat monitor started at $(date "+%F %T")"
+log_info "Monitored directories: ${MONITORED_DIRS[*]}"
 log_info "Warning threshold: $((INACTIVITY_WARNING_THRESHOLD / 60)) minutes"
 log_info "Stop threshold: $((INACTIVITY_STOP_THRESHOLD / 60)) minutes"
 
