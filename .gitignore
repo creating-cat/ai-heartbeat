@@ -4,4 +4,4 @@ themebox/
 logs/
 
 *.local
-external_projects/
+projects/

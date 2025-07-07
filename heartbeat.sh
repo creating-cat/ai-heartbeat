@@ -15,7 +15,7 @@ WEB_SEARCH_RESTRICTION_TIME=600   # 10分
 WEB_SEARCH_QUOTA_RESTRICTION_TIME=3600  # 1時間（クォータ制限時）
 
 # 監視対象ディレクトリ設定
-MONITORED_DIRS=("artifacts" "external_projects")
+MONITORED_DIRS=("artifacts" "projects")
 
 # statsディレクトリ作成
 mkdir -p stats
