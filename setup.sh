@@ -15,6 +15,7 @@ fi
 
 mkdir -p artifacts
 mkdir -p themebox
+mkdir -p projects
 
 # 色付きログ関数
 log_info() {
