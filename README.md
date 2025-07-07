@@ -97,6 +97,12 @@ graph TD
 
 詳細なシステム構成については [SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md) を参照してください。
 
+## 実行結果サンプル
+
+* 以下のリポジトリに実行結果を格納しています。
+  * https://github.com/creating-cat/ai-heartbeat-test-results
+
+
 ## 実行状況をリアルタイムで見る
 
 * 適当に新規のターミナルセッションを開いて以下を実行してセッションをアタッチする
