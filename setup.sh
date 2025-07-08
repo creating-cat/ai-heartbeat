@@ -2,6 +2,17 @@
 
 set -e  # エラー時に停止
 
+# --- 依存コマンドチェック ---
+check_command() {
+    if ! command -v "$1" &> /dev/null; then
+        echo -e "\033[1;31m[ERROR]\033[0m コマンドが見つかりません: $1"
+        echo "README.mdのシステム要件に従ってインストールしてください。"
+        exit 1
+    fi
+}
+check_command "tmux"
+check_command "gemini"
+
 # AIエージェント起動コマンド
 AGENT_COMMAND="gemini -y"
 
