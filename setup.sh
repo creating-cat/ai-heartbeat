@@ -5,17 +5,80 @@ set -e  # エラー時に停止
 # AIエージェント起動コマンド
 AGENT_COMMAND="gemini -y"
 
-# 初期プロンプト
-INIT_PROMPT=$1
-
-if [ -z "$INIT_PROMPT" ]; then
-    echo "初期プロンプトを引数として指定してください。"
+# 使用方法表示
+usage() {
+    echo "使用方法: $0 [オプション] <テーマ文字列>"
+    echo "オプション:"
+    echo "  -f, --file <ファイル>   指定したファイルから初期テーマを読み込む"
+    echo "  -d, --dirs-only        必要なディレクトリのみを作成して終了（tmuxセッションやエージェントは起動しない）"
+    echo "  -h, --help             このヘルプメッセージを表示"
     exit 1
+}
+
+# 引数解析
+INIT_PROMPT=""
+FILE_INPUT=""
+DIRS_ONLY=false
+
+# 引数がない場合はヘルプを表示
+if [ $# -eq 0 ]; then
+    usage
+fi
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -f|--file)
+            if [ -z "$2" ] || [[ "$2" == -* ]]; then
+                echo "エラー: -f/--file オプションにはファイル名が必要です"
+                usage
+            fi
+            FILE_INPUT="$2"
+            shift 2
+            ;;
+        -d|--dirs-only)
+            DIRS_ONLY=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            ;;
+        *)
+            INIT_PROMPT="$1"
+            shift
+            ;;
+    esac
+done
+
+# テーマ取得
+if [ -n "$FILE_INPUT" ]; then
+    if [ ! -f "$FILE_INPUT" ]; then
+        echo "エラー: ファイル '$FILE_INPUT' が見つかりません"
+        exit 1
+    fi
+    # ファイルからテーマを読み込む
+    INIT_PROMPT=$(cat "$FILE_INPUT")
+    echo "ファイル '$FILE_INPUT' からテーマを読み込みました"
+fi
+
+# テーマが空の場合はエラー（ディレクトリ作成のみの場合は除く）
+if [ -z "$INIT_PROMPT" ] && [ "$DIRS_ONLY" = false ]; then
+    echo "エラー: テーマが指定されていません"
+    usage
 fi
 
 mkdir -p artifacts
 mkdir -p themebox
 mkdir -p projects
+
+# ディレクトリ作成のみのオプションが指定された場合はここで終了
+if [ "$DIRS_ONLY" = true ]; then
+    echo -e "\033[1;32m[INFO]\033[0m 必要なディレクトリを作成しました:"
+    echo "  - artifacts/"
+    echo "  - themebox/"
+    echo "  - projects/"
+    echo "セットアップを終了します。"
+    exit 0
+fi
 
 # 色付きログ関数
 log_info() {
