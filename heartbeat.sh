@@ -1,21 +1,13 @@
 #!/bin/bash
 
-# ハートビートの間隔（秒）
-INTERVAL_SECONDS=60 # 1分
-
-# 無活動検知の閾値（秒）
-INACTIVITY_WARNING_THRESHOLD=300  # 5分
-INACTIVITY_STOP_THRESHOLD=600     # 10分
-
-# 内省活動検知の閾値（秒）
-INTROSPECTION_THRESHOLD=900       # 15分
-
-# Web検索制限時間（秒）
-WEB_SEARCH_RESTRICTION_TIME=600   # 10分
-WEB_SEARCH_QUOTA_RESTRICTION_TIME=3600  # 1時間（クォータ制限時）
-
-# 監視対象ディレクトリ設定
-MONITORED_DIRS=("artifacts" "projects")
+CONFIG_FILE="heartbeat.conf"
+if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+else
+    # echoはlog_errorの前に必要
+    echo -e "\033[1;31m[ERROR]\033[0m 設定ファイルが見つかりません: $CONFIG_FILE"
+    exit 1
+fi
 
 # スクリプト開始時刻を記録
 HEARTBEAT_START_TIME=$(date +%s)                                      # 秒形式（基準・時刻比較用）
@@ -37,18 +29,18 @@ LOOP_DETECTION_START_TIME=""
 # 回復処理用変数
 RECOVERY_MESSAGE=""
 RECOVERY_ATTEMPT_COUNT=0
-MAX_RECOVERY_ATTEMPTS=3
+
+# ヘルスチェック詳細情報用
+HEALTH_CHECK_DETAIL=""
 
 # 状態管理用変数
 HEARTBEAT_STATE="normal"  # normal / recovery_waiting
 RECOVERY_WAIT_CYCLES=0
-MAX_RECOVERY_WAIT_CYCLES=5
 
 # ログファイル設定
 LOG_DIR="logs"
 # ログファイル名は起動時のタイムスタンプ付き（例: heartbeat_20250106143022.log）
 LOG_FILE="$LOG_DIR/heartbeat_${HEARTBEAT_START_TIMESTAMP}.log"
-MAX_LOG_DAYS=30  # 30日以上古いログファイルを削除
 
 # 古いログファイルのクリーンアップ関数
 cleanup_old_logs() {
@@ -157,7 +149,7 @@ check_web_search_restriction() {
 }
 
 # 内省活動をチェックする関数
-check_introspection_activity() {
+_check_introspection_activity() {
     local current_time=$(date +%s)
     
     # 内省を含むファイルから最新のタイムスタンプを取得
@@ -194,16 +186,20 @@ check_introspection_activity() {
     local introspection_warning_threshold=$((INTROSPECTION_THRESHOLD * 2 / 3))
     
     if [ $introspection_diff -gt $INTROSPECTION_THRESHOLD ]; then
+        HEALTH_CHECK_DETAIL=$introspection_diff
         return 1  # 内省活動不足（エラーレベル）
     elif [ $introspection_diff -gt $introspection_warning_threshold ]; then
+        HEALTH_CHECK_DETAIL=$introspection_diff
         return 2  # 内省活動警告（警告レベル）
     fi
     
     return 0  # 正常
 }
 
-# 監視対象ディレクトリ配下の最新ファイル更新時刻をチェックする関数
-check_recent_activity() {
+# 監視対象ディレクトリから最新ファイルの情報を取得する内部関数
+_get_latest_file_info() {
+    local latest_info
+
     # 監視対象ディレクトリの存在確認
     local existing_dirs=()
     for dir in "${MONITORED_DIRS[@]}"; do
@@ -213,67 +209,59 @@ check_recent_activity() {
     done
     
     if [ ${#existing_dirs[@]} -eq 0 ]; then
-        return 0  # 監視対象ディレクトリがない場合は正常とみなす
+        echo "" # No info to return
+        return 1
     fi
     
     # 複数ディレクトリから最新ファイルの更新時刻を取得（macOS対応）
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS
-        latest_file=$(find "${existing_dirs[@]}" -type f -exec stat -f "%m %N" {} \; 2>/dev/null | sort -nr | head -1)
+        latest_info=$(find "${existing_dirs[@]}" -type f -exec stat -f "%m %N" {} \; 2>/dev/null | sort -nr | head -1)
     else
         # Linux
-        latest_file=$(find "${existing_dirs[@]}" -type f -exec stat -c "%Y %n" {} \; 2>/dev/null | sort -nr | head -1)
+        latest_info=$(find "${existing_dirs[@]}" -type f -exec stat -c "%Y %n" {} \; 2>/dev/null | sort -nr | head -1)
     fi
-    
-    if [ -z "$latest_file" ]; then
-        return 0  # ファイルがない場合は正常とみなす
-    fi
-    
-    latest_time=$(echo $latest_file | cut -d' ' -f1)
-    latest_filename=$(echo $latest_file | cut -d' ' -f2-)
+
+    echo "$latest_info"
+    [ -n "$latest_info" ]
+}
+
+# エージェントの健全性をチェックするコア関数
+# 戻り値: 0=正常, 1=無活動警告, 2=内省警告, 3=無活動, 4=ループ, 5=タイムスタンプ異常, 6=内省不足
+check_agent_health() {
+    local latest_file_info=$(_get_latest_file_info)
+    [ $? -ne 0 ] || [ -z "$latest_file_info" ] && return 0 # 監視対象がない/ファイルがない場合は正常とみなす
+
+    local latest_time=$(echo "$latest_file_info" | cut -d' ' -f1)
+    local latest_filename=$(echo "$latest_file_info" | cut -d' ' -f2-)
     current_time=$(date +%s)
-    diff=$((current_time - latest_time))
     
     # スクリプト開始時刻より前のファイルの場合、開始時刻からの経過時間で判定
+    local diff
     if [ $latest_time -lt $HEARTBEAT_START_TIME ]; then
         log_info "Latest file is older than heartbeat start time - checking from heartbeat start"
         diff=$((current_time - HEARTBEAT_START_TIME))
         echo "Time since heartbeat start: $((diff / 60)) minutes"
+    else
+        diff=$((current_time - latest_time))
     fi
-    
-    # 1. 無活動検知（最優先）
-    if [ $diff -gt $INACTIVITY_STOP_THRESHOLD ]; then
-        if [ $RECOVERY_ATTEMPT_COUNT -lt $MAX_RECOVERY_ATTEMPTS ]; then
-            log_warning "Agent appears to be stuck! No file updates for $((diff / 60)) minutes."
-            return 3  # 無活動検知（回復試行）
-        else
-            log_error "Agent appears to be stuck! No file updates for $((diff / 60)) minutes."
-            log_error "Maximum recovery attempts exceeded. Stopping heartbeat..."
-            return 2  # 停止レベル
-        fi
-    elif [ $diff -gt $INACTIVITY_WARNING_THRESHOLD ]; then
-        log_warning "Agent activity is low. No file updates for $((diff / 60)) minutes."
-        return 1  # 警告レベル
+
+    # 1. 無活動検知
+    if [ "$diff" -gt "$INACTIVITY_STOP_THRESHOLD" ]; then
+        HEALTH_CHECK_DETAIL=$diff
+        return 3 # 無活動検知
+    elif [ "$diff" -gt "$INACTIVITY_WARNING_THRESHOLD" ]; then
+        HEALTH_CHECK_DETAIL=$diff
+        return 1 # 警告レベル
     fi
-    
+
     # 2. 同一ファイルループ検知
     if [ "$latest_filename" = "$LOOP_DETECTION_FILE" ]; then
-        # 同じファイルが継続して更新されている
         if [ ! -z "$LOOP_DETECTION_START_TIME" ]; then
-            loop_duration=$((current_time - LOOP_DETECTION_START_TIME))
-            echo "Same file loop duration: $((loop_duration / 60)) minutes"
-            
-            if [ $loop_duration -gt $INACTIVITY_STOP_THRESHOLD ]; then
-                if [ $RECOVERY_ATTEMPT_COUNT -lt $MAX_RECOVERY_ATTEMPTS ]; then
-                    log_warning "Agent appears to be stuck! Same file updated continuously for $((loop_duration / 60)) minutes."
-                    log_warning "File: $latest_filename"
-                    return 4  # 同一ファイルループ検知（回復試行）
-                else
-                    log_error "Agent appears to be stuck! Same file updated continuously for $((loop_duration / 60)) minutes."
-                    log_error "File: $latest_filename"
-                    log_error "Maximum recovery attempts exceeded. Stopping heartbeat..."
-                    return 2  # 停止レベル
-                fi
+            local loop_duration=$((current_time - LOOP_DETECTION_START_TIME))
+            if [ "$loop_duration" -gt "$INACTIVITY_STOP_THRESHOLD" ]; then
+                HEALTH_CHECK_DETAIL=$loop_duration
+                return 4 # ループ検知
             fi
         fi
     else
@@ -283,7 +271,7 @@ check_recent_activity() {
         echo "Loop detection reset for new file: $latest_filename"
     fi
 
-    # 3. ファイル名タイムスタンプチェック（思考ログ・テーマログ）
+    # 3. ファイル名タイムスタンプチェック
     # ただし、開始時間より後に作成されたファイルがない場合はスキップ
     if [ $latest_time -ge $HEARTBEAT_START_TIME ]; then
         filename_only=$(basename "$latest_filename")
@@ -315,19 +303,10 @@ check_recent_activity() {
                     
                     # 未来のタイムスタンプの場合はスキップ
                     if [ $timestamp_diff -lt 0 ]; then
-                        log_warning "File has future timestamp - skipping timestamp check"
-                    # ファイル名タイムスタンプが古すぎる場合は異常検知
+                        : # no-op
                     elif [ $timestamp_diff -gt $INACTIVITY_STOP_THRESHOLD ]; then
-                        if [ $RECOVERY_ATTEMPT_COUNT -lt $MAX_RECOVERY_ATTEMPTS ]; then
-                            log_warning "Agent appears to be stuck! File timestamp is too old: $((timestamp_diff / 60)) minutes."
-                            log_warning "This suggests the agent is continuously updating the same old file."
-                            return 5  # タイムスタンプ異常検知（回復試行）
-                        else
-                            log_error "Agent appears to be stuck! File timestamp is too old: $((timestamp_diff / 60)) minutes."
-                            log_error "This suggests the agent is continuously updating the same old file."
-                            log_error "Maximum recovery attempts exceeded. Stopping heartbeat..."
-                            return 2  # 停止レベル
-                        fi
+                        HEALTH_CHECK_DETAIL=$timestamp_diff
+                        return 5 # タイムスタンプ異常
                     fi
                 fi
             fi
@@ -337,26 +316,62 @@ check_recent_activity() {
     fi
     
     # 4. 内省活動不足検知
-    check_introspection_activity
+    _check_introspection_activity
     introspection_status=$?
-    if [ $introspection_status -eq 2 ]; then
-        # 警告レベル：ハートビートメッセージで内省を促進
-        local introspection_minutes=$(($(date +%s) - file_time))
-        introspection_minutes=$((introspection_minutes / 60))
-        INTROSPECTION_REMINDER_MESSAGE="最近内省活動が行われていません（${introspection_minutes}分経過）。可能であればこれまでの振り返りを行い、内省してみてください。"
-        return 0  # 正常として扱い、ハートビートメッセージで対応
-    elif [ $introspection_status -eq 1 ]; then
-        if [ $RECOVERY_ATTEMPT_COUNT -lt $MAX_RECOVERY_ATTEMPTS ]; then
-            log_warning "Agent appears to be stuck! No introspection activity for 15 minutes."
-            return 6  # 内省活動不足検知（回復試行）
-        else
-            log_error "Agent appears to be stuck! No introspection activity for 15 minutes."
-            log_error "Maximum recovery attempts exceeded. Stopping heartbeat..."
-            return 2  # 停止レベル
-        fi
+    if [ $introspection_status -eq 1 ]; then
+        return 6 # 内省不足 (HEALTH_CHECK_DETAIL is set by _check_introspection_activity)
+    elif [ $introspection_status -eq 2 ]; then
+        return 2 # 内省警告
     fi
-    
+
     return 0  # 正常
+}
+
+# check_agent_healthの結果に基づき、ログ出力や回復処理を行う関数
+check_recent_activity() {
+    check_agent_health
+    local status=$?
+    local detail=$HEALTH_CHECK_DETAIL # 詳細情報をローカル変数にキャプチャ
+    local latest_file_info=$(_get_latest_file_info) # for logging
+    local latest_filename=$(echo "$latest_file_info" | cut -d' ' -f2-)
+
+    # 異常検知時の共通処理
+    handle_failure() {
+        local error_message="$1"
+        local error_code="$2"
+        if [ $RECOVERY_ATTEMPT_COUNT -lt $MAX_RECOVERY_ATTEMPTS ]; then
+            log_warning "$error_message"
+            attempt_recovery "$error_code"
+        else
+            log_error "$error_message"
+            log_error "Maximum recovery attempts exceeded. Stopping heartbeat..."
+            stop_heartbeat
+        fi
+    }
+
+    case $status in
+        0) # 正常
+            return 0 ;;
+        1) # 無活動警告
+            log_warning "Agent activity is low. No file updates for $((detail / 60)) minutes."
+            return 0 ;;
+        2) # 内省警告
+            log_warning "Introspection activity has not been performed for $((detail / 60)) minutes."
+            INTROSPECTION_REMINDER_MESSAGE="最近内省活動が行われていないようです。可能であればこれまでの振り返りを行い、内省してみてください。"
+            return 0 ;;
+        3) 
+            handle_failure "Agent appears to be stuck! No file updates for $((detail / 60)) minutes." "無活動状態" ;;
+        4) 
+            handle_failure "Agent appears to be stuck! Same file updated continuously for $((detail / 60)) minutes: $latest_filename" "同一ファイル継続更新ループ" ;;
+        5) 
+            handle_failure "Agent appears to be stuck! File timestamp is too old ($((detail / 60)) minutes): $latest_filename" "最新ファイル名タイムスタンプ異常" ;;
+        6) 
+            handle_failure "Agent appears to be stuck! No introspection activity for $((detail / 60)) minutes." "内省活動不足" ;;
+        *) # 未知のエラー
+            log_error "Unknown health check status: $status" ;;
+    esac
+
+    return $status # Propagate failure status
 }
 
 # 回復処理
@@ -414,39 +429,15 @@ attempt_recovery() {
 
 # 回復状況確認
 check_recovery_status() {
-    # 監視対象ディレクトリの存在確認
-    local existing_dirs=()
-    for dir in "${MONITORED_DIRS[@]}"; do
-        if [ -d "$dir" ]; then
-            existing_dirs+=("$dir")
-        fi
-    done
-    
-    if [ ${#existing_dirs[@]} -eq 0 ]; then
-        return 1  # 監視対象ディレクトリがない場合は回復していない
-    fi
-    
-    # 複数ディレクトリから最新ファイルの更新時刻を取得
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        latest_file=$(find "${existing_dirs[@]}" -type f -exec stat -f "%m %N" {} \; 2>/dev/null | sort -nr | head -1)
+    log_info "Checking agent health for recovery confirmation..."
+    check_agent_health
+    local status=$?
+    if [ $status -eq 0 ]; then
+        log_info "Agent health check passed. Recovery confirmed."
+        return 0 # 回復成功
     else
-        latest_file=$(find "${existing_dirs[@]}" -type f -exec stat -c "%Y %n" {} \; 2>/dev/null | sort -nr | head -1)
-    fi
-    
-    if [ -z "$latest_file" ]; then
-        return 1  # ファイルがない場合は回復していない
-    fi
-    
-    latest_time=$(echo $latest_file | cut -d' ' -f1)
-    current_time=$(date +%s)
-    diff=$((current_time - latest_time))
-    
-    # 最新ファイルが新しい（5分以内）場合は回復とみなす
-    if [ $diff -le 300 ]; then
-        log_info "Recovery detected: New file activity found"
-        return 0  # 回復確認
-    else
-        return 1  # まだ回復していない
+        log_warning "Agent health check failed with status $status. Recovery not yet confirmed."
+        return 1 # 回復失敗
     fi
 }
 
@@ -515,17 +506,7 @@ while true; do
     
     # 通常状態：通常の活動チェックとハートビート送信
     if [ "$HEARTBEAT_STATE" = "normal" ]; then
-        # 活動チェック
         check_recent_activity
-        activity_status=$?
-        
-        case $activity_status in
-            3) attempt_recovery "無活動状態" ;;
-            4) attempt_recovery "同一ファイル継続更新ループ" ;;
-            5) attempt_recovery "最新ファイル名タイムスタンプ異常" ;;
-            6) attempt_recovery "内省活動不足" ;;
-            2) stop_heartbeat ;;
-        esac
     fi
     
     # カウントダウン
