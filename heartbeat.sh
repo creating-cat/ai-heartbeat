@@ -365,7 +365,7 @@ attempt_recovery() {
     tmux send-keys -t agent "/compress"
     sleep 1
     tmux send-keys -t agent C-m
-    sleep 30  # 圧縮処理の完了を待機
+    sleep 5  # 圧縮処理の完了を待機
     log_info "Context compression completed."
     
     # チャット保存を実行
@@ -375,7 +375,7 @@ attempt_recovery() {
     tmux send-keys -t agent "/chat save $chat_tag"
     sleep 1
     tmux send-keys -t agent C-m
-    sleep 30  # チャット保存処理の完了を待機
+    sleep 5  # チャット保存処理の完了を待機
     log_info "Chat saved with tag: $chat_tag"
     
     # 回復メッセージを設定し、回復待機状態に移行

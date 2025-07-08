@@ -35,6 +35,98 @@ AI心臓システムには、異常な動作パターンを自動検知し、回
 - 複雑な計算や推論を行っている最中
 - 多数のファイルを読み込み、統合分析している場合
 
+#### 1.1.2 開発サーバー・長時間実行プロセスによる無活動状態
+
+開発サーバーやデーモンプロセスを起動すると、プロセスが終了せずに無活動状態と誤検知される場合があります。
+
+**発生状況**:
+- `npm run dev`, `python -m http.server`, `rails server`等の開発サーバー起動
+- 長時間実行されるスクリプトやデーモンプロセス
+- プロセスは正常動作しているが、ファイル出力がない状態
+
+**問題の影響**:
+- 無活動検知により中断される
+- 回復処理後に同じコマンドを再実行して同じ状況に陥る
+- 開発サーバーの動作確認ができない
+
+**対策**:
+
+1. **バックグラウンド実行の活用**:
+   ```bash
+   # 開発サーバーをバックグラウンドで起動
+   npm run dev &
+   
+   # プロセスIDを記録
+   echo $! > artifacts/current_theme/dev_server_pid.txt
+   
+   # 起動確認のための待機
+   sleep 5
+   ```
+
+2. **動作確認の実装**:
+   ```bash
+   # サーバーの動作確認
+   curl -s http://localhost:3000 > artifacts/current_theme/server_response.html
+   
+   # または
+   wget -q -O artifacts/current_theme/server_check.html http://localhost:3000
+   
+   # 確認結果をログに記録
+   if [ $? -eq 0 ]; then
+       echo "サーバー正常動作確認: $(date)" >> artifacts/current_theme/server_status.log
+   else
+       echo "サーバー接続失敗: $(date)" >> artifacts/current_theme/server_status.log
+   fi
+   ```
+
+3. **定期的な状態確認**:
+   ```bash
+   # サーバープロセスの生存確認
+   if ps -p $(cat artifacts/current_theme/dev_server_pid.txt) > /dev/null; then
+       echo "開発サーバー稼働中: $(date)" >> artifacts/current_theme/server_status.log
+   else
+       echo "開発サーバー停止検知: $(date)" >> artifacts/current_theme/server_status.log
+   fi
+   ```
+
+4. **適切な終了処理**:
+   ```bash
+   # 作業完了時のサーバー停止
+   if [ -f artifacts/current_theme/dev_server_pid.txt ]; then
+       kill $(cat artifacts/current_theme/dev_server_pid.txt)
+       echo "開発サーバー停止: $(date)" >> artifacts/current_theme/server_status.log
+       rm artifacts/current_theme/dev_server_pid.txt
+   fi
+   ```
+
+**推奨パターン**:
+```bash
+# 1. バックグラウンド起動
+npm run dev &
+SERVER_PID=$!
+echo $SERVER_PID > artifacts/current_theme/dev_server_pid.txt
+
+# 2. 起動待機
+sleep 10
+
+# 3. 動作確認
+curl -s http://localhost:3000 > artifacts/current_theme/index_page.html
+echo "サーバー動作確認完了: $(date)" > artifacts/current_theme/server_check.log
+
+# 4. 開発作業の実行
+# （この間にファイル編集、テスト実行等）
+
+# 5. 終了処理
+kill $SERVER_PID
+echo "開発サーバー停止: $(date)" >> artifacts/current_theme/server_check.log
+```
+
+**重要なポイント**:
+- サーバー起動後は必ず動作確認を行い、結果をファイルに出力する
+- 長時間実行する場合は定期的に状態をファイルに記録する
+- 作業完了時は適切にプロセスを終了させる
+- バックグラウンド実行により、他の作業を並行して実行可能にする
+
 **問題の影響**:
 - 分析途中で無活動検知により中断される
 - 回復処理により思考の流れが途切れる
