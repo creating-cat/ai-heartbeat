@@ -17,6 +17,10 @@ WEB_SEARCH_QUOTA_RESTRICTION_TIME=3600  # 1時間（クォータ制限時）
 # 監視対象ディレクトリ設定
 MONITORED_DIRS=("artifacts" "projects")
 
+# スクリプト開始時刻を記録
+HEARTBEAT_START_TIME=$(date +%s)                                      # 秒形式（基準・時刻比較用）
+HEARTBEAT_START_TIMESTAMP=$(date -r $HEARTBEAT_START_TIME "+%Y%m%d%H%M%S")  # 文字列形式（ログファイル名・チャットタグ用）
+
 # statsディレクトリ作成
 mkdir -p stats
 
@@ -39,8 +43,8 @@ MAX_RECOVERY_WAIT_CYCLES=5
 
 # ログファイル設定
 LOG_DIR="logs"
-# ログファイル名は起動時のタイムスタンプ付き（例: heartbeat_20250106_143022.log）
-LOG_FILE="$LOG_DIR/heartbeat_$(date "+%Y%m%d_%H%M%S").log"
+# ログファイル名は起動時のタイムスタンプ付き（例: heartbeat_20250106143022.log）
+LOG_FILE="$LOG_DIR/heartbeat_${HEARTBEAT_START_TIMESTAMP}.log"
 MAX_LOG_DAYS=30  # 30日以上古いログファイルを削除
 
 # 古いログファイルのクリーンアップ関数
@@ -91,9 +95,7 @@ log_heartbeat() {
 setup_logging
 
 # スクリプト開始時刻を記録
-HEARTBEAT_START_TIME=$(date +%s)
-HEARTBEAT_START_TIME_FORMATTED=$(date -r $HEARTBEAT_START_TIME "+%F %T")
-log_info "Heartbeat started at $HEARTBEAT_START_TIME_FORMATTED (PID: $$)"
+log_info "Heartbeat started at $(date "+%F %T") (PID: $$)"
 log_info "Log file: $LOG_FILE"
 
 # Web検索制限チェック関数
@@ -366,9 +368,20 @@ attempt_recovery() {
     sleep 30  # 圧縮処理の完了を待機
     log_info "Context compression completed."
     
+    # チャット保存を実行
+    local save_timestamp=$(date "+%Y%m%d%H%M%S")
+    local chat_tag="HEARTBEAT_${HEARTBEAT_START_TIMESTAMP}_${save_timestamp}"
+    log_info "Saving chat with tag: $chat_tag"
+    tmux send-keys -t agent "/chat save $chat_tag"
+    sleep 1
+    tmux send-keys -t agent C-m
+    sleep 5  # チャット保存処理の完了を待機
+    log_info "Chat saved with tag: $chat_tag"
+    
     # 回復メッセージを設定し、回復待機状態に移行
     RECOVERY_MESSAGE="異常検知による回復処理: ${detection_type}を検知したため中断処理を行いました。
 コンテキストを圧縮してクリアな状態にリセットしました。
+チャット履歴をタグ「${chat_tag}」で保存しました。
 
 以下のドキュメントからシステム仕様を再ロードし、あなた自身の動作ルールを再設定してください：
 1. GEMINI.md - AI心臓システムでの基本的な動作ルール
@@ -377,7 +390,7 @@ attempt_recovery() {
 4. ai-docs/GUIDELINES.md - 運用ガイドライン
 
 システム仕様の再ロード完了後、適切な内省活動を行い、正常な処理を再開してください。
-また、異常検知に長期の活動による影響が考えられる場合、新規テーマ移行を検討してみてもいいかもしれません。"
+また、異常検知に長期の活動による影響が考えられる場合、新規テーマ移行(自己を見直すテーマなど)を検討してみてもいいかもしれません。"
     HEARTBEAT_STATE="recovery_waiting"
     RECOVERY_WAIT_CYCLES=0
     
