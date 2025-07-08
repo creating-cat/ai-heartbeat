@@ -11,6 +11,7 @@ usage() {
     echo "オプション:"
     echo "  -f, --file <ファイル>   指定したファイルから初期テーマを読み込む"
     echo "  -d, --dirs-only        必要なディレクトリのみを作成して終了（tmuxセッションやエージェントは起動しない）"
+    echo "  -s, --sessions-only    tmuxセッションのみを起動（geminiおよびheartbeatの起動なし）"
     echo "  -h, --help             このヘルプメッセージを表示"
     exit 1
 }
@@ -19,6 +20,7 @@ usage() {
 INIT_PROMPT=""
 FILE_INPUT=""
 DIRS_ONLY=false
+SESSIONS_ONLY=false
 
 # 引数がない場合はヘルプを表示
 if [ $# -eq 0 ]; then
@@ -37,6 +39,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -d|--dirs-only)
             DIRS_ONLY=true
+            shift
+            ;;
+        -s|--sessions-only)
+            SESSIONS_ONLY=true
             shift
             ;;
         -h|--help)
@@ -60,8 +66,8 @@ if [ -n "$FILE_INPUT" ]; then
     echo "ファイル '$FILE_INPUT' からテーマを読み込みました"
 fi
 
-# テーマが空の場合はエラー（ディレクトリ作成のみの場合は除く）
-if [ -z "$INIT_PROMPT" ] && [ "$DIRS_ONLY" = false ]; then
+# テーマが空の場合はエラー（ディレクトリ作成のみ・セッションのみの場合は除く）
+if [ -z "$INIT_PROMPT" ] && [ "$DIRS_ONLY" = false ] && [ "$SESSIONS_ONLY" = false ]; then
     echo "エラー: テーマが指定されていません"
     usage
 fi
@@ -123,6 +129,22 @@ echo "==================="
 echo "📺 Tmux Sessions:"
 tmux list-sessions
 echo ""
+
+# セッションのみモードの場合はここで終了
+if [ "$SESSIONS_ONLY" = true ]; then
+    echo ""
+    log_info "🔧 セッションのみモード: tmuxセッションのみを起動しました"
+    echo ""
+    echo "📋 手動復帰の手順:"
+    echo "==================="
+    echo "1. エージェントセッションに接続: tmux attach-session -t agent"
+    echo "2. Gemini CLIを手動起動: gemini -y"
+    echo "3. 必要に応じて初期テーマの送信や/chat resumeなどを実行"
+    echo "4. ハートビートを手動起動: ./restart.sh"
+    echo ""
+    log_success "✅ セッション起動完了（手動復帰モード）"
+    exit 0
+fi
 
 # STEP 5: エージェント起動
 log_info "🚀 エージェント起動中..."
