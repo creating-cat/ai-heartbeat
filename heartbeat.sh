@@ -27,6 +27,9 @@ mkdir -p stats
 # Web検索制限メッセージ用グローバル変数
 WEB_RESTRICTION_MESSAGE=""
 
+# 内省促進メッセージ用グローバル変数
+INTROSPECTION_REMINDER_MESSAGE=""
+
 # ループ検出用変数
 LOOP_DETECTION_FILE=""
 LOOP_DETECTION_START_TIME=""
@@ -183,12 +186,17 @@ check_introspection_activity() {
         return 0  # タイムスタンプ変換失敗時は正常とみなす
     fi
     
-    # 15分チェック
+    # 内省活動チェック
     local introspection_diff=$((current_time - file_time))
     echo "Last introspection: $((introspection_diff / 60)) minutes ago"
     
+    # 警告閾値（内省閾値の2/3）を設定
+    local introspection_warning_threshold=$((INTROSPECTION_THRESHOLD * 2 / 3))
+    
     if [ $introspection_diff -gt $INTROSPECTION_THRESHOLD ]; then
-        return 1  # 内省活動不足
+        return 1  # 内省活動不足（エラーレベル）
+    elif [ $introspection_diff -gt $introspection_warning_threshold ]; then
+        return 2  # 内省活動警告（警告レベル）
     fi
     
     return 0  # 正常
@@ -330,7 +338,14 @@ check_recent_activity() {
     
     # 4. 内省活動不足検知
     check_introspection_activity
-    if [ $? -eq 1 ]; then
+    introspection_status=$?
+    if [ $introspection_status -eq 2 ]; then
+        # 警告レベル：ハートビートメッセージで内省を促進
+        local introspection_minutes=$(($(date +%s) - file_time))
+        introspection_minutes=$((introspection_minutes / 60))
+        INTROSPECTION_REMINDER_MESSAGE="最近内省活動が行われていません（${introspection_minutes}分経過）。可能であればこれまでの振り返りを行い、内省してみてください。"
+        return 0  # 正常として扱い、ハートビートメッセージで対応
+    elif [ $introspection_status -eq 1 ]; then
         if [ $RECOVERY_ATTEMPT_COUNT -lt $MAX_RECOVERY_ATTEMPTS ]; then
             log_warning "Agent appears to be stuck! No introspection activity for 15 minutes."
             return 6  # 内省活動不足検知（回復試行）
@@ -535,6 +550,15 @@ while true; do
         heartbeat_msg="$heartbeat_msg
 
 $WEB_RESTRICTION_MESSAGE"
+    fi
+    
+    # 内省促進メッセージ追加
+    if [ ! -z "$INTROSPECTION_REMINDER_MESSAGE" ]; then
+        heartbeat_msg="$heartbeat_msg
+
+$INTROSPECTION_REMINDER_MESSAGE"
+        INTROSPECTION_REMINDER_MESSAGE=""  # 一度使ったらクリア
+        log_info "Introspection reminder included in heartbeat"
     fi
     
     # 回復メッセージ追加
