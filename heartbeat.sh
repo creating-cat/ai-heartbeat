@@ -162,28 +162,34 @@ _check_introspection_activity() {
         sort -r | \
         head -1)
     
-    # 内省活動が見つからない場合は初回起動とみなして正常とする
+    local introspection_diff
+    
+    # 内省活動が見つからない場合、またはHEARTBEAT_START_TIMEより前の場合の処理
     if [ -z "$latest_timestamp" ]; then
-        return 0
-    fi
-    
-    # タイムスタンプを秒に変換（1回のみ）
-    local file_time
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS
-        file_time=$(date -j -f "%Y%m%d%H%M%S" "$latest_timestamp" "+%s" 2>/dev/null)
+        # ハートビート起動からの経過時間で判定
+        introspection_diff=$((current_time - HEARTBEAT_START_TIME))
+        echo "No introspection found: $((introspection_diff / 60)) minutes since heartbeat start"
     else
-        # Linux
-        file_time=$(date -d "${latest_timestamp:0:8} ${latest_timestamp:8:2}:${latest_timestamp:10:2}:${latest_timestamp:12:2}" "+%s" 2>/dev/null)
+        # タイムスタンプを秒に変換
+        local file_time
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS
+            file_time=$(date -j -f "%Y%m%d%H%M%S" "$latest_timestamp" "+%s" 2>/dev/null)
+        else
+            # Linux
+            file_time=$(date -d "${latest_timestamp:0:8} ${latest_timestamp:8:2}:${latest_timestamp:10:2}:${latest_timestamp:12:2}" "+%s" 2>/dev/null)
+        fi
+        
+        if [ -z "$file_time" ] || [ $file_time -lt $HEARTBEAT_START_TIME ]; then
+            # 変換失敗またはハートビート起動前の場合、起動時刻を基軸とする
+            introspection_diff=$((current_time - HEARTBEAT_START_TIME))
+            echo "Introspection before heartbeat start: $((introspection_diff / 60)) minutes since heartbeat start"
+        else
+            # 通常の判定（ハートビート起動後の内省活動）
+            introspection_diff=$((current_time - file_time))
+            echo "Last introspection: $((introspection_diff / 60)) minutes ago"
+        fi
     fi
-    
-    if [ -z "$file_time" ]; then
-        return 0  # タイムスタンプ変換失敗時は正常とみなす
-    fi
-    
-    # 内省活動チェック
-    local introspection_diff=$((current_time - file_time))
-    echo "Last introspection: $((introspection_diff / 60)) minutes ago"
     
     # 警告閾値（内省閾値の2/3）を設定
     local introspection_warning_threshold=$((INTROSPECTION_THRESHOLD * 2 / 3))
@@ -423,7 +429,7 @@ attempt_recovery() {
 4. ai-docs/GUIDELINES.md - 運用ガイドライン
 
 システム仕様の再ロード完了後、適切な内省活動を行い、正常な処理を再開してください。
-また、異常検知に長期の活動による影響が考えられる場合、新規テーマ移行(自己を見直すテーマなど)を検討してみてもいいかもしれません。"
+また、異常検知に長期の活動による影響や同じ問題の繰り返しが考えられる場合、心機一転新規テーマ移行(自己を見直すテーマなど)を検討してみてもいいかもしれません。"
     HEARTBEAT_STATE="recovery_waiting"
     RECOVERY_WAIT_CYCLES=0
     
