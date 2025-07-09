@@ -480,6 +480,7 @@ log_info "Warning threshold: $((INACTIVITY_WARNING_THRESHOLD / 60)) minutes"
 log_info "Stop threshold: $((INACTIVITY_STOP_THRESHOLD / 60)) minutes"
 
 while true; do
+    # 1. 回復待機状態の処理
     if [ "$HEARTBEAT_STATE" = "recovery_waiting" ]; then
         # 終了リクエストがあれば、回復待機中でもループを抜ける
         if [ "$SHUTDOWN_REQUESTED" = true ]; then
@@ -527,35 +528,37 @@ while true; do
         fi
     fi
     
-    # 通常状態：通常の活動チェックとハートビート送信
+    # 2. カウントダウン（通常状態のみ）
+    if [ "$HEARTBEAT_STATE" = "normal" ]; then
+        for i in $(seq ${INTERVAL_SECONDS} -1 1); do
+            # 終了リクエストがあればカウントダウンを中断
+            if [ "$SHUTDOWN_REQUESTED" = true ]; then
+                break 2 # 外側のwhileループも抜ける
+            fi
+
+            # \r を使ってカーソルを行頭に戻し、同じ行に上書き表示する
+            printf "\rNext heartbeat in %2d seconds... " "$i"
+            sleep 1
+        done
+        # カウントダウン表示をクリア
+        printf "\r                                   \r"
+
+        # 終了リクエストがあればハートビートを送信せずにループを終了
+        if [ "$SHUTDOWN_REQUESTED" = true ]; then
+            break
+        fi
+    fi
+    
+    # 3. 異常チェック（ハートビート送信直前）
     if [ "$HEARTBEAT_STATE" = "normal" ]; then
         check_recent_activity
     fi
-    
-    # カウントダウン
-    for i in $(seq ${INTERVAL_SECONDS} -1 1); do
-        # 終了リクエストがあればカウントダウンを中断
-        if [ "$SHUTDOWN_REQUESTED" = true ]; then
-            break 2 # 外側のwhileループも抜ける
-        fi
 
-        # \r を使ってカーソルを行頭に戻し、同じ行に上書き表示する
-        printf "\rNext heartbeat in %2d seconds... " "$i"
-        sleep 1
-    done
-    # カウントダウン表示をクリア
-    printf "\r                                   \r"
-
-    # 終了リクエストがあればハートビートを送信せずにループを終了
-    if [ "$SHUTDOWN_REQUESTED" = true ]; then
-        break
-    fi
-
-    log_heartbeat "Heartbeat sent to agent session"
-    
-    # Web検索制限チェック
+    # 4. Web検索制限チェック
     check_web_search_restriction
-    
+
+    # 5. ハートビート送信（常に実行）
+
     # ハートビートメッセージ作成
     heartbeat_msg="Heartbeat: $(date "+%Y%m%d%H%M%S")"
     
@@ -587,6 +590,8 @@ $RECOVERY_MESSAGE"
     tmux send-keys -t agent "$heartbeat_msg"
     sleep 1
     tmux send-keys -t agent C-m
+
+    log_heartbeat "Heartbeat sent to agent session"
 done
 
 # ループを抜けた後に最終処理を実行
