@@ -37,6 +37,9 @@ HEALTH_CHECK_DETAIL=""
 HEARTBEAT_STATE="normal"  # normal / recovery_waiting
 RECOVERY_WAIT_CYCLES=0
 
+# 終了フラグ
+SHUTDOWN_REQUESTED=false
+
 # ログファイル設定
 LOG_DIR="logs"
 # ログファイル名は起動時のタイムスタンプ付き（例: heartbeat_20250106143022.log）
@@ -456,6 +459,21 @@ stop_heartbeat() {
     exit 0
 }
 
+# シグナルを捕捉して安全に終了するための関数
+handle_shutdown() {
+    log_warning "Shutdown signal received. Finishing current cycle and exiting gracefully..."
+    SHUTDOWN_REQUESTED=true
+}
+
+# SIGINT (Ctrl-C) と SIGTERM を捕捉
+trap handle_shutdown SIGINT SIGTERM
+
+# 終了処理
+graceful_shutdown() {
+    log_info "Heartbeat stopped gracefully at $(date "+%F %T")"
+    exit 0
+}
+
 log_info "Heartbeat monitor started at $(date "+%F %T")"
 log_info "Monitored directories: ${MONITORED_DIRS[*]}"
 log_info "Warning threshold: $((INACTIVITY_WARNING_THRESHOLD / 60)) minutes"
@@ -463,6 +481,11 @@ log_info "Stop threshold: $((INACTIVITY_STOP_THRESHOLD / 60)) minutes"
 
 while true; do
     if [ "$HEARTBEAT_STATE" = "recovery_waiting" ]; then
+        # 終了リクエストがあれば、回復待機中でもループを抜ける
+        if [ "$SHUTDOWN_REQUESTED" = true ]; then
+            break
+        fi
+
         # 回復待機状態：回復確認のみ実行
         echo "Recovery waiting state (cycle $((RECOVERY_WAIT_CYCLES + 1))/$MAX_RECOVERY_WAIT_CYCLES)"
         
@@ -511,12 +534,22 @@ while true; do
     
     # カウントダウン
     for i in $(seq ${INTERVAL_SECONDS} -1 1); do
+        # 終了リクエストがあればカウントダウンを中断
+        if [ "$SHUTDOWN_REQUESTED" = true ]; then
+            break 2 # 外側のwhileループも抜ける
+        fi
+
         # \r を使ってカーソルを行頭に戻し、同じ行に上書き表示する
         printf "\rNext heartbeat in %2d seconds... " "$i"
         sleep 1
     done
     # カウントダウン表示をクリア
     printf "\r                                   \r"
+
+    # 終了リクエストがあればハートビートを送信せずにループを終了
+    if [ "$SHUTDOWN_REQUESTED" = true ]; then
+        break
+    fi
 
     log_heartbeat "Heartbeat sent to agent session"
     
@@ -555,3 +588,6 @@ $RECOVERY_MESSAGE"
     sleep 1
     tmux send-keys -t agent C-m
 done
+
+# ループを抜けた後に最終処理を実行
+graceful_shutdown
