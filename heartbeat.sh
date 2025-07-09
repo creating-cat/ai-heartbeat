@@ -307,7 +307,7 @@ check_agent_health() {
                     # 未来のタイムスタンプの場合はスキップ
                     if [ $timestamp_diff -lt 0 ]; then
                         : # no-op
-                    elif [ $timestamp_diff -gt $INACTIVITY_STOP_THRESHOLD ]; then
+                    elif [ $timestamp_diff -gt $TIMESTAMP_ANOMALY_THRESHOLD ]; then
                         HEALTH_CHECK_DETAIL=$timestamp_diff
                         return 5 # タイムスタンプ異常
                     fi
