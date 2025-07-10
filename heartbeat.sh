@@ -25,6 +25,9 @@ INTROSPECTION_REMINDER_MESSAGE=""
 # 無活動警告メッセージ用グローバル変数
 INACTIVITY_WARNING_MESSAGE=""
 
+# フィードバック通知メッセージ用グローバル変数
+FEEDBACK_NOTIFICATION_MESSAGE=""
+
 # デバッグモード設定（環境変数で制御）
 DEBUG_MODE=${DEBUG_MODE:-false}
 
@@ -147,6 +150,29 @@ setup_logging
 # スクリプト開始時刻を記録
 log_notice "Heartbeat started at $(date "+%F %T") (PID: $$)"
 log_notice "Log file: $LOG_FILE"
+
+# feedbackboxのチェック関数
+check_feedbackbox() {
+    FEEDBACK_NOTIFICATION_MESSAGE=""
+    
+    # feedbackboxディレクトリが存在しない場合は作成
+    if [ ! -d "feedbackbox" ]; then
+        mkdir -p feedbackbox
+        return 0
+    fi
+    
+    # プレフィックスなしのmdファイル（処理対象のフィードバック）を検出
+    local feedback_files=$(find feedbackbox -name "*.md" -not -name "draft.*" -not -name "processed.*" 2>/dev/null)
+    local feedback_count=$(echo "$feedback_files" | grep -v "^$" | wc -l | tr -d ' ')
+    
+    if [ $feedback_count -gt 0 ]; then
+        FEEDBACK_NOTIFICATION_MESSAGE="📝 feedbackboxに未処理のユーザーフィードバックが${feedback_count}件あります。内省時に確認・対応してください。"
+        log_notice "Found $feedback_count unprocessed feedback files"
+        return 1  # フィードバックあり
+    fi
+    
+    return 0  # フィードバックなし
+}
 
 # Web検索制限チェック関数
 check_web_search_restriction() {
@@ -656,6 +682,9 @@ while true; do
 
     # 4. Web検索制限チェック
     check_web_search_restriction
+    
+    # 4.5 feedbackboxチェック
+    check_feedbackbox
 
     # 5. ハートビート送信（常に実行）
 
@@ -685,6 +714,15 @@ $INTROSPECTION_REMINDER_MESSAGE"
 $INACTIVITY_WARNING_MESSAGE"
         INACTIVITY_WARNING_MESSAGE=""  # 一度使ったらクリア
         log_info "Inactivity warning included in heartbeat"
+    fi
+    
+    # フィードバック通知メッセージ追加
+    if [ ! -z "$FEEDBACK_NOTIFICATION_MESSAGE" ]; then
+        heartbeat_msg="$heartbeat_msg
+
+$FEEDBACK_NOTIFICATION_MESSAGE"
+        FEEDBACK_NOTIFICATION_MESSAGE=""  # 一度使ったらクリア
+        log_notice "Feedback notification included in heartbeat"
     fi
     
     # 回復メッセージ追加

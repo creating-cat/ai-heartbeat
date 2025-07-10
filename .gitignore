@@ -5,6 +5,7 @@ logs/
 *.local
 projects/
 results/
+feedbackbox/
 
 themebox/*
 !themebox/draft.sample.000_ai_heartbeat_tutorial.md
