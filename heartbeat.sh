@@ -22,6 +22,9 @@ WEB_RESTRICTION_MESSAGE=""
 # 内省促進メッセージ用グローバル変数
 INTROSPECTION_REMINDER_MESSAGE=""
 
+# 無活動警告メッセージ用グローバル変数
+INACTIVITY_WARNING_MESSAGE=""
+
 # アドバイスメッセージの定数定義
 ADVICE_INACTIVITY="
 一回のハートビート中に、たくさんのファイルを同時に処理したり、なんらかのたくさんの処理を一度に連続で実行しようとしたりしていませんか？
@@ -404,10 +407,15 @@ check_recent_activity() {
             return 0 ;;
         1) # 無活動警告
             log_warning "Agent activity is low. No file updates for $((detail / 60)) minutes."
+            INACTIVITY_WARNING_MESSAGE="⚠️ 無活動警告: $((detail / 60))分間ファイル更新がありません。
+
+$ADVICE_INACTIVITY"
             return 0 ;;
         2) # 内省警告
             log_warning "Introspection activity has not been performed for $((detail / 60)) minutes."
-            INTROSPECTION_REMINDER_MESSAGE="最近内省活動が行われていないようです。可能であればこれまでの振り返りを行い、内省してみてください。"
+            INTROSPECTION_REMINDER_MESSAGE="⚠️ 内省不足警告: $((detail / 60))分間内省活動が行われていません。
+
+$ADVICE_INTROSPECTION"
             return 0 ;;
         3) 
             handle_failure "Agent appears to be stuck! No file updates for $((detail / 60)) minutes." "無活動状態" ;;
@@ -651,6 +659,15 @@ $WEB_RESTRICTION_MESSAGE"
 $INTROSPECTION_REMINDER_MESSAGE"
         INTROSPECTION_REMINDER_MESSAGE=""  # 一度使ったらクリア
         log_info "Introspection reminder included in heartbeat"
+    fi
+    
+    # 無活動警告メッセージ追加
+    if [ ! -z "$INACTIVITY_WARNING_MESSAGE" ]; then
+        heartbeat_msg="$heartbeat_msg
+
+$INACTIVITY_WARNING_MESSAGE"
+        INACTIVITY_WARNING_MESSAGE=""  # 一度使ったらクリア
+        log_info "Inactivity warning included in heartbeat"
     fi
     
     # 回復メッセージ追加
