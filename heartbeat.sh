@@ -25,6 +25,9 @@ INTROSPECTION_REMINDER_MESSAGE=""
 # 無活動警告メッセージ用グローバル変数
 INACTIVITY_WARNING_MESSAGE=""
 
+# デバッグモード設定（環境変数で制御）
+DEBUG_MODE=${DEBUG_MODE:-false}
+
 # アドバイスメッセージの定数定義
 ADVICE_INACTIVITY="
 一回のハートビート中に、たくさんのファイルを同時に処理したり、なんらかのたくさんの処理を一度に連続で実行しようとしたりしていませんか？
@@ -116,8 +119,19 @@ log_error() {
 log_info() {
     local message="$1"
     local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
-    echo -e "\033[1;32m[INFO]\033[0m $message"
-    echo "[$timestamp] [INFO] $message" >> "$LOG_FILE"
+    echo -e "\033[1;32m[INFO]\033[0m $message"  # 常に標準出力
+    
+    # デバッグモードの時のみログファイルに記録
+    if [ "$DEBUG_MODE" = "true" ]; then
+        echo "[$timestamp] [INFO] $message" >> "$LOG_FILE"
+    fi
+}
+
+log_notice() {
+    local message="$1"
+    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+    echo -e "\033[1;36m[NOTICE]\033[0m $message"  # 常に標準出力（シアン色）
+    echo "[$timestamp] [NOTICE] $message" >> "$LOG_FILE"  # 常にログファイルに記録
 }
 
 log_heartbeat() {
@@ -131,8 +145,8 @@ log_heartbeat() {
 setup_logging
 
 # スクリプト開始時刻を記録
-log_info "Heartbeat started at $(date "+%F %T") (PID: $$)"
-log_info "Log file: $LOG_FILE"
+log_notice "Heartbeat started at $(date "+%F %T") (PID: $$)"
+log_notice "Log file: $LOG_FILE"
 
 # Web検索制限チェック関数
 check_web_search_restriction() {
@@ -440,31 +454,31 @@ attempt_recovery() {
     log_warning "Abnormal activity detected: $detection_type (attempt $RECOVERY_ATTEMPT_COUNT/$MAX_RECOVERY_ATTEMPTS)"
     
     # エージェント処理を中断
-    log_info "Interrupting agent process..."
+    log_notice "Interrupting agent process..."
     tmux send-keys -t agent Escape
     sleep 1
     tmux send-keys -t agent Escape
     sleep 1
-    log_info "Agent processing has been interrupted."
+    log_notice "Agent processing has been interrupted."
 
 
     # コンテキスト圧縮を実行
-    log_info "Sending context compression command..."
+    log_notice "Sending context compression command..."
     tmux send-keys -t agent "/compress"
     sleep 1
     tmux send-keys -t agent C-m
     sleep 5  # 圧縮処理の完了を待機
-    log_info "Context compression completed."
+    log_notice "Context compression completed."
     
     # チャット保存を実行
     local save_timestamp=$(date "+%Y%m%d%H%M%S")
     local chat_tag="HEARTBEAT_${HEARTBEAT_START_TIMESTAMP}_${save_timestamp}"
-    log_info "Saving chat with tag: $chat_tag"
+    log_notice "Saving chat with tag: $chat_tag"
     tmux send-keys -t agent "/chat save $chat_tag"
     sleep 1
     tmux send-keys -t agent C-m
     sleep 5  # チャット保存処理の完了を待機
-    log_info "Chat saved with tag: $chat_tag"
+    log_notice "Chat saved with tag: $chat_tag"
     
     # 異常種別に応じたアドバイスメッセージを設定
     local advice_message=""
@@ -513,7 +527,7 @@ $advice_message"
     HEARTBEAT_STATE="recovery_waiting"
     RECOVERY_WAIT_CYCLES=0
     
-    log_info "Context compression and recovery message prepared, entering recovery waiting state."
+    log_notice "Context compression and recovery message prepared, entering recovery waiting state."
 }
 
 # 回復状況確認
@@ -522,7 +536,7 @@ check_recovery_status() {
     check_agent_health
     local status=$?
     if [ $status -eq 0 ]; then
-        log_info "Agent health check passed. Recovery confirmed."
+        log_notice "Agent health check passed. Recovery confirmed."
         return 0 # 回復成功
     else
         log_warning "Agent health check failed with status $status. Recovery not yet confirmed."
@@ -533,14 +547,14 @@ check_recovery_status() {
 # 停止処理
 stop_heartbeat() {
     log_error "Maximum recovery attempts ($MAX_RECOVERY_ATTEMPTS) exceeded or critical error detected"
-    log_info "Heartbeat stopping at $(date "+%F %T")"
+    log_notice "Heartbeat stopping at $(date "+%F %T")"
 
     # 最終的なエージェント処理中断
-    log_info "Final agent process interruption..."
+    log_notice "Final agent process interruption..."
     tmux send-keys -t agent Escape
     sleep 1
     tmux send-keys -t agent Escape
-    log_info "Agent processing has been interrupted."
+    log_notice "Agent processing has been interrupted."
         
     exit 0
 }
@@ -556,14 +570,14 @@ trap handle_shutdown SIGINT SIGTERM
 
 # 終了処理
 graceful_shutdown() {
-    log_info "Heartbeat stopped gracefully at $(date "+%F %T")"
+    log_notice "Heartbeat stopped gracefully at $(date "+%F %T")"
     exit 0
 }
 
-log_info "Heartbeat monitor started at $(date "+%F %T")"
-log_info "Monitored directories: ${MONITORED_DIRS[*]}"
-log_info "Warning threshold: $((INACTIVITY_WARNING_THRESHOLD / 60)) minutes"
-log_info "Stop threshold: $((INACTIVITY_STOP_THRESHOLD / 60)) minutes"
+log_notice "Heartbeat monitor started at $(date "+%F %T")"
+log_notice "Monitored directories: ${MONITORED_DIRS[*]}"
+log_notice "Warning threshold: $((INACTIVITY_WARNING_THRESHOLD / 60)) minutes"
+log_notice "Stop threshold: $((INACTIVITY_STOP_THRESHOLD / 60)) minutes"
 
 while true; do
     # 1. 回復待機状態の処理
@@ -579,7 +593,7 @@ while true; do
         check_recovery_status
         if [ $? -eq 0 ]; then
             # 回復確認
-            log_info "Agent recovery confirmed. Returning to normal state."
+            log_notice "Agent recovery confirmed. Returning to normal state."
             HEARTBEAT_STATE="normal"
             RECOVERY_WAIT_CYCLES=0
             RECOVERY_ATTEMPT_COUNT=0  # 回復成功時に試行回数をリセット
