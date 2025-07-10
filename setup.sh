@@ -172,6 +172,31 @@ tmux send-keys -t agent "$INIT_PROMPT_WITH_TIMESTAMP"
 sleep 1
 tmux send-keys -t agent C-m
 log_success "✅ エージェントの初期プロンプト実行完了"
+
+# themeboxディレクトリ内のファイルからテーマを読み込んだ場合、processed化を実行
+if [ -n "$FILE_INPUT" ] && [[ "$FILE_INPUT" == themebox/* ]]; then
+    log_info "📝 テーマファイルをprocessed化中..."
+    
+    # ファイル名からprocessed化されたファイル名を生成
+    DIRNAME=$(dirname "$FILE_INPUT")
+    BASENAME=$(basename "$FILE_INPUT")
+    
+    # 既にprocessed.で始まっている場合はスキップ
+    if [[ "$BASENAME" == processed.* ]]; then
+        log_info "ℹ️ ファイルは既にprocessed化されています: $FILE_INPUT"
+    else
+        PROCESSED_FILE="$DIRNAME/processed.$BASENAME"
+        
+        # ファイル移動を実行
+        if mv "$FILE_INPUT" "$PROCESSED_FILE" 2>/dev/null; then
+            log_success "✅ テーマファイルをprocessed化しました: $FILE_INPUT → $PROCESSED_FILE"
+        else
+            echo -e "\033[1;33m[WARNING]\033[0m テーマファイルのprocessed化に失敗しました: $FILE_INPUT"
+            echo -e "\033[1;33m[WARNING]\033[0m 処理は継続します。"
+        fi
+    fi
+fi
+
 echo ""
 
 # STEP 7: ハートビート起動
