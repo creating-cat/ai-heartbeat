@@ -306,9 +306,15 @@ check_agent_health() {
                 fi
                 
                 if [ ! -z "$file_time" ]; then
-                    timestamp_diff=$((current_time - file_time))
-                    echo "File timestamp: $(date -r $file_time "+%F %T")"
-                    echo "Timestamp age: $((timestamp_diff / 60)) minutes"
+                    # ファイル名タイムスタンプがハートビート起動前の場合、起動時刻を基軸とする
+                    if [ $file_time -lt $HEARTBEAT_START_TIME ]; then
+                        timestamp_diff=$((current_time - HEARTBEAT_START_TIME))
+                        echo "File timestamp before heartbeat start: $((timestamp_diff / 60)) minutes since heartbeat start"
+                    else
+                        timestamp_diff=$((current_time - file_time))
+                        echo "File timestamp: $(date -r $file_time "+%F %T")"
+                        echo "Timestamp age: $((timestamp_diff / 60)) minutes"
+                    fi
                     
                     # 未来のタイムスタンプの場合はスキップ
                     if [ $timestamp_diff -lt 0 ]; then
