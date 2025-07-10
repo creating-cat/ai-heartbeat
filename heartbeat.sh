@@ -277,10 +277,10 @@ _get_latest_file_info() {
     # 複数ディレクトリから最新ファイルの更新時刻を取得（macOS対応）
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS
-        latest_info=$(find "${existing_dirs[@]}" -type f -exec stat -f "%m %N" {} \; 2>/dev/null | sort -nr | head -1)
+        latest_info=$(find "${existing_dirs[@]}" -type f -exec stat -f "%m %N" {} + 2>/dev/null | sort -nr | head -1)
     else
         # Linux
-        latest_info=$(find "${existing_dirs[@]}" -type f -exec stat -c "%Y %n" {} \; 2>/dev/null | sort -nr | head -1)
+        latest_info=$(find "${existing_dirs[@]}" -type f -exec stat -c "%Y %n" {} + 2>/dev/null | sort -nr | head -1)
     fi
 
     echo "$latest_info"
