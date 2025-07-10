@@ -168,7 +168,7 @@ _check_introspection_activity() {
     if [ -z "$latest_timestamp" ]; then
         # ハートビート起動からの経過時間で判定
         introspection_diff=$((current_time - HEARTBEAT_START_TIME))
-        echo "No introspection found: $((introspection_diff / 60)) minutes since heartbeat start"
+        log_info "No introspection found: $((introspection_diff / 60)) minutes since heartbeat start"
     else
         # タイムスタンプを秒に変換
         local file_time
@@ -183,11 +183,11 @@ _check_introspection_activity() {
         if [ -z "$file_time" ] || [ $file_time -lt $HEARTBEAT_START_TIME ]; then
             # 変換失敗またはハートビート起動前の場合、起動時刻を基軸とする
             introspection_diff=$((current_time - HEARTBEAT_START_TIME))
-            echo "Introspection before heartbeat start: $((introspection_diff / 60)) minutes since heartbeat start"
+            log_info "Introspection before heartbeat start: $((introspection_diff / 60)) minutes since heartbeat start"
         else
             # 通常の判定（ハートビート起動後の内省活動）
             introspection_diff=$((current_time - file_time))
-            echo "Last introspection: $((introspection_diff / 60)) minutes ago"
+            log_info "Last introspection: $((introspection_diff / 60)) minutes ago"
         fi
     fi
     
@@ -250,7 +250,7 @@ check_agent_health() {
     if [ $latest_time -lt $HEARTBEAT_START_TIME ]; then
         log_info "Latest file is older than heartbeat start time - checking from heartbeat start"
         diff=$((current_time - HEARTBEAT_START_TIME))
-        echo "Time since heartbeat start: $((diff / 60)) minutes"
+        log_info "Time since heartbeat start: $((diff / 60)) minutes"
     else
         diff=$((current_time - latest_time))
     fi
@@ -277,7 +277,7 @@ check_agent_health() {
         # 異なるファイルなのでループ検出記録をリセット
         LOOP_DETECTION_FILE="$latest_filename"
         LOOP_DETECTION_START_TIME="$current_time"
-        echo "Loop detection reset for new file: $latest_filename"
+        log_info "Loop detection reset for new file: $latest_filename"
     fi
 
     # 3. ファイル名タイムスタンプチェック
@@ -309,11 +309,11 @@ check_agent_health() {
                     # ファイル名タイムスタンプがハートビート起動前の場合、起動時刻を基軸とする
                     if [ $file_time -lt $HEARTBEAT_START_TIME ]; then
                         timestamp_diff=$((current_time - HEARTBEAT_START_TIME))
-                        echo "File timestamp before heartbeat start: $((timestamp_diff / 60)) minutes since heartbeat start"
+                        log_info "File timestamp before heartbeat start: $((timestamp_diff / 60)) minutes since heartbeat start"
                     else
                         timestamp_diff=$((current_time - file_time))
-                        echo "File timestamp: $(date -r $file_time "+%F %T")"
-                        echo "Timestamp age: $((timestamp_diff / 60)) minutes"
+                        log_info "File timestamp: $(date -r $file_time "+%F %T")"
+                        log_info "Timestamp age: $((timestamp_diff / 60)) minutes"
                     fi
                     
                     # 未来のタイムスタンプの場合はスキップ
@@ -327,7 +327,7 @@ check_agent_health() {
             fi
         fi
     else
-        echo "Skipping file timestamp check - latest file is older than heartbeat start"
+        log_info "Skipping file timestamp check - latest file is older than heartbeat start"
     fi
     
     # 4. 内省活動不足検知
@@ -500,7 +500,7 @@ while true; do
         fi
 
         # 回復待機状態：回復確認のみ実行
-        echo "Recovery waiting state (cycle $((RECOVERY_WAIT_CYCLES + 1))/$MAX_RECOVERY_WAIT_CYCLES)"
+        log_info "Recovery waiting state (cycle $((RECOVERY_WAIT_CYCLES + 1))/$MAX_RECOVERY_WAIT_CYCLES)"
         
         check_recovery_status
         if [ $? -eq 0 ]; then
