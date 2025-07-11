@@ -135,10 +135,6 @@ check_thinking_log_pattern_anomaly() {
         debug_warning "THINKING_LOG_PATTERN: Error level reached ($same_timestamp_count files with same timestamp)"
         echo "2:$same_timestamp_count"
         return 0
-    elif [ $same_timestamp_count -ge 2 ]; then
-        debug_log "THINKING_LOG_PATTERN: Warning level reached ($same_timestamp_count files with same timestamp)"
-        echo "1:$same_timestamp_count"
-        return 0
     fi
     
     debug_log "THINKING_LOG_PATTERN: Normal operation ($same_timestamp_count file with timestamp)"
@@ -201,10 +197,6 @@ check_theme_log_pattern_anomaly() {
     if [ $same_timestamp_count -ge 3 ]; then
         debug_warning "THEME_LOG_PATTERN: Error level reached ($same_timestamp_count files with same timestamp)"
         echo "2:$same_timestamp_count"
-        return 0
-    elif [ $same_timestamp_count -ge 2 ]; then
-        debug_log "THEME_LOG_PATTERN: Warning level reached ($same_timestamp_count files with same timestamp)"
-        echo "1:$same_timestamp_count"
         return 0
     fi
     

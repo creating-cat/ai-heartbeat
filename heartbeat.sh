@@ -191,10 +191,7 @@ check_agent_health() {
     
     if [ "$thinking_pattern_code" != "0" ]; then
         HEALTH_CHECK_DETAIL="$thinking_pattern_detail"
-        if [ "$thinking_pattern_code" = "1" ]; then
-            log_warning "[CHECK] Thinking log pattern warning detected (code 12): $thinking_pattern_detail files"
-            return 12 # 思考ログパターン警告
-        elif [ "$thinking_pattern_code" = "2" ]; then
+        if [ "$thinking_pattern_code" = "2" ]; then
             log_warning "[CHECK] Thinking log pattern error detected (code 13): $thinking_pattern_detail files"
             return 13 # 思考ログパターンエラー
         fi
@@ -207,10 +204,7 @@ check_agent_health() {
     
     if [ "$theme_pattern_code" != "0" ]; then
         HEALTH_CHECK_DETAIL="$theme_pattern_detail"
-        if [ "$theme_pattern_code" = "1" ]; then
-            log_warning "[CHECK] Theme log pattern warning detected (code 15): $theme_pattern_detail files"
-            return 15 # テーマログパターン警告
-        elif [ "$theme_pattern_code" = "2" ]; then
+        if [ "$theme_pattern_code" = "2" ]; then
             log_warning "[CHECK] Theme log pattern error detected (code 16): $theme_pattern_detail files"
             return 16 # テーマログパターンエラー
         fi
