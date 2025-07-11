@@ -357,6 +357,19 @@ check_agent_health() {
         fi
     fi
 
+    # 11. 思考ログループ異常検知（新機能 - v2）
+    local thinking_loop_result=$(check_thinking_log_loop_anomaly "$current_time")
+    local thinking_loop_code=$(echo "$thinking_loop_result" | cut -d':' -f1)
+    local thinking_loop_detail=$(echo "$thinking_loop_result" | cut -d':' -f2)
+    
+    if [ "$thinking_loop_code" != "0" ]; then
+        HEALTH_CHECK_DETAIL="$thinking_loop_detail"
+        if [ "$thinking_loop_code" = "2" ]; then
+            log_warning "[CHECK] Thinking log loop error detected (code 14): $thinking_loop_detail loops"
+            return 14 # 思考ログループエラー
+        fi
+    fi
+
     return 0  # 正常
 }
 
@@ -427,6 +440,8 @@ $ADVICE_INACTIVITY"
             return 0 ;;
         13) # 思考ログパターンエラー（新機能 - v2）
             handle_failure "Thinking log pattern error: $detail files with same timestamp detected." "思考ログパターン異常" ;;
+        14) # 思考ログループエラー（新機能 - v2）
+            handle_failure "Thinking log loop error: Same thinking log edited $detail times consecutively." "思考ログループ異常" ;;
         15) # テーマログパターン警告（新機能 - v2）
             log_warning "Theme log pattern warning: $detail files with same timestamp detected."
             INACTIVITY_WARNING_MESSAGE="⚠️ テーマログパターン警告: 同じタイムスタンプで${detail}個のテーマログファイルが検出されました。

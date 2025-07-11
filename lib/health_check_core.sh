@@ -566,3 +566,72 @@ check_theme_log_pattern_anomaly() {
     echo "0:$same_timestamp_count"
     return 0
 }
+
+# 思考ログループ状態管理用のグローバル変数
+THINKING_LOG_LOOP_LAST_FILE=""
+THINKING_LOG_LOOP_LAST_MTIME=""
+THINKING_LOG_LOOP_COUNT=0
+
+# 思考ログループ異常の判定（新機能 - v2）
+# 同一思考ログファイルの継続編集を検知してループ異常を判定
+# 引数: current_time
+# 戻り値: 常に0（エラーコードはecho出力に含める）
+# 出力: "error_code:detail" 形式（0:count=正常, 2:count=エラー）
+check_thinking_log_loop_anomaly() {
+    local current_time="$1"
+    
+    debug_log "THINKING_LOG_LOOP check started: current_time=$current_time"
+    debug_log "THINKING_LOG_LOOP previous state: file=$THINKING_LOG_LOOP_LAST_FILE, mtime=$THINKING_LOG_LOOP_LAST_MTIME, count=$THINKING_LOG_LOOP_COUNT"
+    
+    # 最新思考ログファイル情報を取得
+    local latest_thinking_log_info=$(_get_latest_thinking_log_info)
+    
+    if [ -z "$latest_thinking_log_info" ]; then
+        debug_log "THINKING_LOG_LOOP: No thinking log files found, clearing loop state"
+        THINKING_LOG_LOOP_LAST_FILE=""
+        THINKING_LOG_LOOP_LAST_MTIME=""
+        THINKING_LOG_LOOP_COUNT=0
+        echo "0:0"
+        return 0
+    fi
+    
+    # 最新思考ログの時刻とファイル名を分離
+    local latest_thinking_log_mtime=$(echo "$latest_thinking_log_info" | cut -d' ' -f1)
+    local latest_thinking_log_file=$(echo "$latest_thinking_log_info" | cut -d' ' -f2-)
+    
+    debug_log "THINKING_LOG_LOOP: Current latest file: $latest_thinking_log_file (mtime: $latest_thinking_log_mtime)"
+    
+    # 前回と同じファイルかチェック
+    if [ "$latest_thinking_log_file" = "$THINKING_LOG_LOOP_LAST_FILE" ]; then
+        # 同じファイルの場合、更新時刻が変わったかチェック
+        if [ "$latest_thinking_log_mtime" != "$THINKING_LOG_LOOP_LAST_MTIME" ]; then
+            # 更新時刻が変わった場合、ループカウントをインクリメント
+            THINKING_LOG_LOOP_COUNT=$((THINKING_LOG_LOOP_COUNT + 1))
+            debug_log "THINKING_LOG_LOOP: Same file updated, loop count incremented to $THINKING_LOG_LOOP_COUNT"
+            
+            # 更新時刻を保存
+            THINKING_LOG_LOOP_LAST_MTIME="$latest_thinking_log_mtime"
+            
+            # ループカウントが2以上でエラー
+            if [ $THINKING_LOG_LOOP_COUNT -ge 2 ]; then
+                debug_warning "THINKING_LOG_LOOP: Error level reached (loop count: $THINKING_LOG_LOOP_COUNT)"
+                echo "2:$THINKING_LOG_LOOP_COUNT"
+                return 0
+            fi
+        else
+            # 更新時刻が同じ場合は何もしない
+            debug_log "THINKING_LOG_LOOP: Same file, same mtime, no change"
+        fi
+    else
+        # 異なるファイルの場合、ループ状態をクリア
+        debug_log "THINKING_LOG_LOOP: Different file detected, clearing loop state"
+        THINKING_LOG_LOOP_LAST_FILE="$latest_thinking_log_file"
+        THINKING_LOG_LOOP_LAST_MTIME="$latest_thinking_log_mtime"
+        THINKING_LOG_LOOP_COUNT=0
+    fi
+    
+    debug_log "THINKING_LOG_LOOP: Updated state: file=$THINKING_LOG_LOOP_LAST_FILE, mtime=$THINKING_LOG_LOOP_LAST_MTIME, count=$THINKING_LOG_LOOP_COUNT"
+    debug_log "THINKING_LOG_LOOP: Normal operation (loop count: $THINKING_LOG_LOOP_COUNT)"
+    echo "0:$THINKING_LOG_LOOP_COUNT"
+    return 0
+}
