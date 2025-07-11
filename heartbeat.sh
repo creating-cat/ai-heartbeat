@@ -35,11 +35,6 @@ EMERGENCY_FEEDBACK_DETECTED=false
 # デバッグモード設定（環境変数で制御）
 DEBUG_MODE=${DEBUG_MODE:-false}
 
-
-# ループ検出用変数
-LOOP_DETECTION_FILE=""
-LOOP_DETECTION_START_TIME=""
-
 # 回復処理用変数
 RECOVERY_MESSAGE=""
 RECOVERY_ATTEMPT_COUNT=0
@@ -167,148 +162,12 @@ check_web_search_restriction() {
     return 0
 }
 
-# 内省活動をチェックする関数
-_check_introspection_activity() {
-    local current_time=$(date +%s)
-    
-    # 内省を含むファイルから最新のタイムスタンプを取得
-    local latest_timestamp=$(grep -ril "内省" artifacts/*/histories/* 2>/dev/null | \
-        sed 's|.*/||' | \
-        grep -o '^[0-9]\{14\}' | \
-        sort -r | \
-        head -1)
-    
-    local introspection_diff
-    
-    # 内省活動が見つからない場合、またはHEARTBEAT_START_TIMEより前の場合の処理
-    if [ -z "$latest_timestamp" ]; then
-        # ハートビート起動からの経過時間で判定
-        introspection_diff=$((current_time - HEARTBEAT_START_TIME))
-        log_info "No introspection found: $((introspection_diff / 60)) minutes since heartbeat start"
-    else
-        # タイムスタンプを秒に変換
-        local file_time=$(convert_timestamp_to_seconds "$latest_timestamp")
-        
-        if [ -z "$file_time" ] || [ $file_time -lt $HEARTBEAT_START_TIME ]; then
-            # 変換失敗またはハートビート起動前の場合、起動時刻を基軸とする
-            introspection_diff=$((current_time - HEARTBEAT_START_TIME))
-            log_info "Introspection before heartbeat start: $((introspection_diff / 60)) minutes since heartbeat start"
-        else
-            # 通常の判定（ハートビート起動後の内省活動）
-            introspection_diff=$((current_time - file_time))
-            log_info "Last introspection: $((introspection_diff / 60)) minutes ago"
-        fi
-    fi
-    
-    # 警告閾値（内省閾値の2/3）を設定
-    local introspection_warning_threshold=$((INTROSPECTION_THRESHOLD * 2 / 3))
-    
-    if [ $introspection_diff -gt $INTROSPECTION_THRESHOLD ]; then
-        HEALTH_CHECK_DETAIL=$introspection_diff
-        return 1  # 内省活動不足（エラーレベル）
-    elif [ $introspection_diff -gt $introspection_warning_threshold ]; then
-        HEALTH_CHECK_DETAIL=$introspection_diff
-        return 2  # 内省活動警告（警告レベル）
-    fi
-    
-    return 0  # 正常
-}
-
-
 # エージェントの健全性をチェックするコア関数
 # 戻り値: 0=正常, 1=警告レベル, 2=エラーレベル
 # 新しいhealth_check_core.shを使用した統一処理
 check_agent_health() {
-    local latest_file_info=$(_get_latest_file_info)
-    [ $? -ne 0 ] || [ -z "$latest_file_info" ] && return 0 # 監視対象がない/ファイルがない場合は正常とみなす
-
-    local latest_time=$(echo "$latest_file_info" | cut -d' ' -f1)
-    local latest_filename=$(echo "$latest_file_info" | cut -d' ' -f2-)
     local current_time=$(date +%s)
     
-    # 1. 無活動異常検知（v1 - コメントアウト）
-    # local inactivity_result=$(check_inactivity_anomaly "$latest_time" "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
-    # local inactivity_status=$?
-    # if [ $inactivity_status -ne 0 ]; then
-    #     HEALTH_CHECK_DETAIL="$inactivity_result"
-    #     # 戻り値で直接判定
-    #     if [ $inactivity_status -eq 1 ]; then
-    #         log_warning "[CHECK] Inactivity warning detected (code 1): $inactivity_result seconds"
-    #         return 1 # 無活動警告
-    #     else
-    #         log_warning "[CHECK] Inactivity error detected (code 3): $inactivity_result seconds"
-    #         return 3 # 無活動エラー
-    #     fi
-    # fi
-
-    # 2. 同一ファイルループ検知
-    local loop_result=$(check_loop_anomaly "$latest_filename" "$LOOP_DETECTION_FILE" "$LOOP_DETECTION_START_TIME" "$current_time" "$INACTIVITY_STOP_THRESHOLD")
-    local loop_status=$?
-    
-    # 戻り値のみで判定
-    if [ $loop_status -eq 2 ]; then
-        # エラー時
-        HEALTH_CHECK_DETAIL="$loop_result"
-        log_warning "[CHECK] Loop anomaly detected (code 4): $loop_result"
-        return 4 # ループエラー
-    elif [ "$latest_filename" != "$LOOP_DETECTION_FILE" ]; then
-        # 新しいファイル検出時
-        LOOP_DETECTION_FILE="$latest_filename"
-        LOOP_DETECTION_START_TIME="$current_time"
-        log_info "Loop detection reset for new file: $latest_filename"
-    elif [ -z "$LOOP_DETECTION_START_TIME" ]; then
-        # ループ検出開始時
-        LOOP_DETECTION_START_TIME="$current_time"
-        log_info "Loop detection started for file: $latest_filename"
-    fi
-
-    # 3. タイムスタンプ異常検知（v1 - コメントアウト）
-    # local timestamp_result=$(check_timestamp_anomaly "$latest_filename" "$current_time" "$TIMESTAMP_ANOMALY_THRESHOLD" "$HEARTBEAT_START_TIME")
-    # local timestamp_status=$?
-    # if [ $timestamp_status -ne 0 ]; then
-    #     HEALTH_CHECK_DETAIL="$timestamp_result"
-    #     log_warning "[CHECK] Timestamp anomaly detected (code 5): $timestamp_result"
-    #     return 5 # タイムスタンプ異常
-    # fi
-    
-    # 4. 内省活動不足検知（v1 - コメントアウト）
-    # _check_introspection_activity
-    # introspection_status=$?
-    # if [ $introspection_status -eq 1 ]; then
-    #     log_warning "[CHECK] Introspection deficiency detected (code 6): $HEALTH_CHECK_DETAIL"
-    #     return 6 # 内省不足 (HEALTH_CHECK_DETAIL is set by _check_introspection_activity)
-    # elif [ $introspection_status -eq 2 ]; then
-    #     log_warning "[CHECK] Introspection warning detected (code 2): $HEALTH_CHECK_DETAIL"
-    #     return 2 # 内省警告
-    # fi
-
-    # 5. 思考ログ重複作成異常検知（v1 - コメントアウト）
-    # local duplicate_result=$(check_thinking_log_duplicate "artifacts" "$current_time")
-    # local duplicate_status=$?
-    # if [ $duplicate_status -ne 0 ]; then
-    #     HEALTH_CHECK_DETAIL="$duplicate_result"
-    #     log_warning "[CHECK] Thinking log duplicate detected (code 7): $duplicate_result files"
-    #     return 7 # 思考ログ重複作成異常
-    # fi
-
-    # 6. 思考ログ繰り返し更新異常検知（v1 - コメントアウト）
-    # local repeat_result=$(check_thinking_log_repeat "artifacts" "$current_time")
-    # local repeat_status=$?
-    # if [ $repeat_status -ne 0 ]; then
-    #     HEALTH_CHECK_DETAIL="$repeat_result"
-    #     log_warning "[CHECK] Thinking log repeat detected (code 8): $repeat_result files"
-    #     return 8 # 思考ログ繰り返し更新異常
-    # fi
-
-    # 7. テーマログ異常検知（v1 - コメントアウト）
-    # local theme_result=$(check_theme_log_anomaly "artifacts" "$current_time")
-    # local theme_status=$?
-    # if [ $theme_status -ne 0 ]; then
-    #     HEALTH_CHECK_DETAIL="$theme_result"
-    #     log_warning "[CHECK] Theme log anomaly detected (code 9): $theme_result files"
-    #     return 9 # テーマログ異常
-    # fi
-
     # 8. 思考ログ頻度異常検知（新機能 - v2）
     local thinking_freq_result=$(check_thinking_log_frequency_anomaly "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
     local thinking_freq_code=$(echo "$thinking_freq_result" | cut -d':' -f1)
@@ -414,37 +273,11 @@ check_recent_activity() {
     case $status in
         0) # 正常
             return 0 ;;
-        1) # 無活動警告
-            log_warning "Agent activity is low. No file updates for $((detail / 60)) minutes."
-            INACTIVITY_WARNING_MESSAGE="⚠️ 無活動警告: $((detail / 60))分間ファイル更新がありません。
-
-$ADVICE_INACTIVITY"
-            return 0 ;;
-        2) # 内省警告
-            log_warning "Introspection activity has not been performed for $((detail / 60)) minutes."
-            INTROSPECTION_REMINDER_MESSAGE="⚠️ 内省不足警告: $((detail / 60))分間内省活動が行われていません。
-
-$ADVICE_INTROSPECTION"
-            return 0 ;;
-        3) 
-            handle_failure "Agent appears to be stuck! No file updates for $((detail / 60)) minutes." "無活動状態" ;;
-        4) 
-            handle_failure "Agent appears to be stuck! Same file updated continuously for $((detail / 60)) minutes: $latest_filename" "同一ファイル継続更新ループ" ;;
-        5) 
-            handle_failure "Agent appears to be stuck! File timestamp is too old ($((detail / 60)) minutes): $latest_filename" "最新ファイル名タイムスタンプ異常" ;;
-        6) 
-            handle_failure "Agent appears to be stuck! No introspection activity for $((detail / 60)) minutes." "内省活動不足" ;;
-        7) # 思考ログ重複作成異常（新機能）
-            handle_failure "Agent appears to be stuck! Thinking log duplicate creation detected ($detail files)" "思考ログ重複作成異常" ;;
-        8) # 思考ログ繰り返し更新異常（新機能）
-            handle_failure "Agent appears to be stuck! Thinking log repeat update detected ($detail files)" "思考ログ繰り返し更新異常" ;;
-        9) # テーマログ異常（新機能）
-            handle_failure "Agent appears to be stuck! Theme log anomaly detected ($detail files)" "テーマログ異常" ;;
         10) # 思考ログ頻度警告（新機能 - v2）
             log_warning "Thinking log frequency warning: No thinking log updates for $((detail / 60)) minutes."
             INACTIVITY_WARNING_MESSAGE="⚠️ 思考ログ頻度警告: $((detail / 60))分間思考ログの更新がありません。
 
-$ADVICE_INACTIVITY"
+$ADVICE_THINKING_LOG_FREQUENCY"
             return 0 ;;
         11) # 思考ログ頻度エラー（新機能 - v2）
             handle_failure "Thinking log frequency error: No thinking log updates for $((detail / 60)) minutes." "思考ログ頻度異常" ;;
@@ -506,17 +339,8 @@ attempt_recovery() {
     # 異常種別に応じたアドバイスメッセージを設定
     local advice_message=""
     case "$detection_type" in
-        "無活動状態")
-            advice_message="$ADVICE_INACTIVITY"
-            ;;
         "内省活動不足")
             advice_message="$ADVICE_INTROSPECTION"
-            ;;
-        "同一ファイル継続更新ループ")
-            advice_message="$ADVICE_LOOP"
-            ;;
-        "最新ファイル名タイムスタンプ異常")
-            advice_message="$ADVICE_TIMESTAMP"
             ;;
         "思考ログ頻度異常")
             advice_message="$ADVICE_THINKING_LOG_FREQUENCY"
@@ -529,30 +353,6 @@ attempt_recovery() {
             ;;
         "テーマログパターン異常")
             advice_message="$ADVICE_THEME_LOG_PATTERN"
-            ;;
-        "思考ログ重複作成異常")
-            advice_message="
-思考ログの作成に異常が検知されました。
-同じタイムスタンプで3つ以上の思考ログファイルが作成されています。
-一回のハートビートでは、適切なタイミングで思考ログを保存し、次のハートビートに備えることを推奨します。
-適切な範囲で処理を区切って小さく積み重ねていくことが、エージェントの思考を整理し、次の行動に活かすために重要です。
-"
-            ;;
-        "思考ログ繰り返し更新異常")
-            advice_message="
-思考ログの作成に異常が検知されました。
-同じタイムスタンプの思考ログファイルが繰り返し更新されています（連番ファイルの存在）。
-一回のハートビートでは、適切なタイミングで思考ログを保存し、次のハートビートに備えることを推奨します。
-適切な範囲で処理を区切って小さく積み重ねていくことが、エージェントの思考を整理し、次の行動に活かすために重要です。
-"
-            ;;
-        "テーマログ異常")
-            advice_message="
-テーマログの作成に異常が検知されました。
-同じタイムスタンプで複数のテーマログファイルが作成されている可能性があります。
-テーマの選択や変更は慎重に行い、一つのテーマに集中して取り組むことを推奨します。
-複数のテーマを同時に扱う場合は、異なるハートビートサイクルで分けて処理することが重要です。
-"
             ;;
         *)
             advice_message=""
