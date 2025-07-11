@@ -365,3 +365,84 @@ check_introspection_activity_anomaly() {
     echo "0:$introspection_diff"
     return 0
 }
+
+# 思考ログタイムスタンプ乖離異常の判定（新機能 - v2復活）
+# 最新思考ログのファイル名に含まれるタイムスタンプが現在時刻から乖離していないかチェック
+# 引数: current_time, warning_threshold, error_threshold, heartbeat_start_time
+# 戻り値: 常に0（エラーコードはecho出力に含める）
+# 出力: "error_code:detail" 形式（0:diff=正常, 1:diff=警告, 2:diff=エラー）
+check_thinking_log_timestamp_anomaly() {
+    local current_time="$1"
+    local warning_threshold="$2"
+    local error_threshold="$3"
+    local heartbeat_start_time="$4"
+
+    debug_log "THINKING_LOG_TIMESTAMP check started: current_time=$current_time"
+    debug_log "THINKING_LOG_TIMESTAMP thresholds: warning=${warning_threshold}s, error=${error_threshold}s"
+
+    # 最新思考ログファイル情報を取得
+    local latest_thinking_log_info=$(_get_latest_thinking_log_info)
+
+    if [ -z "$latest_thinking_log_info" ]; then
+        debug_log "THINKING_LOG_TIMESTAMP: No thinking log files found"
+        echo "0:0"
+        return 0
+    fi
+
+    # 最新思考ログのファイル名を取得
+    local latest_thinking_log_file=$(echo "$latest_thinking_log_info" | cut -d' ' -f2-)
+    local latest_filename=$(basename "$latest_thinking_log_file")
+
+    # ファイル名からタイムスタンプ部分を抽出（YYYYMMDDHHMMSS）
+    local timestamp_pattern=""
+    if [[ "$latest_filename" =~ ^([0-9]{14}) ]]; then
+        timestamp_pattern="${BASH_REMATCH[1]}"
+    else
+        debug_log "THINKING_LOG_TIMESTAMP: Could not extract timestamp from filename: $latest_filename"
+        echo "0:0"
+        return 0
+    fi
+
+    debug_log "THINKING_LOG_TIMESTAMP: Extracted timestamp = $timestamp_pattern"
+
+    # タイムスタンプを秒に変換
+    local file_time=$(convert_timestamp_to_seconds "$timestamp_pattern")
+    if [ -z "$file_time" ]; then
+        debug_log "THINKING_LOG_TIMESTAMP: Could not convert timestamp to seconds"
+        echo "0:0"
+        return 0
+    fi
+
+    # 現在時刻とファイル名タイムスタンプの差を計算
+    local timestamp_diff
+    if [ $file_time -lt $heartbeat_start_time ]; then
+        # ファイル名タイムスタンプがハートビート起動前の場合、起動時刻を基軸とする
+        timestamp_diff=$((current_time - heartbeat_start_time))
+        debug_log "THINKING_LOG_TIMESTAMP: Using heartbeat start time as baseline (file timestamp older than heartbeat start)"
+    else
+        timestamp_diff=$((current_time - file_time))
+    fi
+    debug_log "THINKING_LOG_TIMESTAMP: Time difference = ${timestamp_diff}s"
+
+    # 未来のタイムスタンプは異常としない
+    if [ $timestamp_diff -lt 0 ]; then
+        debug_log "THINKING_LOG_TIMESTAMP: Future timestamp detected, skipping"
+        echo "0:$timestamp_diff"
+        return 0
+    fi
+
+    # エラーコード付きで出力
+    if [ $timestamp_diff -gt $error_threshold ]; then
+        debug_warning "THINKING_LOG_TIMESTAMP: Error level reached (${timestamp_diff}s > ${error_threshold}s)"
+        echo "2:$timestamp_diff"
+        return 0
+    elif [ $timestamp_diff -gt $warning_threshold ]; then
+        debug_log "THINKING_LOG_TIMESTAMP: Warning level reached (${timestamp_diff}s > ${warning_threshold}s)"
+        echo "1:$timestamp_diff"
+        return 0
+    fi
+
+    debug_log "THINKING_LOG_TIMESTAMP: Normal operation (${timestamp_diff}s <= ${warning_threshold}s)"
+    echo "0:$timestamp_diff"
+    return 0
+}
