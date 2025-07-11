@@ -3,6 +3,7 @@
 # ライブラリの読み込み
 source "lib/logging.sh"
 source "lib/config.sh"
+source "lib/utils.sh"
 
 # 設定ファイル読み込み
 CONFIG_FILE="heartbeat.conf"
@@ -185,14 +186,7 @@ _check_introspection_activity() {
         log_info "No introspection found: $((introspection_diff / 60)) minutes since heartbeat start"
     else
         # タイムスタンプを秒に変換
-        local file_time
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            # macOS
-            file_time=$(date -j -f "%Y%m%d%H%M%S" "$latest_timestamp" "+%s" 2>/dev/null)
-        else
-            # Linux
-            file_time=$(date -d "${latest_timestamp:0:8} ${latest_timestamp:8:2}:${latest_timestamp:10:2}:${latest_timestamp:12:2}" "+%s" 2>/dev/null)
-        fi
+        local file_time=$(convert_timestamp_to_seconds "$latest_timestamp")
         
         if [ -z "$file_time" ] || [ $file_time -lt $HEARTBEAT_START_TIME ]; then
             # 変換失敗またはハートビート起動前の場合、起動時刻を基軸とする
@@ -219,35 +213,6 @@ _check_introspection_activity() {
     return 0  # 正常
 }
 
-# 監視対象ディレクトリから最新ファイルの情報を取得する内部関数
-_get_latest_file_info() {
-    local latest_info
-
-    # 監視対象ディレクトリの存在確認
-    local existing_dirs=()
-    for dir in "${MONITORED_DIRS[@]}"; do
-        if [ -d "$dir" ]; then
-            existing_dirs+=("$dir")
-        fi
-    done
-    
-    if [ ${#existing_dirs[@]} -eq 0 ]; then
-        echo "" # No info to return
-        return 1
-    fi
-    
-    # 複数ディレクトリから最新ファイルの更新時刻を取得（macOS対応）
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS
-        latest_info=$(find "${existing_dirs[@]}" -type f -exec stat -f "%m %N" {} + 2>/dev/null | sort -nr | head -1)
-    else
-        # Linux
-        latest_info=$(find "${existing_dirs[@]}" -type f -exec stat -c "%Y %n" {} + 2>/dev/null | sort -nr | head -1)
-    fi
-
-    echo "$latest_info"
-    [ -n "$latest_info" ]
-}
 
 # エージェントの健全性をチェックするコア関数
 # 戻り値: 0=正常, 1=無活動警告, 2=内省警告, 3=無活動, 4=ループ, 5=タイムスタンプ異常, 6=内省不足
@@ -303,21 +268,7 @@ check_agent_health() {
             file_timestamp=$(echo "$filename_only" | grep -o '^[0-9]\{14\}')
             if [ ! -z "$file_timestamp" ]; then
                 # タイムスタンプを秒に変換
-                file_year=${file_timestamp:0:4}
-                file_month=${file_timestamp:4:2}
-                file_day=${file_timestamp:6:2}
-                file_hour=${file_timestamp:8:2}
-                file_minute=${file_timestamp:10:2}
-                file_second=${file_timestamp:12:2}
-                
-                # dateコマンドで秒に変換
-                if [[ "$OSTYPE" == "darwin"* ]]; then
-                    # macOS
-                    file_time=$(date -j -f "%Y%m%d%H%M%S" "$file_timestamp" "+%s" 2>/dev/null)
-                else
-                    # Linux
-                    file_time=$(date -d "${file_year}-${file_month}-${file_day} ${file_hour}:${file_minute}:${file_second}" "+%s" 2>/dev/null)
-                fi
+                file_time=$(convert_timestamp_to_seconds "$file_timestamp")
                 
                 if [ ! -z "$file_time" ]; then
                     # ファイル名タイムスタンプがハートビート起動前の場合、起動時刻を基軸とする
@@ -521,20 +472,8 @@ stop_heartbeat() {
     exit 0
 }
 
-# シグナルを捕捉して安全に終了するための関数
-handle_shutdown() {
-    log_warning "Shutdown signal received. Finishing current cycle and exiting gracefully..."
-    SHUTDOWN_REQUESTED=true
-}
-
 # SIGINT (Ctrl-C) と SIGTERM を捕捉
 trap handle_shutdown SIGINT SIGTERM
-
-# 終了処理
-graceful_shutdown() {
-    log_notice "Heartbeat stopped gracefully at $(date "+%F %T")"
-    exit 0
-}
 
 log_notice "Heartbeat monitor started at $(date "+%F %T")"
 log_notice "Monitored directories: ${MONITORED_DIRS[*]}"
