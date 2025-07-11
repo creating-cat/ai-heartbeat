@@ -226,20 +226,20 @@ check_agent_health() {
     local latest_filename=$(echo "$latest_file_info" | cut -d' ' -f2-)
     local current_time=$(date +%s)
     
-    # 1. 無活動異常検知
-    local inactivity_result=$(check_inactivity_anomaly "$latest_time" "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
-    local inactivity_status=$?
-    if [ $inactivity_status -ne 0 ]; then
-        HEALTH_CHECK_DETAIL="$inactivity_result"
-        # 戻り値で直接判定
-        if [ $inactivity_status -eq 1 ]; then
-            log_warning "[CHECK] Inactivity warning detected (code 1): $inactivity_result seconds"
-            return 1 # 無活動警告
-        else
-            log_warning "[CHECK] Inactivity error detected (code 3): $inactivity_result seconds"
-            return 3 # 無活動エラー
-        fi
-    fi
+    # 1. 無活動異常検知（v1 - コメントアウト）
+    # local inactivity_result=$(check_inactivity_anomaly "$latest_time" "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
+    # local inactivity_status=$?
+    # if [ $inactivity_status -ne 0 ]; then
+    #     HEALTH_CHECK_DETAIL="$inactivity_result"
+    #     # 戻り値で直接判定
+    #     if [ $inactivity_status -eq 1 ]; then
+    #         log_warning "[CHECK] Inactivity warning detected (code 1): $inactivity_result seconds"
+    #         return 1 # 無活動警告
+    #     else
+    #         log_warning "[CHECK] Inactivity error detected (code 3): $inactivity_result seconds"
+    #         return 3 # 無活動エラー
+    #     fi
+    # fi
 
     # 2. 同一ファイルループ検知
     local loop_result=$(check_loop_anomaly "$latest_filename" "$LOOP_DETECTION_FILE" "$LOOP_DETECTION_START_TIME" "$current_time" "$INACTIVITY_STOP_THRESHOLD")
@@ -262,52 +262,52 @@ check_agent_health() {
         log_info "Loop detection started for file: $latest_filename"
     fi
 
-    # 3. ファイル名タイムスタンプチェック
-    local timestamp_result=$(check_timestamp_anomaly "$latest_filename" "$current_time" "$TIMESTAMP_ANOMALY_THRESHOLD" "$HEARTBEAT_START_TIME")
-    local timestamp_status=$?
-    if [ $timestamp_status -ne 0 ]; then
-        HEALTH_CHECK_DETAIL="$timestamp_result"
-        log_warning "[CHECK] Timestamp anomaly detected (code 5): $timestamp_result"
-        return 5 # タイムスタンプ異常
-    fi
+    # 3. タイムスタンプ異常検知（v1 - コメントアウト）
+    # local timestamp_result=$(check_timestamp_anomaly "$latest_filename" "$current_time" "$TIMESTAMP_ANOMALY_THRESHOLD" "$HEARTBEAT_START_TIME")
+    # local timestamp_status=$?
+    # if [ $timestamp_status -ne 0 ]; then
+    #     HEALTH_CHECK_DETAIL="$timestamp_result"
+    #     log_warning "[CHECK] Timestamp anomaly detected (code 5): $timestamp_result"
+    #     return 5 # タイムスタンプ異常
+    # fi
     
-    # 4. 内省活動不足検知
-    _check_introspection_activity
-    introspection_status=$?
-    if [ $introspection_status -eq 1 ]; then
-        log_warning "[CHECK] Introspection deficiency detected (code 6): $HEALTH_CHECK_DETAIL"
-        return 6 # 内省不足 (HEALTH_CHECK_DETAIL is set by _check_introspection_activity)
-    elif [ $introspection_status -eq 2 ]; then
-        log_warning "[CHECK] Introspection warning detected (code 2): $HEALTH_CHECK_DETAIL"
-        return 2 # 内省警告
-    fi
+    # 4. 内省活動不足検知（v1 - コメントアウト）
+    # _check_introspection_activity
+    # introspection_status=$?
+    # if [ $introspection_status -eq 1 ]; then
+    #     log_warning "[CHECK] Introspection deficiency detected (code 6): $HEALTH_CHECK_DETAIL"
+    #     return 6 # 内省不足 (HEALTH_CHECK_DETAIL is set by _check_introspection_activity)
+    # elif [ $introspection_status -eq 2 ]; then
+    #     log_warning "[CHECK] Introspection warning detected (code 2): $HEALTH_CHECK_DETAIL"
+    #     return 2 # 内省警告
+    # fi
 
-    # 5. 思考ログ重複作成異常検知（新機能）
-    local duplicate_result=$(check_thinking_log_duplicate "artifacts" "$current_time")
-    local duplicate_status=$?
-    if [ $duplicate_status -ne 0 ]; then
-        HEALTH_CHECK_DETAIL="$duplicate_result"
-        log_warning "[CHECK] Thinking log duplicate detected (code 7): $duplicate_result files"
-        return 7 # 思考ログ重複作成異常
-    fi
+    # 5. 思考ログ重複作成異常検知（v1 - コメントアウト）
+    # local duplicate_result=$(check_thinking_log_duplicate "artifacts" "$current_time")
+    # local duplicate_status=$?
+    # if [ $duplicate_status -ne 0 ]; then
+    #     HEALTH_CHECK_DETAIL="$duplicate_result"
+    #     log_warning "[CHECK] Thinking log duplicate detected (code 7): $duplicate_result files"
+    #     return 7 # 思考ログ重複作成異常
+    # fi
 
-    # 6. 思考ログ繰り返し更新異常検知（新機能）
-    local repeat_result=$(check_thinking_log_repeat "artifacts" "$current_time")
-    local repeat_status=$?
-    if [ $repeat_status -ne 0 ]; then
-        HEALTH_CHECK_DETAIL="$repeat_result"
-        log_warning "[CHECK] Thinking log repeat detected (code 8): $repeat_result files"
-        return 8 # 思考ログ繰り返し更新異常
-    fi
+    # 6. 思考ログ繰り返し更新異常検知（v1 - コメントアウト）
+    # local repeat_result=$(check_thinking_log_repeat "artifacts" "$current_time")
+    # local repeat_status=$?
+    # if [ $repeat_status -ne 0 ]; then
+    #     HEALTH_CHECK_DETAIL="$repeat_result"
+    #     log_warning "[CHECK] Thinking log repeat detected (code 8): $repeat_result files"
+    #     return 8 # 思考ログ繰り返し更新異常
+    # fi
 
-    # 7. テーマログ異常検知（新機能）
-    local theme_result=$(check_theme_log_anomaly "artifacts" "$current_time")
-    local theme_status=$?
-    if [ $theme_status -ne 0 ]; then
-        HEALTH_CHECK_DETAIL="$theme_result"
-        log_warning "[CHECK] Theme log anomaly detected (code 9): $theme_result files"
-        return 9 # テーマログ異常
-    fi
+    # 7. テーマログ異常検知（v1 - コメントアウト）
+    # local theme_result=$(check_theme_log_anomaly "artifacts" "$current_time")
+    # local theme_status=$?
+    # if [ $theme_status -ne 0 ]; then
+    #     HEALTH_CHECK_DETAIL="$theme_result"
+    #     log_warning "[CHECK] Theme log anomaly detected (code 9): $theme_result files"
+    #     return 9 # テーマログ異常
+    # fi
 
     # 8. 思考ログ頻度異常検知（新機能 - v2）
     local thinking_freq_result=$(check_thinking_log_frequency_anomaly "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
@@ -367,6 +367,22 @@ check_agent_health() {
         if [ "$thinking_loop_code" = "2" ]; then
             log_warning "[CHECK] Thinking log loop error detected (code 14): $thinking_loop_detail loops"
             return 14 # 思考ログループエラー
+        fi
+    fi
+
+    # 12. 内省活動異常検知（新機能 - v2）
+    local introspection_result=$(check_introspection_activity_anomaly "$current_time" "$INTROSPECTION_THRESHOLD" "$HEARTBEAT_START_TIME")
+    local introspection_code=$(echo "$introspection_result" | cut -d':' -f1)
+    local introspection_detail=$(echo "$introspection_result" | cut -d':' -f2)
+    
+    if [ "$introspection_code" != "0" ]; then
+        HEALTH_CHECK_DETAIL="$introspection_detail"
+        if [ "$introspection_code" = "1" ]; then
+            log_warning "[CHECK] Introspection activity warning detected (code 17): $introspection_detail seconds"
+            return 17 # 内省活動警告
+        elif [ "$introspection_code" = "2" ]; then
+            log_warning "[CHECK] Introspection activity error detected (code 18): $introspection_detail seconds"
+            return 18 # 内省活動エラー
         fi
     fi
 
@@ -450,6 +466,14 @@ $ADVICE_INACTIVITY"
             return 0 ;;
         16) # テーマログパターンエラー（新機能 - v2）
             handle_failure "Theme log pattern error: $detail files with same timestamp detected." "テーマログパターン異常" ;;
+        17) # 内省活動警告（新機能 - v2）
+            log_warning "Introspection activity warning: No introspection activity for $((detail / 60)) minutes."
+            INACTIVITY_WARNING_MESSAGE="⚠️ 内省活動警告: $((detail / 60))分間内省活動がありません。
+
+$ADVICE_INACTIVITY"
+            return 0 ;;
+        18) # 内省活動エラー（新機能 - v2）
+            handle_failure "Introspection activity error: No introspection activity for $((detail / 60)) minutes." "内省活動不足" ;;
         *) # 未知のエラー
             log_error "Unknown health check status: $status" ;;
     esac

@@ -635,3 +635,94 @@ check_thinking_log_loop_anomaly() {
     echo "0:$THINKING_LOG_LOOP_COUNT"
     return 0
 }
+
+# タイムスタンプをUnix秒に変換するヘルパー関数
+convert_timestamp_to_seconds() {
+    local timestamp="$1"
+    if [[ "$timestamp" =~ ^([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2}) ]]; then
+        local year="${BASH_REMATCH[1]}"
+        local month="${BASH_REMATCH[2]}"
+        local day="${BASH_REMATCH[3]}"
+        local hour="${BASH_REMATCH[4]}"
+        local minute="${BASH_REMATCH[5]}"
+        local second="${BASH_REMATCH[6]}"
+        
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS
+            date -j -f "%Y%m%d%H%M%S" "$timestamp" "+%s" 2>/dev/null
+        else
+            # Linux
+            date -d "${year}-${month}-${day} ${hour}:${minute}:${second}" "+%s" 2>/dev/null
+        fi
+    fi
+}
+
+# 内省活動異常の判定（新機能 - v2）
+# 内省ファイルの最新更新時刻をチェックして内省活動不足を検知
+# 引数: current_time, introspection_threshold, heartbeat_start_time
+# 戻り値: 常に0（エラーコードはecho出力に含める）
+# 出力: "error_code:detail" 形式（0:diff=正常, 1:diff=警告, 2:diff=エラー）
+check_introspection_activity_anomaly() {
+    local current_time="$1"
+    local introspection_threshold="$2"
+    local heartbeat_start_time="$3"
+    
+    debug_log "INTROSPECTION_ACTIVITY check started: current_time=$current_time"
+    debug_log "INTROSPECTION_ACTIVITY threshold: ${introspection_threshold}s"
+    
+    # 内省ファイルを検索（*introspection*パターン）
+    local latest_introspection_file=$(find artifacts -name "*introspection*" -type f 2>/dev/null | head -1)
+    
+    local introspection_diff
+    
+    if [ -z "$latest_introspection_file" ]; then
+        # 内省ファイルが見つからない場合、ハートビート開始からの経過時間で判定
+        introspection_diff=$((current_time - heartbeat_start_time))
+        debug_log "INTROSPECTION_ACTIVITY: No introspection files found, using heartbeat start time (${introspection_diff}s elapsed)"
+    else
+        # 最新内省ファイルのファイル名からタイムスタンプを抽出
+        local latest_filename=$(basename "$latest_introspection_file")
+        local timestamp_pattern=""
+        
+        if [[ "$latest_filename" =~ ([0-9]{14}) ]]; then
+            timestamp_pattern="${BASH_REMATCH[1]}"
+            debug_log "INTROSPECTION_ACTIVITY: Extracted timestamp: $timestamp_pattern from $latest_filename"
+            
+            # タイムスタンプを秒に変換
+            local file_time=$(convert_timestamp_to_seconds "$timestamp_pattern")
+            
+            if [ -z "$file_time" ] || [ $file_time -lt $heartbeat_start_time ]; then
+                # 変換失敗またはハートビート起動前の場合、起動時刻を基軸とする
+                introspection_diff=$((current_time - heartbeat_start_time))
+                debug_log "INTROSPECTION_ACTIVITY: Using heartbeat start time as baseline (conversion failed or file older)"
+            else
+                # 通常の判定（ハートビート起動後の内省活動）
+                introspection_diff=$((current_time - file_time))
+                debug_log "INTROSPECTION_ACTIVITY: Using file time as baseline"
+            fi
+        else
+            # タイムスタンプ抽出失敗の場合、ハートビート開始時刻で判定
+            introspection_diff=$((current_time - heartbeat_start_time))
+            debug_log "INTROSPECTION_ACTIVITY: Could not extract timestamp from filename: $latest_filename"
+        fi
+    fi
+    
+    # 警告閾値（内省閾値の2/3）を設定
+    local introspection_warning_threshold=$((introspection_threshold * 2 / 3))
+    debug_log "INTROSPECTION_ACTIVITY: Time difference = ${introspection_diff}s, warning_threshold = ${introspection_warning_threshold}s"
+    
+    # エラーコード付きで出力（誤使用防止のためreturnは常に0）
+    if [ $introspection_diff -gt $introspection_threshold ]; then
+        debug_warning "INTROSPECTION_ACTIVITY: Error level reached (${introspection_diff}s > ${introspection_threshold}s)"
+        echo "2:$introspection_diff"
+        return 0
+    elif [ $introspection_diff -gt $introspection_warning_threshold ]; then
+        debug_log "INTROSPECTION_ACTIVITY: Warning level reached (${introspection_diff}s > ${introspection_warning_threshold}s)"
+        echo "1:$introspection_diff"
+        return 0
+    fi
+    
+    debug_log "INTROSPECTION_ACTIVITY: Normal operation (${introspection_diff}s <= ${introspection_warning_threshold}s)"
+    echo "0:$introspection_diff"
+    return 0
+}
