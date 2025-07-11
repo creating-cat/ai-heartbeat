@@ -28,6 +28,9 @@ INACTIVITY_WARNING_MESSAGE=""
 # フィードバック通知メッセージ用グローバル変数
 FEEDBACK_NOTIFICATION_MESSAGE=""
 
+# 緊急フィードバックフラグ用グローバル変数
+EMERGENCY_FEEDBACK_DETECTED=false
+
 # デバッグモード設定（環境変数で制御）
 DEBUG_MODE=${DEBUG_MODE:-false}
 
@@ -154,6 +157,7 @@ log_notice "Log file: $LOG_FILE"
 # feedbackboxのチェック関数
 check_feedbackbox() {
     FEEDBACK_NOTIFICATION_MESSAGE=""
+    EMERGENCY_FEEDBACK_DETECTED=false  # フラグリセット
     
     # feedbackboxディレクトリが存在しない場合は作成
     if [ ! -d "feedbackbox" ]; then
@@ -166,8 +170,30 @@ check_feedbackbox() {
     local feedback_count=$(echo "$feedback_files" | grep -v "^$" | wc -l | tr -d ' ')
     
     if [ $feedback_count -gt 0 ]; then
-        FEEDBACK_NOTIFICATION_MESSAGE="📝 feedbackboxに未処理のユーザーフィードバックが${feedback_count}件あります。内省時に確認・対応してください。"
-        log_notice "Found $feedback_count unprocessed feedback files"
+        # 緊急フィードバックチェック
+        local emergency_files=$(echo "$feedback_files" | grep "emergency\.")
+        local emergency_count=$(echo "$emergency_files" | grep -v "^$" | wc -l | tr -d ' ')
+        
+        if [ $emergency_count -gt 0 ]; then
+            EMERGENCY_FEEDBACK_DETECTED=true
+            
+            # 緊急フィードバックファイルのemergency.プレフィックスを削除
+            while IFS= read -r file; do
+                if [ -f "$file" ]; then
+                    local dir=$(dirname "$file")
+                    local filename=$(basename "$file")
+                    local new_filename=$(echo "$filename" | sed 's/^emergency\.//')
+                    mv "$file" "$dir/$new_filename"
+                    log_notice "Renamed emergency feedback: $filename -> $new_filename"
+                fi
+            done <<< "$emergency_files"
+            
+            FEEDBACK_NOTIFICATION_MESSAGE="📝 【緊急】feedbackboxに未処理のユーザーフィードバックが${feedback_count}件あります。内省時に確認・対応してください。"
+            log_warning "Found $emergency_count emergency feedback files (total: $feedback_count)"
+        else
+            FEEDBACK_NOTIFICATION_MESSAGE="📝 feedbackboxに未処理のユーザーフィードバックが${feedback_count}件あります。内省時に確認・対応してください。"
+            log_notice "Found $feedback_count unprocessed feedback files"
+        fi
         return 1  # フィードバックあり
     fi
     
@@ -685,6 +711,18 @@ while true; do
     
     # 4.5 feedbackboxチェック
     check_feedbackbox
+
+    # 4.6 緊急フィードバック処理（ハートビート送信前）
+    if [ "$EMERGENCY_FEEDBACK_DETECTED" = true ]; then
+        log_warning "Emergency feedback detected. Interrupting agent process..."
+        tmux send-keys -t agent Escape
+        sleep 1
+        tmux send-keys -t agent Escape
+        sleep 1
+        log_notice "Agent processing interrupted for emergency feedback."
+        # 処理完了後にフラグをリセット（防御的プログラミング）
+        EMERGENCY_FEEDBACK_DETECTED=false
+    fi
 
     # 5. ハートビート送信（常に実行）
 
