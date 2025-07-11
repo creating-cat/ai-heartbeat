@@ -316,12 +316,44 @@ check_agent_health() {
     
     if [ "$thinking_freq_code" != "0" ]; then
         HEALTH_CHECK_DETAIL="$thinking_freq_detail"
-        if [ "$thinking_freq_code" = "10" ]; then
+        if [ "$thinking_freq_code" = "1" ]; then
             log_warning "[CHECK] Thinking log frequency warning detected (code 10): $thinking_freq_detail seconds"
             return 10 # 思考ログ頻度警告
-        elif [ "$thinking_freq_code" = "11" ]; then
+        elif [ "$thinking_freq_code" = "2" ]; then
             log_warning "[CHECK] Thinking log frequency error detected (code 11): $thinking_freq_detail seconds"
             return 11 # 思考ログ頻度エラー
+        fi
+    fi
+
+    # 9. 思考ログパターン異常検知（新機能 - v2）
+    local thinking_pattern_result=$(check_thinking_log_pattern_anomaly "$current_time")
+    local thinking_pattern_code=$(echo "$thinking_pattern_result" | cut -d':' -f1)
+    local thinking_pattern_detail=$(echo "$thinking_pattern_result" | cut -d':' -f2)
+    
+    if [ "$thinking_pattern_code" != "0" ]; then
+        HEALTH_CHECK_DETAIL="$thinking_pattern_detail"
+        if [ "$thinking_pattern_code" = "1" ]; then
+            log_warning "[CHECK] Thinking log pattern warning detected (code 12): $thinking_pattern_detail files"
+            return 12 # 思考ログパターン警告
+        elif [ "$thinking_pattern_code" = "2" ]; then
+            log_warning "[CHECK] Thinking log pattern error detected (code 13): $thinking_pattern_detail files"
+            return 13 # 思考ログパターンエラー
+        fi
+    fi
+
+    # 10. テーマログパターン異常検知（新機能 - v2）
+    local theme_pattern_result=$(check_theme_log_pattern_anomaly "$current_time")
+    local theme_pattern_code=$(echo "$theme_pattern_result" | cut -d':' -f1)
+    local theme_pattern_detail=$(echo "$theme_pattern_result" | cut -d':' -f2)
+    
+    if [ "$theme_pattern_code" != "0" ]; then
+        HEALTH_CHECK_DETAIL="$theme_pattern_detail"
+        if [ "$theme_pattern_code" = "1" ]; then
+            log_warning "[CHECK] Theme log pattern warning detected (code 15): $theme_pattern_detail files"
+            return 15 # テーマログパターン警告
+        elif [ "$theme_pattern_code" = "2" ]; then
+            log_warning "[CHECK] Theme log pattern error detected (code 16): $theme_pattern_detail files"
+            return 16 # テーマログパターンエラー
         fi
     fi
 
@@ -387,6 +419,22 @@ $ADVICE_INACTIVITY"
             return 0 ;;
         11) # 思考ログ頻度エラー（新機能 - v2）
             handle_failure "Thinking log frequency error: No thinking log updates for $((detail / 60)) minutes." "思考ログ頻度異常" ;;
+        12) # 思考ログパターン警告（新機能 - v2）
+            log_warning "Thinking log pattern warning: $detail files with same timestamp detected."
+            INACTIVITY_WARNING_MESSAGE="⚠️ 思考ログパターン警告: 同じタイムスタンプで${detail}個のファイルが検出されました。
+
+$ADVICE_INACTIVITY"
+            return 0 ;;
+        13) # 思考ログパターンエラー（新機能 - v2）
+            handle_failure "Thinking log pattern error: $detail files with same timestamp detected." "思考ログパターン異常" ;;
+        15) # テーマログパターン警告（新機能 - v2）
+            log_warning "Theme log pattern warning: $detail files with same timestamp detected."
+            INACTIVITY_WARNING_MESSAGE="⚠️ テーマログパターン警告: 同じタイムスタンプで${detail}個のテーマログファイルが検出されました。
+
+$ADVICE_INACTIVITY"
+            return 0 ;;
+        16) # テーマログパターンエラー（新機能 - v2）
+            handle_failure "Theme log pattern error: $detail files with same timestamp detected." "テーマログパターン異常" ;;
         *) # 未知のエラー
             log_error "Unknown health check status: $status" ;;
     esac

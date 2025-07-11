@@ -389,7 +389,7 @@ _get_latest_thinking_log_info() {
 # 思考ログファイルの最新更新時刻をチェックして頻度異常を検知
 # 引数: current_time, warning_threshold, stop_threshold, heartbeat_start_time
 # 戻り値: 常に0（エラーコードはecho出力に含める）
-# 出力: "error_code:detail" 形式（0:diff=正常, 10:diff=警告, 11:diff=エラー）
+# 出力: "error_code:detail" 形式（0:diff=正常, 1:diff=警告, 2:diff=エラー）
 check_thinking_log_frequency_anomaly() {
     local current_time="$1"
     local warning_threshold="$2"
@@ -431,15 +431,138 @@ check_thinking_log_frequency_anomaly() {
     # エラーコード付きで出力（誤使用防止のためreturnは常に0）
     if [ $diff -gt $stop_threshold ]; then
         debug_warning "THINKING_LOG_FREQUENCY: Error level reached (${diff}s > ${stop_threshold}s)"
-        echo "11:$diff"
+        echo "2:$diff"
         return 0
     elif [ $diff -gt $warning_threshold ]; then
         debug_log "THINKING_LOG_FREQUENCY: Warning level reached (${diff}s > ${warning_threshold}s)"
-        echo "10:$diff"
+        echo "1:$diff"
         return 0
     fi
     
     debug_log "THINKING_LOG_FREQUENCY: Normal operation (${diff}s <= ${warning_threshold}s)"
     echo "0:$diff"
+    return 0
+}
+
+# 思考ログパターン異常の判定（新機能 - v2）
+# 最新思考ログと同じタイムスタンプの思考ログファイル数をチェックして重複作成異常を検知
+# 引数: current_time
+# 戻り値: 常に0（エラーコードはecho出力に含める）
+# 出力: "error_code:detail" 形式（0:count=正常, 1:count=警告, 2:count=エラー）
+check_thinking_log_pattern_anomaly() {
+    local current_time="$1"
+    
+    debug_log "THINKING_LOG_PATTERN check started: current_time=$current_time"
+    
+    # 最新思考ログファイル情報を取得
+    local latest_thinking_log_info=$(_get_latest_thinking_log_info)
+    
+    if [ -z "$latest_thinking_log_info" ]; then
+        debug_log "THINKING_LOG_PATTERN: No thinking log files found"
+        echo "0:0"
+        return 0
+    fi
+    
+    # 最新思考ログのファイル名からタイムスタンプを抽出
+    local latest_thinking_log_file=$(echo "$latest_thinking_log_info" | cut -d' ' -f2-)
+    local latest_filename=$(basename "$latest_thinking_log_file")
+    
+    # ファイル名からタイムスタンプ部分を抽出（YYYYMMDDHHMMSS）
+    local timestamp_pattern=""
+    if [[ "$latest_filename" =~ ^([0-9]{14}) ]]; then
+        timestamp_pattern="${BASH_REMATCH[1]}"
+    else
+        debug_log "THINKING_LOG_PATTERN: Could not extract timestamp from filename: $latest_filename"
+        echo "0:1"
+        return 0
+    fi
+    
+    debug_log "THINKING_LOG_PATTERN: Latest thinking log timestamp: $timestamp_pattern"
+    
+    # 同じタイムスタンプの思考ログファイル数を取得
+    local same_timestamp_count=$(find artifacts -path "*/histories/*.md" -name "${timestamp_pattern}*.md" -type f 2>/dev/null | wc -l)
+    
+    debug_log "THINKING_LOG_PATTERN: Same timestamp file count: $same_timestamp_count"
+    
+    # パターン異常の判定
+    if [ $same_timestamp_count -ge 3 ]; then
+        debug_warning "THINKING_LOG_PATTERN: Error level reached ($same_timestamp_count files with same timestamp)"
+        echo "2:$same_timestamp_count"
+        return 0
+    elif [ $same_timestamp_count -ge 2 ]; then
+        debug_log "THINKING_LOG_PATTERN: Warning level reached ($same_timestamp_count files with same timestamp)"
+        echo "1:$same_timestamp_count"
+        return 0
+    fi
+    
+    debug_log "THINKING_LOG_PATTERN: Normal operation ($same_timestamp_count file with timestamp)"
+    echo "0:$same_timestamp_count"
+    return 0
+}
+
+# 最新テーマログファイル情報を取得するヘルパー関数
+_get_latest_theme_log_info() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        find artifacts/theme_histories -name "*.md" -type f -exec stat -f "%m %N" {} + 2>/dev/null | sort -nr | head -n 1
+    else
+        # Linux
+        find artifacts/theme_histories -name "*.md" -type f -exec stat -c "%Y %n" {} + 2>/dev/null | sort -nr | head -n 1
+    fi
+}
+
+# テーマログパターン異常の判定（新機能 - v2）
+# 最新テーマログと同じタイムスタンプのテーマログファイル数をチェックして重複作成異常を検知
+# 引数: current_time
+# 戻り値: 常に0（エラーコードはecho出力に含める）
+# 出力: "error_code:detail" 形式（0:count=正常, 1:count=警告, 2:count=エラー）
+check_theme_log_pattern_anomaly() {
+    local current_time="$1"
+    
+    debug_log "THEME_LOG_PATTERN check started: current_time=$current_time"
+    
+    # 最新テーマログファイル情報を取得
+    local latest_theme_log_info=$(_get_latest_theme_log_info)
+    
+    if [ -z "$latest_theme_log_info" ]; then
+        debug_log "THEME_LOG_PATTERN: No theme log files found"
+        echo "0:0"
+        return 0
+    fi
+    
+    # 最新テーマログのファイル名からタイムスタンプを抽出
+    local latest_theme_log_file=$(echo "$latest_theme_log_info" | cut -d' ' -f2-)
+    local latest_filename=$(basename "$latest_theme_log_file")
+    
+    # ファイル名からタイムスタンプ部分を抽出（YYYYMMDDHHMMSS）
+    local timestamp_pattern=""
+    if [[ "$latest_filename" =~ ^([0-9]{14}) ]]; then
+        timestamp_pattern="${BASH_REMATCH[1]}"
+    else
+        debug_log "THEME_LOG_PATTERN: Could not extract timestamp from filename: $latest_filename"
+        echo "0:1"
+        return 0
+    fi
+    
+    debug_log "THEME_LOG_PATTERN: Latest theme log timestamp: $timestamp_pattern"
+    
+    # 同じタイムスタンプのテーマログファイル数を取得
+    local same_timestamp_count=$(find artifacts/theme_histories -name "${timestamp_pattern}*.md" -type f 2>/dev/null | wc -l)
+    
+    debug_log "THEME_LOG_PATTERN: Same timestamp file count: $same_timestamp_count"
+    
+    # パターン異常の判定
+    if [ $same_timestamp_count -ge 3 ]; then
+        debug_warning "THEME_LOG_PATTERN: Error level reached ($same_timestamp_count files with same timestamp)"
+        echo "2:$same_timestamp_count"
+        return 0
+    elif [ $same_timestamp_count -ge 2 ]; then
+        debug_log "THEME_LOG_PATTERN: Warning level reached ($same_timestamp_count files with same timestamp)"
+        echo "1:$same_timestamp_count"
+        return 0
+    fi
+    
+    debug_log "THEME_LOG_PATTERN: Normal operation ($same_timestamp_count file with timestamp)"
+    echo "0:$same_timestamp_count"
     return 0
 }
