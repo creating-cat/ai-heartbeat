@@ -233,8 +233,10 @@ check_agent_health() {
         HEALTH_CHECK_DETAIL="$inactivity_result"
         # 戻り値で直接判定
         if [ $inactivity_status -eq 1 ]; then
+            log_warning "[CHECK] Inactivity warning detected (code 1): $inactivity_result seconds"
             return 1 # 無活動警告
         else
+            log_warning "[CHECK] Inactivity error detected (code 3): $inactivity_result seconds"
             return 3 # 無活動エラー
         fi
     fi
@@ -247,6 +249,7 @@ check_agent_health() {
     if [ $loop_status -eq 2 ]; then
         # エラー時
         HEALTH_CHECK_DETAIL="$loop_result"
+        log_warning "[CHECK] Loop anomaly detected (code 4): $loop_result"
         return 4 # ループエラー
     elif [ "$latest_filename" != "$LOOP_DETECTION_FILE" ]; then
         # 新しいファイル検出時
@@ -264,6 +267,7 @@ check_agent_health() {
     local timestamp_status=$?
     if [ $timestamp_status -ne 0 ]; then
         HEALTH_CHECK_DETAIL="$timestamp_result"
+        log_warning "[CHECK] Timestamp anomaly detected (code 5): $timestamp_result"
         return 5 # タイムスタンプ異常
     fi
     
@@ -271,8 +275,10 @@ check_agent_health() {
     _check_introspection_activity
     introspection_status=$?
     if [ $introspection_status -eq 1 ]; then
+        log_warning "[CHECK] Introspection deficiency detected (code 6): $HEALTH_CHECK_DETAIL"
         return 6 # 内省不足 (HEALTH_CHECK_DETAIL is set by _check_introspection_activity)
     elif [ $introspection_status -eq 2 ]; then
+        log_warning "[CHECK] Introspection warning detected (code 2): $HEALTH_CHECK_DETAIL"
         return 2 # 内省警告
     fi
 
@@ -281,6 +287,7 @@ check_agent_health() {
     local duplicate_status=$?
     if [ $duplicate_status -ne 0 ]; then
         HEALTH_CHECK_DETAIL="$duplicate_result"
+        log_warning "[CHECK] Thinking log duplicate detected (code 7): $duplicate_result files"
         return 7 # 思考ログ重複作成異常
     fi
 
@@ -289,6 +296,7 @@ check_agent_health() {
     local repeat_status=$?
     if [ $repeat_status -ne 0 ]; then
         HEALTH_CHECK_DETAIL="$repeat_result"
+        log_warning "[CHECK] Thinking log repeat detected (code 8): $repeat_result files"
         return 8 # 思考ログ繰り返し更新異常
     fi
 
@@ -297,7 +305,24 @@ check_agent_health() {
     local theme_status=$?
     if [ $theme_status -ne 0 ]; then
         HEALTH_CHECK_DETAIL="$theme_result"
+        log_warning "[CHECK] Theme log anomaly detected (code 9): $theme_result files"
         return 9 # テーマログ異常
+    fi
+
+    # 8. 思考ログ頻度異常検知（新機能 - v2）
+    local thinking_freq_result=$(check_thinking_log_frequency_anomaly "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
+    local thinking_freq_code=$(echo "$thinking_freq_result" | cut -d':' -f1)
+    local thinking_freq_detail=$(echo "$thinking_freq_result" | cut -d':' -f2)
+    
+    if [ "$thinking_freq_code" != "0" ]; then
+        HEALTH_CHECK_DETAIL="$thinking_freq_detail"
+        if [ "$thinking_freq_code" = "10" ]; then
+            log_warning "[CHECK] Thinking log frequency warning detected (code 10): $thinking_freq_detail seconds"
+            return 10 # 思考ログ頻度警告
+        elif [ "$thinking_freq_code" = "11" ]; then
+            log_warning "[CHECK] Thinking log frequency error detected (code 11): $thinking_freq_detail seconds"
+            return 11 # 思考ログ頻度エラー
+        fi
     fi
 
     return 0  # 正常
@@ -354,6 +379,14 @@ $ADVICE_INTROSPECTION"
             handle_failure "Agent appears to be stuck! Thinking log repeat update detected ($detail files)" "思考ログ繰り返し更新異常" ;;
         9) # テーマログ異常（新機能）
             handle_failure "Agent appears to be stuck! Theme log anomaly detected ($detail files)" "テーマログ異常" ;;
+        10) # 思考ログ頻度警告（新機能 - v2）
+            log_warning "Thinking log frequency warning: No thinking log updates for $((detail / 60)) minutes."
+            INACTIVITY_WARNING_MESSAGE="⚠️ 思考ログ頻度警告: $((detail / 60))分間思考ログの更新がありません。
+
+$ADVICE_INACTIVITY"
+            return 0 ;;
+        11) # 思考ログ頻度エラー（新機能 - v2）
+            handle_failure "Thinking log frequency error: No thinking log updates for $((detail / 60)) minutes." "思考ログ頻度異常" ;;
         *) # 未知のエラー
             log_error "Unknown health check status: $status" ;;
     esac

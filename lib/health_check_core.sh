@@ -5,6 +5,8 @@
 # 戻り値統一: 0=正常, 1=警告レベル, 2=エラーレベル
 # 出力形式: "LEVEL:ANOMALY_TYPE:detail"
 
+# DEBUG_MODE="true"
+
 # デバッグログ関数（標準エラー出力専用、依存関係なし）
 debug_log() {
     if [ "$DEBUG_MODE" = "true" ]; then
@@ -372,11 +374,22 @@ check_theme_log_anomaly() {
     return 0
 }
 
+# 最新思考ログファイル情報を取得するヘルパー関数
+_get_latest_thinking_log_info() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        find artifacts -path "*/histories/*.md" -name "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]*.md" -type f -exec stat -f "%m %N" {} + 2>/dev/null | sort -nr | head -n 1
+    else
+        # Linux
+        find artifacts -path "*/histories/*.md" -name "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]*.md" -type f -exec stat -c "%Y %n" {} + 2>/dev/null | sort -nr | head -n 1
+    fi
+}
+
 # 思考ログ作成頻度異常の判定（新機能 - v2）
 # 思考ログファイルの最新更新時刻をチェックして頻度異常を検知
 # 引数: current_time, warning_threshold, stop_threshold, heartbeat_start_time
-# 戻り値: 0=正常, 1=警告, 2=エラー
-# 出力: 経過時間（秒）
+# 戻り値: 常に0（エラーコードはecho出力に含める）
+# 出力: "error_code:detail" 形式（0:diff=正常, 10:diff=警告, 11:diff=エラー）
 check_thinking_log_frequency_anomaly() {
     local current_time="$1"
     local warning_threshold="$2"
@@ -386,85 +399,47 @@ check_thinking_log_frequency_anomaly() {
     debug_log "THINKING_LOG_FREQUENCY check started: current_time=$current_time"
     debug_log "THINKING_LOG_FREQUENCY thresholds: warning=${warning_threshold}s, stop=${stop_threshold}s"
     
-    # 思考ログファイルを検索（artifacts/*/histories/*.md）
-    local thinking_log_files=$(find artifacts -path "*/histories/*.md" -name "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]*.md" -type f 2>/dev/null)
+    # 最新思考ログファイル情報を取得
+    local latest_thinking_log_info=$(_get_latest_thinking_log_info)
     
-    if [ -z "$thinking_log_files" ]; then
-        debug_log "THINKING_LOG_FREQUENCY: No thinking log files found"
-        # 思考ログがない場合は、ハートビート開始からの経過時間で判定
-        local diff=$((current_time - heartbeat_start_time))
-        debug_log "THINKING_LOG_FREQUENCY: No files, using heartbeat start time (${diff}s elapsed)"
-        
-        if [ $diff -gt $stop_threshold ]; then
-            debug_warning "THINKING_LOG_FREQUENCY: Error level - no thinking logs for ${diff}s"
-            echo "$diff"
-            return 2
-        elif [ $diff -gt $warning_threshold ]; then
-            debug_log "THINKING_LOG_FREQUENCY: Warning level - no thinking logs for ${diff}s"
-            echo "$diff"
-            return 1
-        fi
-        
-        debug_log "THINKING_LOG_FREQUENCY: Normal - no thinking logs but within threshold (${diff}s)"
-        echo "$diff"
-        return 0
-    fi
-    
-    # 最新の思考ログファイルの更新時刻を取得
-    local latest_thinking_log_time=0
-    local latest_thinking_log_file=""
-    
-    while IFS= read -r file; do
-        if [ -f "$file" ]; then
-            local file_time
-            if [[ "$OSTYPE" == "darwin"* ]]; then
-                # macOS
-                file_time=$(stat -f %m "$file" 2>/dev/null)
-            else
-                # Linux
-                file_time=$(stat -c %Y "$file" 2>/dev/null)
-            fi
-            
-            if [ -n "$file_time" ] && [ "$file_time" -gt "$latest_thinking_log_time" ]; then
-                latest_thinking_log_time="$file_time"
-                latest_thinking_log_file="$file"
-            fi
-        fi
-    done <<< "$thinking_log_files"
-    
-    if [ "$latest_thinking_log_time" -eq 0 ]; then
-        debug_warning "THINKING_LOG_FREQUENCY: Could not get modification time for any thinking log files"
-        # ファイルはあるが時刻取得失敗の場合は、ハートビート開始時刻で判定
-        local diff=$((current_time - heartbeat_start_time))
-        echo "$diff"
-        return 1
-    fi
-    
-    debug_log "THINKING_LOG_FREQUENCY: Latest thinking log: $(basename "$latest_thinking_log_file") at $latest_thinking_log_time"
-    
-    # スクリプト開始時刻より前のファイルの場合、開始時刻からの経過時間で判定
+    # check_inactivity_anomalyと同じスコープでdiff変数を宣言
     local diff
-    if [ $latest_thinking_log_time -lt $heartbeat_start_time ]; then
+    
+    # 思考ログファイルが存在しない場合の処理
+    if [ -z "$latest_thinking_log_info" ]; then
+        debug_log "THINKING_LOG_FREQUENCY: No thinking log files found, using heartbeat start time"
         diff=$((current_time - heartbeat_start_time))
-        debug_log "THINKING_LOG_FREQUENCY: Using heartbeat start time as baseline (thinking log older than heartbeat start)"
     else
-        diff=$((current_time - latest_thinking_log_time))
-        debug_log "THINKING_LOG_FREQUENCY: Using thinking log time as baseline"
+        # 最新思考ログの時刻を取得
+        local latest_thinking_log_time=$(echo "$latest_thinking_log_info" | cut -d' ' -f1)
+        local latest_thinking_log_file=$(echo "$latest_thinking_log_info" | cut -d' ' -f2-)
+        
+        debug_log "THINKING_LOG_FREQUENCY: Latest thinking log: $(basename "$latest_thinking_log_file") at $latest_thinking_log_time"
+        
+        # 既存のcheck_inactivity_anomalyと同じロジックを適用
+        if [ $latest_thinking_log_time -lt $heartbeat_start_time ]; then
+            diff=$((current_time - heartbeat_start_time))
+            debug_log "THINKING_LOG_FREQUENCY: Using heartbeat start time as baseline (thinking log older than heartbeat start)"
+        else
+            diff=$((current_time - latest_thinking_log_time))
+            debug_log "THINKING_LOG_FREQUENCY: Using thinking log time as baseline"
+        fi
     fi
     
     debug_log "THINKING_LOG_FREQUENCY: Time difference = ${diff}s"
     
+    # エラーコード付きで出力（誤使用防止のためreturnは常に0）
     if [ $diff -gt $stop_threshold ]; then
         debug_warning "THINKING_LOG_FREQUENCY: Error level reached (${diff}s > ${stop_threshold}s)"
-        echo "$diff"
-        return 2
+        echo "11:$diff"
+        return 0
     elif [ $diff -gt $warning_threshold ]; then
         debug_log "THINKING_LOG_FREQUENCY: Warning level reached (${diff}s > ${warning_threshold}s)"
-        echo "$diff"
-        return 1
+        echo "10:$diff"
+        return 0
     fi
     
     debug_log "THINKING_LOG_FREQUENCY: Normal operation (${diff}s <= ${warning_threshold}s)"
-    echo "$diff"
+    echo "0:$diff"
     return 0
 }
