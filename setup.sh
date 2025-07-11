@@ -85,6 +85,7 @@ fi
 
 mkdir -p artifacts
 mkdir -p themebox
+mkdir -p feedbackbox
 mkdir -p projects
 
 # ディレクトリ作成のみのオプションが指定された場合はここで終了
@@ -92,6 +93,7 @@ if [ "$DIRS_ONLY" = true ]; then
     echo -e "\033[1;32m[INFO]\033[0m 必要なディレクトリを作成しました:"
     echo "  - artifacts/"
     echo "  - themebox/"
+    echo "  - feedbackbox/"
     echo "  - projects/"
     echo "セットアップを終了します。"
     exit 0
