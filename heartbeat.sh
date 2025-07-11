@@ -530,6 +530,18 @@ attempt_recovery() {
         "最新ファイル名タイムスタンプ異常")
             advice_message="$ADVICE_TIMESTAMP"
             ;;
+        "思考ログ頻度異常")
+            advice_message="$ADVICE_THINKING_LOG_FREQUENCY"
+            ;;
+        "思考ログパターン異常")
+            advice_message="$ADVICE_THINKING_LOG_PATTERN"
+            ;;
+        "思考ログループ異常")
+            advice_message="$ADVICE_THINKING_LOG_LOOP"
+            ;;
+        "テーマログパターン異常")
+            advice_message="$ADVICE_THEME_LOG_PATTERN"
+            ;;
         "思考ログ重複作成異常")
             advice_message="
 思考ログの作成に異常が検知されました。
