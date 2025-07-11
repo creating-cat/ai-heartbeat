@@ -239,6 +239,22 @@ check_agent_health() {
         fi
     fi
 
+    # 13. 思考ログタイムスタンプ乖離異常検知（新機能 - v2復活）
+    local timestamp_result=$(check_thinking_log_timestamp_anomaly "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
+    local timestamp_code=$(echo "$timestamp_result" | cut -d':' -f1)
+    local timestamp_detail=$(echo "$timestamp_result" | cut -d':' -f2)
+
+    if [ "$timestamp_code" != "0" ]; then
+        HEALTH_CHECK_DETAIL="$timestamp_detail"
+        if [ "$timestamp_code" = "1" ]; then
+            log_warning "[CHECK] Thinking log timestamp warning detected (code 19): $timestamp_detail seconds"
+            return 19 # 思考ログタイムスタンプ警告
+        elif [ "$timestamp_code" = "2" ]; then
+            log_warning "[CHECK] Thinking log timestamp error detected (code 20): $timestamp_detail seconds"
+            return 20 # 思考ログタイムスタンプエラー
+        fi
+    fi
+
     return 0  # 正常
 }
 
@@ -289,6 +305,13 @@ $ADVICE_INTROSPECTION"
             return 0 ;;
         18) # 内省活動エラー（新機能 - v2）
             handle_failure "Introspection activity error: No introspection activity for $((detail / 60)) minutes." "内省活動不足" ;;
+        19) # 思考ログタイムスタンプ警告（新機能 - v2復活）
+            log_warning "Thinking log timestamp warning: Timestamp is $((detail / 60)) minutes old."
+            INACTIVITY_WARNING_MESSAGE="⚠️ 思考ログタイムスタンプ警告: 最新の思考ログのタイムスタンプが$((detail / 60))分以上古いです。
+ハートビートで渡される最新のタイムスタンプを使用してください。"
+            return 0 ;;
+        20) # 思考ログタイムスタンプエラー（新機能 - v2復活）
+            handle_failure "Thinking log timestamp error: Timestamp is $((detail / 60)) minutes old." "思考ログタイムスタンプ異常" ;;
         *) # 未知のエラー
             log_error "Unknown health check status: $status" ;;
     esac
@@ -347,6 +370,9 @@ attempt_recovery() {
             ;;
         "テーマログパターン異常")
             advice_message="$ADVICE_THEME_LOG_PATTERN"
+            ;;
+        "思考ログタイムスタンプ異常")
+            advice_message="$ADVICE_THINKING_LOG_TIMESTAMP"
             ;;
         *)
             advice_message=""
