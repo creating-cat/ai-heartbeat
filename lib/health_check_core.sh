@@ -295,6 +295,19 @@ convert_timestamp_to_seconds() {
     fi
 }
 
+# 最新の内省活動があった思考ログ情報を取得するヘルパー関数
+_get_latest_introspection_info() {
+    # "内省"という単語を含む思考ログファイルのリストを取得し、その中から最新のものを探す
+    # `grep -l`でファイルリストを取得し、`xargs`で`stat`に渡す
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        find artifacts -path "*/histories/*.md" -type f -exec grep -l "内省" {} + 2>/dev/null | xargs -I {} stat -f "%m %N" {} 2>/dev/null | sort -nr | head -n 1
+    else
+        # Linux
+        find artifacts -path "*/histories/*.md" -type f -exec grep -l "内省" {} + 2>/dev/null | xargs stat -c "%Y %n" 2>/dev/null | sort -nr | head -n 1
+    fi
+}
+
 # 内省活動異常の判定（新機能 - v2）
 # 内省ファイルの最新更新時刻をチェックして内省活動不足を検知
 # 引数: current_time, introspection_threshold, heartbeat_start_time
@@ -308,40 +321,28 @@ check_introspection_activity_anomaly() {
     debug_log "INTROSPECTION_ACTIVITY check started: current_time=$current_time"
     debug_log "INTROSPECTION_ACTIVITY threshold: ${introspection_threshold}s"
     
-    # 内省ファイルを検索（*introspection*パターン）
-    local latest_introspection_file=$(find artifacts -name "*introspection*" -type f 2>/dev/null | head -1)
+    # 最新の内省関連ファイル情報を取得
+    local latest_introspection_info=$(_get_latest_introspection_info)
     
     local introspection_diff
     
-    if [ -z "$latest_introspection_file" ]; then
-        # 内省ファイルが見つからない場合、ハートビート開始からの経過時間で判定
+    if [ -z "$latest_introspection_info" ]; then
+        # 「内省」を含む思考ログが見つからない場合、ハートビート開始からの経過時間で判定
         introspection_diff=$((current_time - heartbeat_start_time))
-        debug_log "INTROSPECTION_ACTIVITY: No introspection files found, using heartbeat start time (${introspection_diff}s elapsed)"
+        debug_log "INTROSPECTION_ACTIVITY: No thinking logs with '内省' found, using heartbeat start time (${introspection_diff}s elapsed)"
     else
-        # 最新内省ファイルのファイル名からタイムスタンプを抽出
-        local latest_filename=$(basename "$latest_introspection_file")
-        local timestamp_pattern=""
-        
-        if [[ "$latest_filename" =~ ([0-9]{14}) ]]; then
-            timestamp_pattern="${BASH_REMATCH[1]}"
-            debug_log "INTROSPECTION_ACTIVITY: Extracted timestamp: $timestamp_pattern from $latest_filename"
-            
-            # タイムスタンプを秒に変換
-            local file_time=$(convert_timestamp_to_seconds "$timestamp_pattern")
-            
-            if [ -z "$file_time" ] || [ $file_time -lt $heartbeat_start_time ]; then
-                # 変換失敗またはハートビート起動前の場合、起動時刻を基軸とする
-                introspection_diff=$((current_time - heartbeat_start_time))
-                debug_log "INTROSPECTION_ACTIVITY: Using heartbeat start time as baseline (conversion failed or file older)"
-            else
-                # 通常の判定（ハートビート起動後の内省活動）
-                introspection_diff=$((current_time - file_time))
-                debug_log "INTROSPECTION_ACTIVITY: Using file time as baseline"
-            fi
-        else
-            # タイムスタンプ抽出失敗の場合、ハートビート開始時刻で判定
+        # 最新の内省活動があった思考ログの更新時刻を取得
+        local latest_introspection_time=$(echo "$latest_introspection_info" | cut -d' ' -f1)
+        local latest_introspection_file=$(echo "$latest_introspection_info" | cut -d' ' -f2-)
+
+        debug_log "INTROSPECTION_ACTIVITY: Latest introspection in: $(basename "$latest_introspection_file") at $latest_introspection_time"
+
+        if [ $latest_introspection_time -lt $heartbeat_start_time ]; then
             introspection_diff=$((current_time - heartbeat_start_time))
-            debug_log "INTROSPECTION_ACTIVITY: Could not extract timestamp from filename: $latest_filename"
+            debug_log "INTROSPECTION_ACTIVITY: Using heartbeat start time as baseline (introspection log older than heartbeat start)"
+        else
+            introspection_diff=$((current_time - latest_introspection_time))
+            debug_log "INTROSPECTION_ACTIVITY: Using introspection log time as baseline"
         fi
     fi
     
