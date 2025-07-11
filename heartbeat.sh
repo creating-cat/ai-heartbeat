@@ -448,29 +448,17 @@ $ADVICE_INACTIVITY"
             return 0 ;;
         11) # 思考ログ頻度エラー（新機能 - v2）
             handle_failure "Thinking log frequency error: No thinking log updates for $((detail / 60)) minutes." "思考ログ頻度異常" ;;
-        12) # 思考ログパターン警告（新機能 - v2）
-            log_warning "Thinking log pattern warning: $detail files with same timestamp detected."
-            INACTIVITY_WARNING_MESSAGE="⚠️ 思考ログパターン警告: 同じタイムスタンプで${detail}個のファイルが検出されました。
-
-$ADVICE_INACTIVITY"
-            return 0 ;;
         13) # 思考ログパターンエラー（新機能 - v2）
             handle_failure "Thinking log pattern error: $detail files with same timestamp detected." "思考ログパターン異常" ;;
         14) # 思考ログループエラー（新機能 - v2）
             handle_failure "Thinking log loop error: Same thinking log edited $detail times consecutively." "思考ログループ異常" ;;
-        15) # テーマログパターン警告（新機能 - v2）
-            log_warning "Theme log pattern warning: $detail files with same timestamp detected."
-            INACTIVITY_WARNING_MESSAGE="⚠️ テーマログパターン警告: 同じタイムスタンプで${detail}個のテーマログファイルが検出されました。
-
-$ADVICE_INACTIVITY"
-            return 0 ;;
         16) # テーマログパターンエラー（新機能 - v2）
             handle_failure "Theme log pattern error: $detail files with same timestamp detected." "テーマログパターン異常" ;;
         17) # 内省活動警告（新機能 - v2）
             log_warning "Introspection activity warning: No introspection activity for $((detail / 60)) minutes."
-            INACTIVITY_WARNING_MESSAGE="⚠️ 内省活動警告: $((detail / 60))分間内省活動がありません。
+            INTROSPECTION_REMINDER_MESSAGE="⚠️ 内省不足警告: $((detail / 60))分間内省活動が行われていません。
 
-$ADVICE_INACTIVITY"
+$ADVICE_INTROSPECTION"
             return 0 ;;
         18) # 内省活動エラー（新機能 - v2）
             handle_failure "Introspection activity error: No introspection activity for $((detail / 60)) minutes." "内省活動不足" ;;
