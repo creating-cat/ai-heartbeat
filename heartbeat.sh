@@ -4,6 +4,7 @@
 source "lib/logging.sh"
 source "lib/config.sh"
 source "lib/utils.sh"
+source "lib/health_check_core.sh"
 
 # 設定ファイル読み込み
 CONFIG_FILE="heartbeat.conf"
@@ -215,84 +216,55 @@ _check_introspection_activity() {
 
 
 # エージェントの健全性をチェックするコア関数
-# 戻り値: 0=正常, 1=無活動警告, 2=内省警告, 3=無活動, 4=ループ, 5=タイムスタンプ異常, 6=内省不足
+# 戻り値: 0=正常, 1=警告レベル, 2=エラーレベル
+# 新しいhealth_check_core.shを使用した統一処理
 check_agent_health() {
     local latest_file_info=$(_get_latest_file_info)
     [ $? -ne 0 ] || [ -z "$latest_file_info" ] && return 0 # 監視対象がない/ファイルがない場合は正常とみなす
 
     local latest_time=$(echo "$latest_file_info" | cut -d' ' -f1)
     local latest_filename=$(echo "$latest_file_info" | cut -d' ' -f2-)
-    current_time=$(date +%s)
+    local current_time=$(date +%s)
     
-    # スクリプト開始時刻より前のファイルの場合、開始時刻からの経過時間で判定
-    local diff
-    if [ $latest_time -lt $HEARTBEAT_START_TIME ]; then
-        log_info "Latest file is older than heartbeat start time - checking from heartbeat start"
-        diff=$((current_time - HEARTBEAT_START_TIME))
-        log_info "Time since heartbeat start: $((diff / 60)) minutes"
-    else
-        diff=$((current_time - latest_time))
-    fi
-
-    # 1. 無活動検知
-    if [ "$diff" -gt "$INACTIVITY_STOP_THRESHOLD" ]; then
-        HEALTH_CHECK_DETAIL=$diff
-        return 3 # 無活動検知
-    elif [ "$diff" -gt "$INACTIVITY_WARNING_THRESHOLD" ]; then
-        HEALTH_CHECK_DETAIL=$diff
-        return 1 # 警告レベル
+    # 1. 無活動異常検知
+    local inactivity_result=$(check_inactivity_anomaly "$latest_time" "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
+    local inactivity_status=$?
+    if [ $inactivity_status -ne 0 ]; then
+        HEALTH_CHECK_DETAIL="$inactivity_result"
+        # 戻り値で直接判定
+        if [ $inactivity_status -eq 1 ]; then
+            return 1 # 無活動警告
+        else
+            return 3 # 無活動エラー
+        fi
     fi
 
     # 2. 同一ファイルループ検知
-    if [ "$latest_filename" = "$LOOP_DETECTION_FILE" ]; then
-        if [ ! -z "$LOOP_DETECTION_START_TIME" ]; then
-            local loop_duration=$((current_time - LOOP_DETECTION_START_TIME))
-            if [ "$loop_duration" -gt "$INACTIVITY_STOP_THRESHOLD" ]; then
-                HEALTH_CHECK_DETAIL=$loop_duration
-                return 4 # ループ検知
-            fi
-        fi
-    else
-        # 異なるファイルなのでループ検出記録をリセット
+    local loop_result=$(check_loop_anomaly "$latest_filename" "$LOOP_DETECTION_FILE" "$LOOP_DETECTION_START_TIME" "$current_time" "$INACTIVITY_STOP_THRESHOLD")
+    local loop_status=$?
+    
+    # 戻り値のみで判定
+    if [ $loop_status -eq 2 ]; then
+        # エラー時
+        HEALTH_CHECK_DETAIL="$loop_result"
+        return 4 # ループエラー
+    elif [ "$latest_filename" != "$LOOP_DETECTION_FILE" ]; then
+        # 新しいファイル検出時
         LOOP_DETECTION_FILE="$latest_filename"
         LOOP_DETECTION_START_TIME="$current_time"
         log_info "Loop detection reset for new file: $latest_filename"
+    elif [ -z "$LOOP_DETECTION_START_TIME" ]; then
+        # ループ検出開始時
+        LOOP_DETECTION_START_TIME="$current_time"
+        log_info "Loop detection started for file: $latest_filename"
     fi
 
     # 3. ファイル名タイムスタンプチェック
-    # ただし、開始時間より後に作成されたファイルがない場合はスキップ
-    if [ $latest_time -ge $HEARTBEAT_START_TIME ]; then
-        filename_only=$(basename "$latest_filename")
-        if [[ "$filename_only" =~ ^[0-9]{14}(_[a-zA-Z]+_.*)?\.md$ ]]; then
-            # ファイル名からタイムスタンプを抽出（最初の14桁）
-            file_timestamp=$(echo "$filename_only" | grep -o '^[0-9]\{14\}')
-            if [ ! -z "$file_timestamp" ]; then
-                # タイムスタンプを秒に変換
-                file_time=$(convert_timestamp_to_seconds "$file_timestamp")
-                
-                if [ ! -z "$file_time" ]; then
-                    # ファイル名タイムスタンプがハートビート起動前の場合、起動時刻を基軸とする
-                    if [ $file_time -lt $HEARTBEAT_START_TIME ]; then
-                        timestamp_diff=$((current_time - HEARTBEAT_START_TIME))
-                        log_info "File timestamp before heartbeat start: $((timestamp_diff / 60)) minutes since heartbeat start"
-                    else
-                        timestamp_diff=$((current_time - file_time))
-                        log_info "File timestamp: $(date -r $file_time "+%F %T")"
-                        log_info "Timestamp age: $((timestamp_diff / 60)) minutes"
-                    fi
-                    
-                    # 未来のタイムスタンプの場合はスキップ
-                    if [ $timestamp_diff -lt 0 ]; then
-                        : # no-op
-                    elif [ $timestamp_diff -gt $TIMESTAMP_ANOMALY_THRESHOLD ]; then
-                        HEALTH_CHECK_DETAIL=$timestamp_diff
-                        return 5 # タイムスタンプ異常
-                    fi
-                fi
-            fi
-        fi
-    else
-        log_info "Skipping file timestamp check - latest file is older than heartbeat start"
+    local timestamp_result=$(check_timestamp_anomaly "$latest_filename" "$current_time" "$TIMESTAMP_ANOMALY_THRESHOLD" "$HEARTBEAT_START_TIME")
+    local timestamp_status=$?
+    if [ $timestamp_status -ne 0 ]; then
+        HEALTH_CHECK_DETAIL="$timestamp_result"
+        return 5 # タイムスタンプ異常
     fi
     
     # 4. 内省活動不足検知
@@ -302,6 +274,30 @@ check_agent_health() {
         return 6 # 内省不足 (HEALTH_CHECK_DETAIL is set by _check_introspection_activity)
     elif [ $introspection_status -eq 2 ]; then
         return 2 # 内省警告
+    fi
+
+    # 5. 思考ログ重複作成異常検知（新機能）
+    local duplicate_result=$(check_thinking_log_duplicate "artifacts" "$current_time")
+    local duplicate_status=$?
+    if [ $duplicate_status -ne 0 ]; then
+        HEALTH_CHECK_DETAIL="$duplicate_result"
+        return 7 # 思考ログ重複作成異常
+    fi
+
+    # 6. 思考ログ繰り返し更新異常検知（新機能）
+    local repeat_result=$(check_thinking_log_repeat "artifacts" "$current_time")
+    local repeat_status=$?
+    if [ $repeat_status -ne 0 ]; then
+        HEALTH_CHECK_DETAIL="$repeat_result"
+        return 8 # 思考ログ繰り返し更新異常
+    fi
+
+    # 7. テーマログ異常検知（新機能）
+    local theme_result=$(check_theme_log_anomaly "artifacts" "$current_time")
+    local theme_status=$?
+    if [ $theme_status -ne 0 ]; then
+        HEALTH_CHECK_DETAIL="$theme_result"
+        return 9 # テーマログ異常
     fi
 
     return 0  # 正常
@@ -352,6 +348,12 @@ $ADVICE_INTROSPECTION"
             handle_failure "Agent appears to be stuck! File timestamp is too old ($((detail / 60)) minutes): $latest_filename" "最新ファイル名タイムスタンプ異常" ;;
         6) 
             handle_failure "Agent appears to be stuck! No introspection activity for $((detail / 60)) minutes." "内省活動不足" ;;
+        7) # 思考ログ重複作成異常（新機能）
+            handle_failure "Agent appears to be stuck! Thinking log duplicate creation detected ($detail files)" "思考ログ重複作成異常" ;;
+        8) # 思考ログ繰り返し更新異常（新機能）
+            handle_failure "Agent appears to be stuck! Thinking log repeat update detected ($detail files)" "思考ログ繰り返し更新異常" ;;
+        9) # テーマログ異常（新機能）
+            handle_failure "Agent appears to be stuck! Theme log anomaly detected ($detail files)" "テーマログ異常" ;;
         *) # 未知のエラー
             log_error "Unknown health check status: $status" ;;
     esac
@@ -407,6 +409,30 @@ attempt_recovery() {
             ;;
         "最新ファイル名タイムスタンプ異常")
             advice_message="$ADVICE_TIMESTAMP"
+            ;;
+        "思考ログ重複作成異常")
+            advice_message="
+思考ログの作成に異常が検知されました。
+同じタイムスタンプで3つ以上の思考ログファイルが作成されています。
+一回のハートビートでは、適切なタイミングで思考ログを保存し、次のハートビートに備えることを推奨します。
+適切な範囲で処理を区切って小さく積み重ねていくことが、エージェントの思考を整理し、次の行動に活かすために重要です。
+"
+            ;;
+        "思考ログ繰り返し更新異常")
+            advice_message="
+思考ログの作成に異常が検知されました。
+同じタイムスタンプの思考ログファイルが繰り返し更新されています（連番ファイルの存在）。
+一回のハートビートでは、適切なタイミングで思考ログを保存し、次のハートビートに備えることを推奨します。
+適切な範囲で処理を区切って小さく積み重ねていくことが、エージェントの思考を整理し、次の行動に活かすために重要です。
+"
+            ;;
+        "テーマログ異常")
+            advice_message="
+テーマログの作成に異常が検知されました。
+同じタイムスタンプで複数のテーマログファイルが作成されている可能性があります。
+テーマの選択や変更は慎重に行い、一つのテーマに集中して取り組むことを推奨します。
+複数のテーマを同時に扱う場合は、異なるハートビートサイクルで分けて処理することが重要です。
+"
             ;;
         *)
             advice_message=""
