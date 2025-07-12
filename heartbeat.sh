@@ -419,14 +419,12 @@ check_recovery_status() {
 
 # 停止処理
 stop_heartbeat() {
-    log_error "Maximum recovery attempts ($MAX_RECOVERY_ATTEMPTS) exceeded or critical error detected"
-    log_notice "Heartbeat stopping at $(date "+%F %T")"
-
     # 最終的なエージェント処理中断
     log_notice "Final agent process interruption..."
     interrupt_agent
     log_notice "Agent processing has been interrupted."
-        
+
+    log_notice "Heartbeat stopping at $(date "+%F %T")"
     exit 0
 }
 
