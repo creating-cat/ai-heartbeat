@@ -32,28 +32,29 @@ graph TD
     end
 
     subgraph "システム内部 (tmux)"
-        Agent["🤖 agentセッション<br>(AI本体)"]
-        Heartbeat["❤️ heartbeatセッション<br>(心臓部)"]
-    end
-    
-    subgraph "ユーザー連携"
-        Feedbackbox["📝 feedbackbox/<br>(フィードバック)"]
-    end
-    
-    subgraph "生成物"
-        Artifacts["📁 artifacts/ <br>(成果物・思考ログ)"]
-    end
+    Agent["🤖 agentセッション<br>(AI本体)"]
+    Heartbeat["❤️ heartbeatセッション<br>(心臓部)"]
+end
 
-    User -- "実行" --> Start
-    Start -- "起動" --> Agent
-    Start -- "起動" --> Heartbeat
-    Heartbeat -- "定期的に<br>Heartbeat信号を送信" --> Agent
-    Agent -- "思考・処理" --> Agent
-    Agent -- "結果を出力" --> Artifacts
-    User -- "実行" --> Stop
-    Stop -- "停止信号" --> Heartbeat
-    User -- "フィードバック作成" --> Feedbackbox
-    Feedbackbox -- "通知・確認" --> Agent
+subgraph "ユーザー連携"
+    Feedbackbox["📝 feedbackbox/<br>(フィードバック)"]
+end
+
+subgraph "生成物"
+    Artifacts["📁 artifacts/ <br>(成果物・思考ログ)"]
+end
+
+User -- "実行" --> Start
+Start -- "起動" --> Agent
+Start -- "起動" --> Heartbeat
+Heartbeat -- "定期的に<br>Heartbeat信号を送信<br>(フィードバックも通知)" --> Agent
+Agent -- "思考・処理" --> Agent
+Agent -- "結果を出力" --> Artifacts
+User -- "実行" --> Stop
+Stop -- "停止信号" --> Heartbeat
+User -- "フィードバック作成" --> Feedbackbox
+Heartbeat -- "チェック" --> Feedbackbox
+
 ```
 
 最も重要なのは**継続的な成長**というコンテキストです。単なるタスク実行ではなく、積み重ねによる学習・発展・深化を通じて、AIがより高度で創造的な存在へと進化していくことを目指しています。
