@@ -342,7 +342,8 @@ $ADVICE_INTROSPECTION"
         19) # 思考ログタイムスタンプ警告（新機能 - v2復活）
             log_warning "Thinking log timestamp warning: Timestamp is $((detail / 60)) minutes old."
             INACTIVITY_WARNING_MESSAGE="⚠️ 思考ログタイムスタンプ警告: 最新の思考ログのハートビートIDが$((detail / 60))分以上古いです。
-ハートビートで渡される最新のハートビートIDを使用してください。"
+思考ログはハートビート毎に毎回新しく作成する必要があります。
+このハートビートの活動の終わりに必ず新しい思考ログを作成してください。"
             return 0 ;;
         20) # 思考ログタイムスタンプエラー（新機能 - v2復活）
             handle_failure "Thinking log timestamp error: Timestamp is $((detail / 60)) minutes old." "思考ログタイムスタンプ異常" ;;
