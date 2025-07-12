@@ -92,11 +92,12 @@ check_thinking_log_frequency_anomaly() {
 
 # 思考ログパターン異常の判定（新機能 - v2）
 # 最新思考ログと同じタイムスタンプの思考ログファイル数をチェックして重複作成異常を検知
-# 引数: current_time
+# 引数: current_time, heartbeat_start_time
 # 戻り値: 常に0（エラーコードはecho出力に含める）
 # 出力: "error_code:detail" 形式（0:count=正常, 1:count=警告, 2:count=エラー）
 check_thinking_log_pattern_anomaly() {
     local current_time="$1"
+    local heartbeat_start_time="$2"
     
     debug_log "THINKING_LOG_PATTERN check started: current_time=$current_time"
     
@@ -105,6 +106,14 @@ check_thinking_log_pattern_anomaly() {
     
     if [ -z "$latest_thinking_log_info" ]; then
         debug_log "THINKING_LOG_PATTERN: No thinking log files found"
+        echo "0:0"
+        return 0
+    fi
+    
+    # ハートビート起動時刻以降に作成されたログのみを対象とする
+    local latest_log_time=$(echo "$latest_thinking_log_info" | cut -d' ' -f1)
+    if [ $latest_log_time -lt $heartbeat_start_time ]; then
+        debug_log "THINKING_LOG_PATTERN: Latest log older than heartbeat start, skipping check"
         echo "0:0"
         return 0
     fi
@@ -212,11 +221,12 @@ THINKING_LOG_LOOP_COUNT=0
 
 # 思考ログループ異常の判定（新機能 - v2）
 # 同一思考ログファイルの継続編集を検知してループ異常を判定
-# 引数: current_time
+# 引数: current_time, heartbeat_start_time
 # 戻り値: 常に0（エラーコードはecho出力に含める）
 # 出力: "error_code:detail" 形式（0:count=正常, 2:count=エラー）
 check_thinking_log_loop_anomaly() {
     local current_time="$1"
+    local heartbeat_start_time="$2"
     
     debug_log "THINKING_LOG_LOOP check started: current_time=$current_time"
     debug_log "THINKING_LOG_LOOP previous state: file=$THINKING_LOG_LOOP_LAST_FILE, mtime=$THINKING_LOG_LOOP_LAST_MTIME, count=$THINKING_LOG_LOOP_COUNT"
@@ -226,6 +236,17 @@ check_thinking_log_loop_anomaly() {
     
     if [ -z "$latest_thinking_log_info" ]; then
         debug_log "THINKING_LOG_LOOP: No thinking log files found, clearing loop state"
+        THINKING_LOG_LOOP_LAST_FILE=""
+        THINKING_LOG_LOOP_LAST_MTIME=""
+        THINKING_LOG_LOOP_COUNT=0
+        echo "0:0"
+        return 0
+    fi
+    
+    # ハートビート起動時刻以降に作成されたログのみを対象とする
+    local latest_log_time=$(echo "$latest_thinking_log_info" | cut -d' ' -f1)
+    if [ $latest_log_time -lt $heartbeat_start_time ]; then
+        debug_log "THINKING_LOG_LOOP: Latest log older than heartbeat start, clearing loop state"
         THINKING_LOG_LOOP_LAST_FILE=""
         THINKING_LOG_LOOP_LAST_MTIME=""
         THINKING_LOG_LOOP_COUNT=0

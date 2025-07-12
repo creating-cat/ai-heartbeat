@@ -147,14 +147,14 @@ Heartbeat -- "チェック" --> Feedbackbox
 
 ## 実行状況をリアルタイムで見る
 
-* 適当に新規のターミナルセッションを開いて以下を実行してセッションをアタッチする
+* 適当に新規のターミナルセッションを開いて以下を実行して**セッションを読み取り専用でアタッチ**する
 ```
-tmux attach-session -t agent
+tmux attach-session -t agent -r
 ```
 
 * 心臓の方は以下
 ```
-tmux attach-session -t heartbeat
+tmux attach-session -t heartbeat -r
 ```
 
 *  `Ctrl-b d`(コントロールボタンを押しながらbを押した後にdを押す)をすると、またデタッチします。(元のターミナルセッションに戻る)
