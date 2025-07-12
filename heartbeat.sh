@@ -5,6 +5,7 @@ source "lib/logging.sh"
 source "lib/config.sh"
 source "lib/utils.sh"
 source "lib/health_check_core.sh"
+source "lib/agent_io.sh"
 
 # 設定ファイル読み込み
 CONFIG_FILE="heartbeat.conf"
@@ -328,18 +329,13 @@ attempt_recovery() {
     
     # エージェント処理を中断
     log_notice "Interrupting agent process..."
-    tmux send-keys -t agent Escape
-    sleep 1
-    tmux send-keys -t agent Escape
-    sleep 1
+    interrupt_agent
     log_notice "Agent processing has been interrupted."
 
 
     # コンテキスト圧縮を実行
     log_notice "Sending context compression command..."
-    tmux send-keys -t agent "/compress"
-    sleep 1
-    tmux send-keys -t agent C-m
+    compress_agent_context
     sleep 30  # 圧縮処理の完了を待機
     log_notice "Context compression completed."
     
@@ -347,9 +343,7 @@ attempt_recovery() {
     local save_timestamp=$(date "+%Y%m%d%H%M%S")
     local chat_tag="HEARTBEAT_${HEARTBEAT_START_TIMESTAMP}_${save_timestamp}"
     log_notice "Saving chat with tag: $chat_tag"
-    tmux send-keys -t agent "/chat save $chat_tag"
-    sleep 1
-    tmux send-keys -t agent C-m
+    save_agent_chat_history "$chat_tag"
     sleep 30  # チャット保存処理の完了を待機
     log_notice "Chat saved with tag: $chat_tag"
     
@@ -430,9 +424,7 @@ stop_heartbeat() {
 
     # 最終的なエージェント処理中断
     log_notice "Final agent process interruption..."
-    tmux send-keys -t agent Escape
-    sleep 1
-    tmux send-keys -t agent Escape
+    interrupt_agent
     log_notice "Agent processing has been interrupted."
         
     exit 0
@@ -530,10 +522,7 @@ while true; do
     # 4.6 緊急フィードバック処理（ハートビート送信前）
     if [ "$EMERGENCY_FEEDBACK_DETECTED" = true ]; then
         log_warning "Emergency feedback detected. Interrupting agent process..."
-        tmux send-keys -t agent Escape
-        sleep 1
-        tmux send-keys -t agent Escape
-        sleep 1
+        interrupt_agent
         log_notice "Agent processing interrupted for emergency feedback."
         # 処理完了後にフラグをリセット（防御的プログラミング）
         EMERGENCY_FEEDBACK_DETECTED=false
@@ -587,9 +576,7 @@ $RECOVERY_MESSAGE"
         log_info "Recovery message included in heartbeat"
     fi
     
-    tmux send-keys -t agent "$heartbeat_msg"
-    sleep 1
-    tmux send-keys -t agent C-m
+    send_message_to_agent "$heartbeat_msg"
 
     log_heartbeat "Heartbeat sent to agent session"
 done
