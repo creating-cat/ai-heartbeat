@@ -219,7 +219,7 @@ check_agent_health() {
     fi
 
     # 9. 思考ログパターン異常検知（新機能 - v2）
-    local thinking_pattern_result=$(check_thinking_log_pattern_anomaly "$current_time")
+    local thinking_pattern_result=$(check_thinking_log_pattern_anomaly "$current_time" "$HEARTBEAT_START_TIME")
     local thinking_pattern_code=$(echo "$thinking_pattern_result" | cut -d':' -f1)
     local thinking_pattern_detail=$(echo "$thinking_pattern_result" | cut -d':' -f2)
     
@@ -245,7 +245,7 @@ check_agent_health() {
     fi
 
     # 11. 思考ログループ異常検知（新機能 - v2）
-    local thinking_loop_result=$(check_thinking_log_loop_anomaly "$current_time")
+    local thinking_loop_result=$(check_thinking_log_loop_anomaly "$current_time" "$HEARTBEAT_START_TIME")
     local thinking_loop_code=$(echo "$thinking_loop_result" | cut -d':' -f1)
     local thinking_loop_detail=$(echo "$thinking_loop_result" | cut -d':' -f2)
     
