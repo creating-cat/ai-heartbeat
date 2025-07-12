@@ -50,6 +50,39 @@ RECOVERY_WAIT_CYCLES=0
 # 終了フラグ
 SHUTDOWN_REQUESTED=false
 
+# 割り込み可能なスリープ関数
+# 引数1: 待機する秒数
+# 引数2: (オプション) カウントダウン中に表示するメッセージフォーマット（例: "Next check in %2d seconds..."）
+interruptible_sleep() {
+    local duration=$1
+    local message_format=${2:-""} # Default to empty string if not provided
+
+    for ((i=duration; i>0; i--)); do
+        # 1秒ごとにシャットダウン要求を確認
+        if [ "$SHUTDOWN_REQUESTED" = true ]; then
+            log_notice "Shutdown requested, interrupting sleep."
+            # メッセージ表示をクリア
+            if [ -n "$message_format" ]; then
+                printf "\r                                                               \r"
+            fi
+            # ループを抜けて即時に関数を終了
+            return
+        fi
+
+        # メッセージが指定されていれば表示
+        if [ -n "$message_format" ]; then
+            printf "\r$message_format" "$i"
+        fi
+
+        sleep 1
+    done
+
+    # ループ正常終了後、メッセージ表示をクリア
+    if [ -n "$message_format" ]; then
+        printf "\r                                                               \r"
+    fi
+}
+
 # ログファイル設定
 LOG_DIR="logs"
 # ログファイル名は起動時のタイムスタンプ付き（例: heartbeat_20250106143022.log）
@@ -330,13 +363,15 @@ attempt_recovery() {
     # エージェント処理を中断
     log_notice "Interrupting agent process..."
     interrupt_agent
+    if [ "$SHUTDOWN_REQUESTED" = true ]; then return; fi
     log_notice "Agent processing has been interrupted."
 
 
     # コンテキスト圧縮を実行
     log_notice "Sending context compression command..."
     compress_agent_context
-    sleep 30  # 圧縮処理の完了を待機
+    if [ "$SHUTDOWN_REQUESTED" = true ]; then return; fi
+    interruptible_sleep 30  # 圧縮処理の完了を待機
     log_notice "Context compression completed."
     
     # チャット保存を実行
@@ -344,7 +379,8 @@ attempt_recovery() {
     local chat_tag="HEARTBEAT_${HEARTBEAT_START_TIMESTAMP}_${save_timestamp}"
     log_notice "Saving chat with tag: $chat_tag"
     save_agent_chat_history "$chat_tag"
-    sleep 30  # チャット保存処理の完了を待機
+    if [ "$SHUTDOWN_REQUESTED" = true ]; then return; fi
+    interruptible_sleep 30  # チャット保存処理の完了を待機
     log_notice "Chat saved with tag: $chat_tag"
     
     # 異常種別に応じたアドバイスメッセージを設定
@@ -475,30 +511,14 @@ while true; do
         
         # 回復待機中はハートビート送信をスキップ
         if [ "$HEARTBEAT_STATE" = "recovery_waiting" ]; then
-            # カウントダウンのみ実行
-            for i in $(seq ${INTERVAL_SECONDS} -1 1); do
-                printf "\r[RECOVERY WAIT] Next check in %2d seconds... " "$i"
-                sleep 1
-            done
-            printf "\r                                           \r"
+            interruptible_sleep "$INTERVAL_SECONDS" "[RECOVERY WAIT] Next check in %2d seconds... "
             continue
         fi
     fi
     
     # 2. カウントダウン（通常状態のみ）
     if [ "$HEARTBEAT_STATE" = "normal" ]; then
-        for i in $(seq ${INTERVAL_SECONDS} -1 1); do
-            # 終了リクエストがあればカウントダウンを中断
-            if [ "$SHUTDOWN_REQUESTED" = true ]; then
-                break 2 # 外側のwhileループも抜ける
-            fi
-
-            # \r を使ってカーソルを行頭に戻し、同じ行に上書き表示する
-            printf "\rNext heartbeat in %2d seconds... " "$i"
-            sleep 1
-        done
-        # カウントダウン表示をクリア
-        printf "\r                                   \r"
+        interruptible_sleep "$INTERVAL_SECONDS" "Next heartbeat in %2d seconds... "
 
         # 終了リクエストがあればハートビートを送信せずにループを終了
         if [ "$SHUTDOWN_REQUESTED" = true ]; then
