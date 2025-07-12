@@ -475,7 +475,8 @@ log_notice "Stop threshold: $((INACTIVITY_STOP_THRESHOLD / 60)) minutes"
 
 # 初回ハートビート送信（起動直後）
 log_notice "Sending initial heartbeat immediately after startup..."
-send_heartbeat_to_agent
+send_message_to_agent "Heartbeat: $(date "+%Y%m%d%H%M%S")"
+log_heartbeat "Heartbeat sent to agent session"
 
 while true; do
     # 1. 回復待機状態の処理
