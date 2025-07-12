@@ -85,7 +85,7 @@ interruptible_sleep() {
 
 # ログファイル設定
 LOG_DIR="logs"
-# ログファイル名は起動時のタイムスタンプ付き（例: heartbeat_20250106143022.log）
+# ログファイル名は起動時のハートビートID付き（例: heartbeat_20250106143022.log）
 LOG_FILE="$LOG_DIR/heartbeat_${HEARTBEAT_START_TIMESTAMP}.log"
 
 # ログ初期化（lib/logging.shを使用）
@@ -341,8 +341,8 @@ $ADVICE_INTROSPECTION"
             handle_failure "Introspection activity error: No introspection activity for $((detail / 60)) minutes." "内省活動不足" ;;
         19) # 思考ログタイムスタンプ警告（新機能 - v2復活）
             log_warning "Thinking log timestamp warning: Timestamp is $((detail / 60)) minutes old."
-            INACTIVITY_WARNING_MESSAGE="⚠️ 思考ログタイムスタンプ警告: 最新の思考ログのタイムスタンプが$((detail / 60))分以上古いです。
-ハートビートで渡される最新のタイムスタンプを使用してください。"
+            INACTIVITY_WARNING_MESSAGE="⚠️ 思考ログタイムスタンプ警告: 最新の思考ログのハートビートIDが$((detail / 60))分以上古いです。
+ハートビートで渡される最新のハートビートIDを使用してください。"
             return 0 ;;
         20) # 思考ログタイムスタンプエラー（新機能 - v2復活）
             handle_failure "Thinking log timestamp error: Timestamp is $((detail / 60)) minutes old." "思考ログタイムスタンプ異常" ;;
