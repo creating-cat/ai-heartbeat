@@ -8,13 +8,15 @@ import * as path from 'path';
 
 // Zod schema for thinking log input
 export const thinkingLogInputSchema = z.object({
-  heartbeatId: z.string().describe('ハートビートID (YYYYMMDDHHMMSS形式)'),
+  heartbeatId: z.string()
+    .regex(/^\d{14}$/, 'ハートビートIDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
+    .describe('ハートビートID (YYYYMMDDHHMMSS形式)'),
   activityType: z.enum(['観測', '思考', '創造', '内省', 'その他']).describe('活動種別'),
   activityContent: z.string().describe('活動内容の簡潔な説明'),
   artifacts: z.array(z.string()).optional().default([]).describe('作成・修正したファイルのパス一覧'),
   evaluation: z.string().optional().default('').describe('自己評価・備考'),
   auxiliaryOperations: z.array(z.enum(['ファイル読み込み', '軽微な検索', '軽微な置換', 'Web検索', 'その他'])).optional().default([]).describe('使用した補助操作'),
-  currentTheme: z.string().optional().describe('現在のテーマ名（自動検出も可能）'),
+  themeDirectory: z.string().describe('現在のテーマディレクトリ名'),
 });
 
 // Helper functions
@@ -64,11 +66,9 @@ function generateThinkingLogMarkdown(args: z.infer<typeof thinkingLogInputSchema
 }
 
 function getThinkingLogFilePath(theme: string, heartbeatId: string): string {
-  // Get project root (4 levels up from this file)
-  const projectRoot = path.resolve(__dirname, '../../../../');
-  
-  // Create path: artifacts/{theme}/histories/{heartbeatId}.md
-  return path.join(projectRoot, 'artifacts', theme, 'histories', `${heartbeatId}.md`);
+  // MCPサーバーはプロジェクトルートで実行される前提
+  // 現在の作業ディレクトリから相対パスで指定
+  return path.join('artifacts', theme, 'histories', `${heartbeatId}.md`);
 }
 
 export const thinkingLogTool = {
@@ -80,9 +80,9 @@ export const thinkingLogTool = {
       // Generate markdown content
       const markdownContent = generateThinkingLogMarkdown(args);
       
-      // Determine file path
-      const theme = args.currentTheme || 'default_theme';
-      const filePath = getThinkingLogFilePath(theme, args.heartbeatId);
+      // Determine file path (use basename for safety)
+      const themeDir = path.basename(args.themeDirectory);
+      const filePath = getThinkingLogFilePath(themeDir, args.heartbeatId);
       
       // Ensure directory exists
       await fs.ensureDir(path.dirname(filePath));
