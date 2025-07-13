@@ -13,7 +13,7 @@ export const thinkingLogInputSchema = z.object({
   heartbeatId: z.string()
     .regex(/^\d{14}$/, 'ハートビートIDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
     .describe('ハートビートID (YYYYMMDDHHMMSS形式)'),
-  activityType: z.enum(['観測', '思考', '創造', '内省', 'その他']).describe('活動種別'),
+  activityType: z.enum(['観測', '思考', '創造', '内省', 'テーマ開始', 'テーマ終了', 'その他']).describe('活動種別'),
   activityContent: z.string().describe('活動内容の簡潔な説明'),
   artifacts: z.array(z.string()).optional().default([]).describe('作成・修正したファイルのパス一覧'),
   evaluation: z.string().optional().default('').describe('自己評価・備考'),
