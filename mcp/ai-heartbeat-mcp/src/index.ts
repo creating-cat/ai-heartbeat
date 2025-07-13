@@ -5,6 +5,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { thinkingLogTool } from './tools/thinkingLogTool.js';
+import { themeLogTool } from './tools/themeLogTool.js';
 
 // Create MCP server
 const server = new McpServer({
@@ -19,6 +20,14 @@ server.tool(
   thinkingLogTool.description,
   thinkingLogTool.input_schema.shape,
   thinkingLogTool.execute
+);
+
+// Register theme log tool
+server.tool(
+  themeLogTool.name,
+  themeLogTool.description,
+  themeLogTool.input_schema.shape,
+  themeLogTool.execute
 );
 
 // Start server
