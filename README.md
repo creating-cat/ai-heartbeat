@@ -17,6 +17,7 @@ gemini cliとtumxとシェルスクリプトを使ったシステムとして構
 * **feedbackboxシステム**: ユーザーからの非同期フィードバックによるAIの一貫性・品質向上支援
 * **成果物生成**: マークダウンファイルやソースコードなどの形で思考結果を出力
 * **自己管理**: 思考ログの記録、Web検索クォータの管理、エラーからの回復など
+* **MCPツール支援**: 思考ログ作成、テーマ管理、Web検索統計などの定型作業を自動化
 
 
 ## システムアーキテクチャ
@@ -70,6 +71,35 @@ Heartbeat -- "チェック" --> Feedbackbox
   * インストール: https://github.com/tmux/tmux/wiki/Installing
   
 * **Bash**: 4.0 以上
+
+* **Node.js**: バージョン 18.0 以上
+  * npm または yarn が利用可能であること
+
+## MCPツールのセットアップ
+
+AI心臓システムは、思考ログ作成やテーマ管理を支援するMCP（Model Context Protocol）ツールを含んでいます。
+
+### 1. MCPツールのビルド
+```bash
+cd mcp/ai-heartbeat-mcp
+npm install
+npm run build
+```
+
+### 2. Gemini CLIでのMCP設定確認
+MCPサーバーは `.gemini/settings.json` で自動設定されています。設定を確認：
+```bash
+cat .gemini/settings.json
+```
+
+### 3. 動作確認（オプション）
+```bash
+# MCPサーバーの動作テスト
+cd mcp/ai-heartbeat-mcp
+npm run dev
+```
+
+**注意**: MCPツールはオプション機能です。ビルドに失敗してもシステムの基本機能は利用できます。
 
 ## 使用方法
 

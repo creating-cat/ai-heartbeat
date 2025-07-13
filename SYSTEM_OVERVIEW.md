@@ -29,6 +29,7 @@ AI心臓システムは、定期的な「ハートビート」によりAIの継�
 - **テーマ管理**: themebox/とテーマ履歴による探求領域の拡張
 - **成長記録**: artifacts/による学習履歴と進化の軌跡管理
 - **フィードバック管理**: feedbackbox/によるユーザーとAIの非同期コミュニケーション
+- **MCPツール群**: mcp/ai-heartbeat-mcp/による定型作業の自動化支援
 
 ## ディレクトリ構造
 
@@ -40,6 +41,8 @@ AI心臓システム/
 ├── stop.sh                     # システム停止スクリプト
 ├── restart.sh                  # ハートビート再起動スクリプト
 ├── README.md                   # プロジェクト概要
+├── mcp/                         # Model Context Protocol ツール群
+│   └── ai-heartbeat-mcp/        # AI心臓システム専用MCPサーバー
 ├── FILES_OVERVIEW.md           # このファイル
 ├── ai-docs/                    # AI向け詳細ドキュメント
 │   ├── OPERATION_DETAILS.md    # 運用詳細ガイド
