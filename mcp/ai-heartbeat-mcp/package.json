@@ -1,0 +1,31 @@
+{
+  "name": "ai-heartbeat-mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol tools for AI Heartbeat System",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "mcp",
+    "ai-heartbeat-system"
+  ],
+  "author": "AI Heartbeat System",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.15.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.13",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
