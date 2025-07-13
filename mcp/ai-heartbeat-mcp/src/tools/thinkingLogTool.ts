@@ -12,13 +12,13 @@ import { checkTimeDeviation } from '../lib/timeUtils';
 export const thinkingLogInputSchema = z.object({
   heartbeatId: z.string()
     .regex(/^\d{14}$/, 'ハートビートIDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
-    .describe('ハートビートID (YYYYMMDDHHMMSS形式)'),
-  activityType: z.enum(['観測', '思考', '創造', '内省', 'テーマ開始', 'テーマ終了', 'その他']).describe('活動種別'),
-  activityContent: z.string().describe('活動内容の簡潔な説明'),
-  artifacts: z.array(z.string()).optional().default([]).describe('作成・修正したファイルのパス一覧'),
-  evaluation: z.string().optional().default('').describe('自己評価・備考'),
-  auxiliaryOperations: z.array(z.enum(['ファイル読み込み', '軽微な検索', '軽微な置換', 'Web検索', 'その他'])).optional().default([]).describe('使用した補助操作'),
-  themeDirectory: z.string().describe('現在のテーマディレクトリ名'),
+    .describe('The heartbeat ID in YYYYMMDDHHMMSS format.'),
+  activityType: z.enum(['観測', '思考', '創造', '内省', 'テーマ開始', 'テーマ終了', 'その他']).describe('The type of activity performed.'),
+  activityContent: z.string().describe('A brief description of the activity content.'),
+  artifacts: z.array(z.string()).optional().default([]).describe('A list of paths to created or modified files.'),
+  evaluation: z.string().optional().default('').describe('Self-evaluation and remarks.'),
+  auxiliaryOperations: z.array(z.enum(['ファイル読み込み', '軽微な検索', '軽微な置換', 'Web検索', 'その他'])).optional().default([]).describe('Auxiliary operations used during the activity.'),
+  themeDirectory: z.string().describe('The name of the current theme directory.'),
 });
 
 // Helper functions
@@ -99,7 +99,7 @@ async function findAvailableSequence(theme: string, heartbeatId: string): Promis
 
 export const thinkingLogTool = {
   name: 'create_thinking_log',
-  description: 'AI心臓システム用の標準フォーマット思考ログを作成',
+  description: 'Creates a standard format thinking log for the AI Heartbeat System.',
   input_schema: thinkingLogInputSchema,
   execute: async (args: z.infer<typeof thinkingLogInputSchema>) => {
     try {

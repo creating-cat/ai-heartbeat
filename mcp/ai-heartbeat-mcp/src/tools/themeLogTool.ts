@@ -15,6 +15,7 @@ export const themeLogInputSchema = z.object({
   themeDirectoryName: z.string().describe('Directory name for the theme (e.g., ai_self_improvement)'),
   reason: z.string().optional().describe('Reason for theme start/end'),
   achievements: z.string().optional().describe('Main achievements (for end action)'),
+  activityContent: z.string().optional().describe('Initial plan of activities for the new theme (for start action)'),
 });
 
 export const themeLogTool = {
@@ -73,8 +74,8 @@ export const themeLogTool = {
       let markdownContent = '';
       if (action === 'start') {
         markdownContent = `# テーマ開始: ${themeName}\n\n**テーマディレクトリ**: \`${themeDirectoryPath}/\`\n\n**開始理由**:\n${
-          reason || 'N/A'
-        }\n\n**活動内容**:\n(このテーマで何を行うか)\n`;
+          reason || 'N/A' //
+        }\n\n**活動内容**:\n${args.activityContent || '(このテーマで何を行うか)'}\n`;
       } else {
         markdownContent = `# テーマ終了: ${themeName}\n\n**テーマディレクトリ**: \`${themeDirectoryPath}/\`\n\n**終了理由**:\n${
           reason || 'N/A'

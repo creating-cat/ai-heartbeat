@@ -6,6 +6,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { thinkingLogTool } from './tools/thinkingLogTool';
 import { themeLogTool } from './tools/themeLogTool';
+import { itemProcessorTool } from './tools/itemProcessorTool';
+import { webSearchStatsTool } from './tools/webSearchStatsTool';
 
 // Create MCP server
 const server = new McpServer({
@@ -28,6 +30,22 @@ server.tool(
   themeLogTool.description,
   themeLogTool.input_schema.shape,
   themeLogTool.execute
+);
+
+// Register item processor tool
+server.tool(
+  itemProcessorTool.name,
+  itemProcessorTool.description,
+  itemProcessorTool.input_schema.shape,
+  itemProcessorTool.execute,
+);
+
+// Register web search stats tool
+server.tool(
+  webSearchStatsTool.name,
+  webSearchStatsTool.description,
+  webSearchStatsTool.input_schema.shape,
+  webSearchStatsTool.execute,
 );
 
 // Start server with stdio transport
