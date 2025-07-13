@@ -130,8 +130,12 @@ async function checkTimeDeviation(heartbeatId: string): Promise<string | null> {
   const heartbeatTime = new Date(year, month, day, hour, minute, second);
   const diffSeconds = Math.abs(now.getTime() - heartbeatTime.getTime()) / 1000;
   
-  // 設定された閾値を超えた場合に警告
-  if (diffSeconds > threshold) {
+  // 閾値の一定割合で段階的警告（heartbeat.shエラー前の早期警告）
+  const infoThreshold = threshold * 0.5;     // 50%で情報
+  const warningThreshold = threshold * 0.75; // 75%で警告  
+  const criticalThreshold = threshold * 0.9; // 90%で重大
+  
+  if (diffSeconds > infoThreshold) {
     const diffMinutes = Math.round(diffSeconds / 60);
     let diffText: string;
     
@@ -144,10 +148,10 @@ async function checkTimeDeviation(heartbeatId: string): Promise<string | null> {
     }
     
     // 警告レベルを決定
-    const warningLevel = diffSeconds > threshold * 4 ? '🚨' : 
-                        diffSeconds > threshold * 2 ? '⚠️' : 'ℹ️';
+    const warningLevel = diffSeconds > criticalThreshold ? '🚨 重大' : 
+                        diffSeconds > warningThreshold ? '⚠️ 警告' : 'ℹ️ 情報';
     
-    return `${warningLevel} ハートビートIDの時刻と現在時刻に ${diffText} の乖離があります。`;
+    return `${warningLevel}: ハートビートIDの時刻と現在時刻に ${diffText} の乖離があります。`;
   }
   
   return null;
