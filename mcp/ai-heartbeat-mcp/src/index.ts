@@ -4,8 +4,8 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { thinkingLogTool } from './tools/thinkingLogTool.js';
-import { themeLogTool } from './tools/themeLogTool.js';
+import { thinkingLogTool } from './tools/thinkingLogTool';
+import { themeLogTool } from './tools/themeLogTool';
 
 // Create MCP server
 const server = new McpServer({
@@ -30,19 +30,12 @@ server.tool(
   themeLogTool.execute
 );
 
-// Start server
-async function startServer(): Promise<void> {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error('AI Heartbeat MCP Server started');
-}
+// Start server with stdio transport
+const transport = new StdioServerTransport();
+server.connect(transport).then(() => {
+  // console.error('AI Heartbeat MCP Server started');
+}).catch(error => {
+  console.error('MCP Server failed to start:', error);
+});
 
-// Start if this file is run directly
-if (require.main === module) {
-  startServer().catch((error) => {
-    console.error('Failed to start MCP server:', error);
-    process.exit(1);
-  });
-}
-
-export { server, startServer };
+export { server };
