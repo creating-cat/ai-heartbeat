@@ -14,7 +14,7 @@ export const thinkingLogInputSchema = z.object({
     .regex(/^\d{14}$/, 'ハートビートIDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
     .describe('The heartbeat ID in YYYYMMDDHHMMSS format.'),
   activityType: z.enum(['観測', '思考', '創造', '内省', 'テーマ開始', 'テーマ終了', 'その他']).describe('The type of activity performed.'),
-  activityContent: z.string().describe('A brief description of the activity content.'),
+  activityContent: z.array(z.string()).describe('A list of brief descriptions of the activity content.'),
   artifacts: z.array(z.string()).optional().default([]).describe('A list of paths to created or modified files.'),
   evaluation: z.string().optional().default('').describe('Self-evaluation and remarks.'),
   auxiliaryOperations: z.array(z.enum(['ファイル読み込み', '軽微な検索', '軽微な置換', 'Web検索', 'その他'])).optional().default([]).describe('Auxiliary operations used during the activity.'),
@@ -41,7 +41,13 @@ function generateThinkingLogMarkdown(args: z.infer<typeof thinkingLogInputSchema
   
   // Activity content
   lines.push('## 活動内容');
-  lines.push(args.activityContent);
+  if (args.activityContent.length > 0) {
+    args.activityContent.forEach(content => {
+      lines.push(`- ${content}`);
+    });
+  } else {
+    lines.push('具体的な活動内容なし');
+  }
   lines.push('');
   
   // Artifacts

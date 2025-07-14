@@ -5,8 +5,7 @@
       "args": [
         "./mcp/ai-heartbeat-mcp/dist/index.js"
       ],
-      "disabled": false,
-      "alwaysAllow": []
+      "trust": true
     }
   }
 }

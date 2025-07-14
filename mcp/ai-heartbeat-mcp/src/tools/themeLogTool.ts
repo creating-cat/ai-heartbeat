@@ -14,9 +14,19 @@ export const themeLogInputSchema = z.object({
   themeName: z.string().describe('Name of the theme'),
   themeDirectoryName: z.string().describe('Directory name for the theme (e.g., ai_self_improvement)'),
   reason: z.string().optional().describe('Reason for theme start/end'),
-  achievements: z.string().optional().describe('Main achievements (for end action)'),
-  activityContent: z.string().optional().describe('Initial plan of activities for the new theme (for start action)'),
+  achievements: z.array(z.string()).optional().describe('A list of main achievements (for end action)'),
+  activityContent: z.array(z.string()).optional().describe('A list of initial plans of activities for the new theme (for start action)'),
 });
+
+function formatList(items: string[] | undefined, emptyPlaceholder: string): string {
+  if (!items || items.length === 0) {
+    return emptyPlaceholder;
+  }
+  if (items.length === 1) {
+    return items[0];
+  }
+  return items.map(item => `- ${item}`).join('\n');
+}
 
 export const themeLogTool = {
   name: 'create_theme_log',
@@ -73,13 +83,15 @@ export const themeLogTool = {
       const themeDirectoryPath = path.join('artifacts', sanitizedThemeDirectoryName);
       let markdownContent = '';
       if (action === 'start') {
+        const activityList = formatList(args.activityContent, '(このテーマで何を行うか)');
         markdownContent = `# テーマ開始: ${themeName}\n\n**テーマディレクトリ**: \`${themeDirectoryPath}/\`\n\n**開始理由**:\n${
-          reason || 'N/A' //
-        }\n\n**活動内容**:\n${args.activityContent || '(このテーマで何を行うか)'}\n`;
+          reason || 'N/A'
+        }\n\n**活動内容**:\n${activityList}\n`;
       } else {
+        const achievementList = formatList(args.achievements, 'N/A');
         markdownContent = `# テーマ終了: ${themeName}\n\n**テーマディレクトリ**: \`${themeDirectoryPath}/\`\n\n**終了理由**:\n${
           reason || 'N/A'
-        }\n\n**主な成果**:\n${achievements || 'N/A'}\n`;
+        }\n\n**主な成果**:\n${achievementList}\n`;
       }
 
       // 時刻乖離チェック
