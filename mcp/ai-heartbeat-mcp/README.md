@@ -42,7 +42,7 @@ AI心臓システム用のModel Context Protocol (MCP) ツール群です。AI�
 
 **出力先:** `artifacts/theme_histories/{heartbeatId}_{action}_{themeDirectory}.md`
 
-### 3. `create_theme_context`
+### 3. `create_theme_expert_context`
 テーマ専門家コンテキストファイルを作成します。
 
 **パラメータ:**
@@ -136,7 +136,7 @@ create_theme_log({
 })
 
 テーマ専門家コンテキストを作成:
-create_theme_context({
+create_theme_expert_context({
   "themeName": "AI自律性の探求",
   "themeDirectoryName": "ai_autonomy",
   "expertRole": "AI研究者として、自律性の理論と実践の両面から探求を進めます。",
@@ -169,7 +169,7 @@ mcp/ai-heartbeat-mcp/
 │   └── tools/
 │       ├── thinkingLogTool.ts       # 思考ログ作成ツール
 │       ├── themeLogTool.ts          # テーマ履歴ツール
-│       ├── createThemeContextTool.ts # テーマ専門家コンテキスト作成ツール
+│       ├── createThemeExpertContextTool.ts # テーマ専門家コンテキスト作成ツール
 │       ├── itemProcessorTool.ts     # アイテム処理ツール
 │       └── webSearchStatsTool.ts    # Web検索統計ツール
 ├── dist/                     # ビルド出力

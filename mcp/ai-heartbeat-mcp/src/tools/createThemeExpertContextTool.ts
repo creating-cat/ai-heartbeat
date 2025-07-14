@@ -1,5 +1,5 @@
 /**
- * Theme Context Creation Tool
+ * Theme Expert Context Creation Tool
  */
 
 import { z } from 'zod';
@@ -7,7 +7,7 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 
 // Zod schema for the tool input
-export const createThemeContextInputSchema = z.object({
+export const createThemeExpertContextInputSchema = z.object({
   themeName: z.string().describe('The name of the theme.'),
   themeDirectoryName: z
     .string()
@@ -53,12 +53,12 @@ ${expectedOutcome.map(item => `- ${item}`).join('\n')}
 };
 
 // The tool definition
-export const createThemeContextTool = {
-  name: 'create_theme_context',
+export const createThemeExpertContextTool = {
+  name: 'create_theme_expert_context',
   description:
-    "Creates a theme-specific context file (context.md) in the theme's artifact directory.",
-  input_schema: createThemeContextInputSchema,
-  execute: async (args: z.infer<typeof createThemeContextInputSchema>) => {
+    "Creates a theme expert context file (context.md) in the theme's artifact directory.",
+  input_schema: createThemeExpertContextInputSchema,
+  execute: async (args: z.infer<typeof createThemeExpertContextInputSchema>) => {
     try {
       const {
         themeName,

@@ -104,7 +104,7 @@
 * **処理**:
   1. `themebox`を確認するか、自律的に次のテーマを決定する。
   2. **テーマ専門家コンテキストの設定**: そのテーマに最適な専門家役割を決定し、`artifacts/{テーマ名}/context.md` に記録する（任意）。
-     - 手動作成または `create_theme_context` MCPツールを補助的に使用可能
+     - 手動作成または `create_theme_expert_context` MCPツールを補助的に使用可能
      - **詳細**: テーマ専門家コンテキストの概念と実装については `ai-docs/THEME_CONTEXT_IMPLEMENTATION.md` を参照してください。
   3. `ai-docs/THEME_HISTORY_GUIDE.md`の指示に従い、テーマ開始の履歴を記録する。
   4. 思考ログを「テーマ開始」として記録し、ハートビートを完了する。

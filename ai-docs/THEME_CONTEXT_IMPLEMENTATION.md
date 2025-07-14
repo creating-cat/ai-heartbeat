@@ -58,7 +58,7 @@
 - 上記のファイル形式に従って記述
 
 **MCPツール使用（補助的）**:
-- `create_theme_context` ツールを使用して標準フォーマットで効率的に作成
+- `create_theme_expert_context` ツールを使用して標準フォーマットで効率的に作成
 - 必要なパラメータ：
   - `themeName`: テーマ名
   - `themeDirectoryName`: テーマディレクトリ名（サニタイズ済み）
