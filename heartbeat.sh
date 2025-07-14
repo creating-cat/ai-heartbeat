@@ -475,7 +475,18 @@ log_notice "Stop threshold: $((INACTIVITY_STOP_THRESHOLD / 60)) minutes"
 
 # 初回ハートビート送信（起動直後）
 log_notice "Sending initial heartbeat immediately after startup..."
-send_message_to_agent "Heartbeat: $(date "+%Y%m%d%H%M%S")"
+
+# Initial startup check for first heartbeat
+initial_heartbeat_msg="Heartbeat: $(date "+%Y%m%d%H%M%S")"
+if [ ! -d artifacts/* ] 2>/dev/null || [ -z "$(find artifacts -maxdepth 1 -type d ! -name artifacts ! -name theme_histories 2>/dev/null)" ]; then
+    initial_heartbeat_msg="$initial_heartbeat_msg
+🚨 **システム初回起動**: 現在テーマが設定されていません。
+必ずテーマ開始活動を実行し、themeboxを確認してテーマを開始してください。"
+    log_info "Initial startup detected: No theme directories found"
+fi
+
+send_message_to_agent "$initial_heartbeat_msg"
+log_heartbeat "Initial heartbeat sent to agent session"
 log_heartbeat "Heartbeat sent to agent session"
 
 while true; do
