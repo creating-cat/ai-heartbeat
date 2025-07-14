@@ -11,12 +11,12 @@ const LAST_SEARCH_FILE = path.join(STATS_DIR, 'last_web_search.txt');
 const QUOTA_EXCEEDED_FILE = path.join(STATS_DIR, 'quota_exceeded.txt');
 
 export const webSearchStatsInputSchema = z.object({
-  status: z.enum(['success', 'quota_exceeded']).describe('The result of the web search attempt.'),
+  status: z.enum(['success', 'quota_exceeded']).describe("Web検索の試行結果。'success'または'quota_exceeded'のいずれかを指定します。"),
 });
 
 export const webSearchStatsTool = {
   name: 'update_web_search_stats',
-  description: 'Updates the web search statistics files based on the search result. This should be called after attempting a web search using the built-in tool.',
+  description: 'Web検索の結果に基づいて統計ファイルを更新します。このツールは、組み込みのWeb検索ツールを使用した後に呼び出す必要があります。',
   input_schema: webSearchStatsInputSchema,
   execute: async (args: z.infer<typeof webSearchStatsInputSchema>) => {
     try {

@@ -9,13 +9,13 @@ import * as path from 'path';
 
 // Zod schema for the tool input
 export const itemProcessorInputSchema = z.object({
-  type: z.enum(['themebox', 'feedbackbox']).describe('The type of box to check: themebox or feedbackbox'),
+  type: z.enum(['themebox', 'feedbackbox']).describe("チェックするボックスの種類。'themebox'または'feedbackbox'のいずれかを指定します。"),
 });
 
 // The tool definition
 export const itemProcessorTool = {
   name: 'check_and_process_item',
-  description: 'Checks for and processes the first available item in the specified box (themebox or feedbackbox).',
+  description: '指定されたボックス（themeboxまたはfeedbackbox）で利用可能な最初のアイテムを確認し、処理します。',
   input_schema: itemProcessorInputSchema,
   execute: async (args: z.infer<typeof itemProcessorInputSchema>) => {
     const { type } = args;

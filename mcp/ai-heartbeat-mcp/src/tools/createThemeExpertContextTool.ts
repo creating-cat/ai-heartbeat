@@ -8,23 +8,23 @@ import * as path from 'path';
 
 // Zod schema for the tool input
 export const createThemeExpertContextInputSchema = z.object({
-  themeName: z.string().describe('The name of the theme.'),
+  themeName: z.string().describe('テーマの名称。'),
   themeDirectoryName: z
     .string()
-    .describe('The sanitized directory name for the theme.'),
+    .describe('テーマのサニタイズされたディレクトリ名。'),
   expertRole: z
     .string()
-    .describe('The definition of the expert role for this theme.'),
+    .describe('このテーマにおける専門家の役割定義。'),
   expertPerspective: z
     .array(z.string())
-    .describe('The expert perspective and approach for this theme as a list of points.'),
+    .describe('このテーマにおける専門的な視点とアプローチを箇条書きのリストで指定します。'),
   constraints: z
     .array(z.string())
-    .describe('Important constraints and notes for acting as this expert as a list of points.'),
+    .describe('この専門家として活動する上での重要な制約や注意点を箇条書きのリストで指定します。'),
   expectedOutcome: z
     .array(z.string())
     .describe(
-      'The expected outcome or direction of results in this expert context as a list of points.'
+      'この専門家コンテキストで期待される成果や方向性を箇条書きのリストで指定します。'
     ),
 });
 
@@ -55,8 +55,7 @@ ${expectedOutcome.map(item => `- ${item}`).join('\n')}
 // The tool definition
 export const createThemeExpertContextTool = {
   name: 'create_theme_expert_context',
-  description:
-    "Creates a theme expert context file (context.md) in the theme's artifact directory.",
+  description: "テーマの成果物ディレクトリに、テーマ専門家コンテキストファイル（context.md）を作成します。",
   input_schema: createThemeExpertContextInputSchema,
   execute: async (args: z.infer<typeof createThemeExpertContextInputSchema>) => {
     try {

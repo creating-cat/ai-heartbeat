@@ -9,13 +9,13 @@ import { checkTimeDeviation } from '../lib/timeUtils';
 
 // Zod schema for theme log input
 export const themeLogInputSchema = z.object({
-  heartbeatId: z.string().regex(/^\d{14}$/, 'ハートビートIDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります').describe('Heartbeat ID in YYYYMMDDHHMMSS format'),
-  action: z.enum(['start', 'end']).describe('Theme action type'),
-  themeName: z.string().describe('Name of the theme'),
-  themeDirectoryName: z.string().describe('Directory name for the theme (e.g., ai_self_improvement)'),
-  reason: z.string().optional().describe('Reason for theme start/end'),
-  achievements: z.array(z.string()).optional().describe('A list of main achievements (for end action)'),
-  activityContent: z.array(z.string()).optional().describe('A list of initial plans of activities for the new theme (for start action)'),
+  heartbeatId: z.string().regex(/^\d{14}$/, 'ハートビートIDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります').describe('YYYYMMDDHHMMSS形式のハートビートID。注意: 1つのハートビートで複数のテーマ操作（開始/終了）はルール違反であり、IDが重複した場合はエラーとなります。また、このツールは時刻乖離警告を出力する可能性があります。'),
+  action: z.enum(['start', 'end']).describe("テーマに対する操作種別。'start'または'end'のいずれかを指定します。"),
+  themeName: z.string().describe('テーマの正式名称。'),
+  themeDirectoryName: z.string().describe('テーマのディレクトリ名。注意: このツールは安全のため、指定された名前を自動的にサニタイズします（例:「AIの研究」->「ai__」）。半角英小文字、数字、アンダースコアのみを使用してください。'),
+  reason: z.string().optional().describe('テーマを開始または終了する理由。'),
+  achievements: z.array(z.string()).optional().describe("テーマ終了時に記録する主な成果のリスト。actionが'end'の場合に使用します。"),
+  activityContent: z.array(z.string()).optional().describe("テーマ開始時に記録する初期活動計画のリスト。actionが'start'の場合に使用します。"),
 });
 
 function formatList(items: string[] | undefined, emptyPlaceholder: string): string {

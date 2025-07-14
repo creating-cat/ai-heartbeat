@@ -11,14 +11,18 @@ import { checkTimeDeviation } from '../lib/timeUtils';
 // Zod schema for thinking log input
 export const thinkingLogInputSchema = z.object({
   heartbeatId: z.string()
-    .regex(/^\d{14}$/, 'ハートビートIDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
-    .describe('The heartbeat ID in YYYYMMDDHHMMSS format.'),
-  activityType: z.enum(['観測', '思考', '創造', '内省', 'テーマ開始', 'テーマ終了', 'その他']).describe('The type of activity performed.'),
-  activityContent: z.array(z.string()).describe('A list of brief descriptions of the activity content.'),
-  artifacts: z.array(z.string()).optional().default([]).describe('A list of paths to created or modified files.'),
-  evaluation: z.string().optional().default('').describe('Self-evaluation and remarks.'),
-  auxiliaryOperations: z.array(z.enum(['ファイル読み込み', '軽微な検索', '軽微な置換', 'Web検索', 'その他'])).optional().default([]).describe('Auxiliary operations used during the activity.'),
-  themeDirectory: z.string().describe('The name of the current theme directory.'),
+    .regex(/^\d{14}$/, 'ハートビートIDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります。')
+    .describe('YYYYMMDDHHMMSS形式のハートビートID。注意: 同じIDのログが既に存在する場合、自動で連番が付与されます（例: _01）。これは思考ログ作成後に処理を継続してしまったことを示唆するため、通常は避けるべきです。'),
+  activityType: z.enum(['観測', '思考', '創造', '内省', 'テーマ開始', 'テーマ終了', '回復', 'その他'])
+    .describe("実行した活動の種別。'観測', '思考', '創造', '内省', 'テーマ開始', 'テーマ終了', '回復', 'その他' のいずれかである必要があります。"),
+  activityContent: z.array(z.string()).describe('活動内容の簡潔な説明のリスト。'),
+  artifacts: z.array(z.string()).optional().default([]).describe('作成または修正したファイルのパスのリスト。'),
+  evaluation: z.string().optional().default('').describe('自己評価や備考。'),
+  auxiliaryOperations: z.array(z.enum(['ファイル読み込み', '軽微な検索', '軽微な置換', 'Web検索', 'その他']))
+    .optional()
+    .default([])
+    .describe("活動中に使用した補助的な操作。'ファイル読み込み', '軽微な検索', '軽微な置換', 'Web検索', 'その他' の要素を含む配列です。"),
+  themeDirectory: z.string().describe('現在のテーマのディレクトリ名。'),
 });
 
 // Helper functions
