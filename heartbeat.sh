@@ -129,7 +129,7 @@ check_feedbackbox() {
                 fi
             done <<< "$emergency_files"
             
-            FEEDBACK_NOTIFICATION_MESSAGE="📝 【緊急】feedbackboxに未処理のユーザーフィードバックが${feedback_count}件あります。内省時に確認・対応してください。"
+            FEEDBACK_NOTIFICATION_MESSAGE="📝 【緊急】feedbackboxに未処理のユーザーフィードバックが${feedback_count}件あります。今すぐ内省活動に入り、確認・対応してください。"
             log_warning "Found $emergency_count emergency feedback files (total: $feedback_count)"
         else
             FEEDBACK_NOTIFICATION_MESSAGE="📝 feedbackboxに未処理のユーザーフィードバックが${feedback_count}件あります。内省時に確認・対応してください。"
