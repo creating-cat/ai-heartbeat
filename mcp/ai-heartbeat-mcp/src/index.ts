@@ -8,6 +8,7 @@ import { thinkingLogTool } from './tools/thinkingLogTool';
 import { themeLogTool } from './tools/themeLogTool';
 import { itemProcessorTool } from './tools/itemProcessorTool';
 import { webSearchStatsTool } from './tools/webSearchStatsTool';
+import { createThemeContextTool } from './tools/createThemeContextTool';
 
 // Create MCP server
 const server = new McpServer({
@@ -46,6 +47,14 @@ server.tool(
   webSearchStatsTool.description,
   webSearchStatsTool.input_schema.shape,
   webSearchStatsTool.execute,
+);
+
+// Register create theme context tool
+server.tool(
+  createThemeContextTool.name,
+  createThemeContextTool.description,
+  createThemeContextTool.input_schema.shape,
+  createThemeContextTool.execute
 );
 
 // Start server with stdio transport
