@@ -21,9 +21,12 @@ usage() {
     echo "使用方法: $0 [オプション] <テーマ文字列>"
     echo "オプション:"
     echo "  -f, --file <ファイル>   指定したファイルから初期テーマを読み込む"
+    echo "                          themeboxのファイルを指定した場合は優先実行用にリネーム"
     echo "  -d, --dirs-only        必要なディレクトリのみを作成して終了（tmuxセッションやエージェントは起動しない）"
     echo "  -s, --sessions-only    tmuxセッションのみを起動（geminiおよびheartbeatの起動なし）"
     echo "  -h, --help             このヘルプメッセージを表示"
+    echo ""
+    echo "注意: 初期テーマはthemeboxに投入され、最初のハートビートで自動的に開始されます。"
     exit 1
 }
 
@@ -152,53 +155,80 @@ if [ "$SESSIONS_ONLY" = true ]; then
     echo "==================="
     echo "1. エージェントセッションに接続: tmux attach-session -t agent"
     echo "2. Gemini CLIを手動起動: gemini -y"
-    echo "3. 必要に応じて初期テーマの送信や/chat resumeなどを実行"
+    echo "3. 必要に応じて/chat resumeなどを実行"
     echo "4. ハートビートを手動起動: ./restart.sh"
     echo ""
     log_success "✅ セッション起動完了（手動復帰モード）"
     exit 0
 fi
 
-# STEP 5: エージェント起動
+# STEP 5: 初期テーマをthemeboxに投入
+if [ -n "$INIT_PROMPT" ]; then
+    # themeboxのファイルを指定した場合の特別処理
+    if [ -n "$FILE_INPUT" ] && [[ "$FILE_INPUT" == themebox/* ]]; then
+        log_info "📝 themeboxファイルを優先実行用にリネーム中..."
+        
+        # ファイル名からprocessed化されたファイル名を生成
+        DIRNAME=$(dirname "$FILE_INPUT")
+        BASENAME=$(basename "$FILE_INPUT")
+        TIMESTAMP=$(date "+%Y%m%d%H%M%S")
+        
+        # 既にprocessed.で始まっている場合はスキップ
+        if [[ "$BASENAME" == processed.* ]]; then
+            log_info "ℹ️ ファイルは既にprocessed化されています: $FILE_INPUT"
+            log_info "ℹ️ 新しい初期テーマファイルは作成しません"
+        elif [[ "$BASENAME" == draft.* ]]; then
+            log_info "ℹ️ draftファイルが指定されました: $FILE_INPUT"
+            log_info "ℹ️ 新しい初期テーマファイルは作成しません"
+        else
+            # 優先実行用にリネーム
+            PRIORITY_FILE="$DIRNAME/000_priority_${TIMESTAMP}_${BASENAME}"
+            
+            # ファイル移動を実行
+            if mv "$FILE_INPUT" "$PRIORITY_FILE" 2>/dev/null; then
+                log_success "✅ themeboxファイルを優先実行用にリネームしました: $FILE_INPUT → $PRIORITY_FILE"
+                log_info "ℹ️ このテーマが最初のハートビートで優先実行されます"
+            else
+                echo -e "\033[1;33m[WARNING]\033[0m themeboxファイルのリネームに失敗しました: $FILE_INPUT"
+                echo -e "\033[1;33m[WARNING]\033[0m 代わりに新しい初期テーマファイルを作成します"
+                
+                # リネームに失敗した場合は通常の処理を実行
+                THEME_FILE="themebox/000_initial_theme_${TIMESTAMP}.md"
+                cat > "$THEME_FILE" << EOF
+# 初期テーマ
+
+$INIT_PROMPT
+EOF
+                log_success "✅ 初期テーマをthemeboxに投入しました: $THEME_FILE"
+            fi
+        fi
+    else
+        # 通常の初期テーマファイル作成
+        log_info "📝 初期テーマをthemeboxに投入中..."
+        TIMESTAMP=$(date "+%Y%m%d%H%M%S")
+        THEME_FILE="themebox/000_initial_theme_${TIMESTAMP}.md"
+        
+        # 初期テーマファイルを作成
+        cat > "$THEME_FILE" << EOF
+# 初期テーマ
+
+$INIT_PROMPT
+EOF
+        
+        log_success "✅ 初期テーマをthemeboxに投入しました: $THEME_FILE"
+        log_info "ℹ️ テーマは最初のハートビートで自動的に開始されます"
+    fi
+else
+    log_info "ℹ️ 初期テーマが指定されていないため、themeboxへの投入をスキップします"
+fi
+
+echo ""
+
+# STEP 6: エージェント起動
 log_info "🚀 エージェント起動中..."
 tmux send-keys -t agent "$AGENT_COMMAND" C-m
 sleep 10  # gemini-cliの起動を待機
 log_success "✅ エージェントプロセス起動コマンド送信完了"
-echo ""
-
-# STEP 6: エージェントの初期プロンプト実行
-log_info "💬 エージェントの初期プロンプト実行中..."
-TIMESTAMP=$(date "+%Y%m%d%H%M%S")
-INIT_PROMPT_WITH_TIMESTAMP="Initial Theme (${TIMESTAMP}): ${INIT_PROMPT}"
-tmux send-keys -t agent "$INIT_PROMPT_WITH_TIMESTAMP"
-sleep 1
-tmux send-keys -t agent C-m
-log_success "✅ エージェントの初期プロンプト実行完了"
-
-# themeboxディレクトリ内のファイルからテーマを読み込んだ場合、processed化を実行
-if [ -n "$FILE_INPUT" ] && [[ "$FILE_INPUT" == themebox/* ]]; then
-    log_info "📝 テーマファイルをprocessed化中..."
-    
-    # ファイル名からprocessed化されたファイル名を生成
-    DIRNAME=$(dirname "$FILE_INPUT")
-    BASENAME=$(basename "$FILE_INPUT")
-    
-    # 既にprocessed.で始まっている場合はスキップ
-    if [[ "$BASENAME" == processed.* ]]; then
-        log_info "ℹ️ ファイルは既にprocessed化されています: $FILE_INPUT"
-    else
-        PROCESSED_FILE="$DIRNAME/processed.$BASENAME"
-        
-        # ファイル移動を実行
-        if mv "$FILE_INPUT" "$PROCESSED_FILE" 2>/dev/null; then
-            log_success "✅ テーマファイルをprocessed化しました: $FILE_INPUT → $PROCESSED_FILE"
-        else
-            echo -e "\033[1;33m[WARNING]\033[0m テーマファイルのprocessed化に失敗しました: $FILE_INPUT"
-            echo -e "\033[1;33m[WARNING]\033[0m 処理は継続します。"
-        fi
-    fi
-fi
-
 echo ""
 
 # STEP 7: ハートビート起動
