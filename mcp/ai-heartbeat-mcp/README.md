@@ -8,7 +8,7 @@ AI心臓システム用のModel Context Protocol (MCP) ツール群です。AI�
 
 - 標準フォーマットでの思考ログ作成
 - テーマ開始・終了の履歴記録
-- テーマ固有コンテキスト（専門家視点）の作成
+- テーマ専門家コンテキストの作成
 - themebox/feedbackboxアイテムの処理
 - Web検索統計の管理
 
@@ -43,7 +43,7 @@ AI心臓システム用のModel Context Protocol (MCP) ツール群です。AI�
 **出力先:** `artifacts/theme_histories/{heartbeatId}_{action}_{themeDirectory}.md`
 
 ### 3. `create_theme_context`
-テーマ固有コンテキスト（専門家視点）ファイルを作成します。
+テーマ専門家コンテキストファイルを作成します。
 
 **パラメータ:**
 - `themeName`: テーマ名
@@ -135,7 +135,7 @@ create_theme_log({
   "reason": "前テーマでの気づきから発展"
 })
 
-テーマコンテキストを作成:
+テーマ専門家コンテキストを作成:
 create_theme_context({
   "themeName": "AI自律性の探求",
   "themeDirectoryName": "ai_autonomy",
@@ -169,7 +169,7 @@ mcp/ai-heartbeat-mcp/
 │   └── tools/
 │       ├── thinkingLogTool.ts       # 思考ログ作成ツール
 │       ├── themeLogTool.ts          # テーマ履歴ツール
-│       ├── createThemeContextTool.ts # テーマコンテキスト作成ツール
+│       ├── createThemeContextTool.ts # テーマ専門家コンテキスト作成ツール
 │       ├── itemProcessorTool.ts     # アイテム処理ツール
 │       └── webSearchStatsTool.ts    # Web検索統計ツール
 ├── dist/                     # ビルド出力

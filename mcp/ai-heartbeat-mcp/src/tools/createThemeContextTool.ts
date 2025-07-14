@@ -36,7 +36,7 @@ const generateContextContent = (
   constraints: string[],
   expectedOutcome: string[]
 ): string => {
-  return `# テーマ固有コンテキスト: ${themeName}
+  return `# テーマ専門家コンテキスト: ${themeName}
 
 ## 専門家役割
 ${expertRole}
@@ -78,9 +78,9 @@ export const createThemeContextTool = {
       const content = generateContextContent(themeName, expertRole, expertPerspective, constraints, expectedOutcome);
       await fs.writeFile(contextFilePath, content, 'utf-8');
 
-      return { content: [{ type: 'text' as const, text: `成功: テーマコンテキストファイルを作成しました: ${contextFilePath}` }] };
+      return { content: [{ type: 'text' as const, text: `成功: テーマ専門家コンテキストファイルを作成しました: ${contextFilePath}` }] };
     } catch (error: any) {
-      return { content: [{ type: 'text' as const, text: `エラー: テーマコンテキストファイルの作成に失敗しました: ${error.message}` }] };
+      return { content: [{ type: 'text' as const, text: `エラー: テーマ専門家コンテキストファイルの作成に失敗しました: ${error.message}` }] };
     }
   },
 };
