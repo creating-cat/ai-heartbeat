@@ -103,7 +103,6 @@ npm run dev
 
 ## 使用方法
 
-
 ### クイックスタート
 
 #### 基本的な起動
@@ -116,6 +115,11 @@ npm run dev
 ./setup.sh -f themebox/your_theme.md
 ```
 
+#### themeboxの準備済みテーマで起動
+```bash
+./setup.sh -t
+```
+
 #### その他のオプション
 ```bash
 ./setup.sh -h  # ヘルプ表示
@@ -125,42 +129,46 @@ npm run dev
 
 #### 使用例
 ```bash
+# 直接テーマ指定
 ./setup.sh "AIエージェントの自己改善について"
-./setup.sh "html css javascriptを用いていろんなゲームが遊べるサイトを構築してください"
+
+# ファイルからテーマ読み込み
 ./setup.sh -f themebox/001_analyze_data.md
+
+# themeboxの準備済みテーマで起動
+./setup.sh -t
+
+# その他のオプション
+./setup.sh -h  # ヘルプ表示
+./setup.sh -d  # ディレクトリのみ作成
+./setup.sh -s  # セッションのみ起動
 ```
 
 **詳細な使用方法は [SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md#システム起動) を参照してください。**
 
 
 ### 推奨セットアップ手順
-以下の手順で実施することで、AIエージェントがシステムを深く理解し、より安定した動作が期待できます。
 
-1. **チュートリアルテーマを準備**
-   ```bash
-   # テンプレートからチュートリアルテーマを作成
-   cp themebox/draft.sample.000_ai_heartbeat_tutorial.md themebox/000_ai_heartbeat_tutorial.md
-   ```
+#### 初回利用時（推奨）
+```bash
+# 1. チュートリアルテーマを準備
+cp themebox/draft.sample.000_ai_heartbeat_tutorial.md themebox/000_ai_heartbeat_tutorial.md
 
-2. **本テーマを事前準備**
-   ```bash
-   # 本テーマファイルを作成（例）
-   echo "テーマ: 量子コンピューティングの現状と未来について考察してください" > themebox/001_your_main_theme.md
-   ```
+# 2. 本テーマを事前準備
+echo "テーマ: あなたの探求したいテーマ" > themebox/001_your_main_theme.md
 
-3. **チュートリアルテーマで起動**
-   ```bash
-   ./setup.sh -f themebox/000_ai_heartbeat_tutorial.md
-   ```
+# 3. themeboxのテーマで起動
+./setup.sh -t
+```
 
-4. **自動的な流れ**
-   - AIがシステム理解を深める（チュートリアル）
-     - おおよそ5〜10分程度でこのチュートリアルテーマの活動は終わるはずです。
-   - チュートリアルテーマ活動完了後、自動的に001_your_main_theme.mdのテーマ活動に移行
-   - システム理解が深まった状態で本格的なタスクを開始
+AIがシステムを理解してから本格的なタスクを開始するため、より安定した動作が期待できます。
 
-この手順により、AIがGEMINI.mdやai-docs/配下の運用ルールを深く理解し、適切な思考ログ記録やファイル操作ルールの遵守が期待できます。
+#### 簡単起動
+```bash
+./setup.sh "あなたのテーマ"
+```
 
+**詳細なセットアップ手順とトラブルシューティングは [SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md) を参照してください。**
 
 ## 実行結果と出力ファイル
 
@@ -203,6 +211,16 @@ tmux attach-session -t heartbeat -r
 ## themebox機能（テーマ事前準備）
 
 システムを停止せずに新しいテーマを投入できる機能です。`themebox/`ディレクトリにマークダウンファイルを作成すると、AIがテーマ移行時に自動選択します。
+
+```bash
+# テーマファイルを準備
+echo "テーマ: 量子コンピューティングの未来について" > themebox/001_quantum_computing.md
+
+# themeboxのテーマで起動
+./setup.sh -t
+```
+
+**詳細な管理方法とファイル命名規則は [SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md) を参照してください。**
 
 ## テーマ履歴追跡システム
 
