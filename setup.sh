@@ -19,14 +19,15 @@ AGENT_COMMAND="gemini -y"
 # 使用方法表示
 usage() {
     echo "使用方法: $0 [オプション] <テーマ文字列>"
-    echo "オプション:"
-    echo "  -f, --file <ファイル>   指定したファイルから初期テーマを読み込む"
-    echo "                          themeboxのファイルを指定した場合は優先実行用にリネーム"
-    echo "  -d, --dirs-only        必要なディレクトリのみを作成して終了（tmuxセッションやエージェントは起動しない）"
-    echo "  -s, --sessions-only    tmuxセッションのみを起動（geminiおよびheartbeatの起動なし）"
-    echo "  -h, --help             このヘルプメッセージを表示"
+    echo "  テーマ指定オプション (いずれか1つを選択):"
+    echo "    <テーマ文字列>          指定した文字列を初期テーマとして起動します。"
+    echo "    -f, --file <ファイル>   指定したファイルから初期テーマを読み込んで起動します。"
+    echo "    -t, --use-themebox      themeboxに準備済みのテーマで起動します（テーマ指定は不要）。"
+    echo "  その他のオプション:"
+    echo "    -d, --dirs-only         必要なディレクトリのみを作成して終了します。"
+    echo "    -s, --sessions-only     tmuxセッションのみを起動します。"
+    echo "    -h, --help              このヘルプメッセージを表示します。"
     echo ""
-    echo "注意: 初期テーマはthemeboxに投入され、最初のハートビートで自動的に開始されます。"
     exit 1
 }
 
@@ -35,6 +36,7 @@ INIT_PROMPT=""
 FILE_INPUT=""
 DIRS_ONLY=false
 SESSIONS_ONLY=false
+USE_THEMEBOX=false
 
 # 引数がない場合はヘルプを表示
 if [ $# -eq 0 ]; then
@@ -59,6 +61,10 @@ while [[ $# -gt 0 ]]; do
             SESSIONS_ONLY=true
             shift
             ;;
+        -t|--use-themebox)
+            USE_THEMEBOX=true
+            shift
+            ;;
         -h|--help)
             usage
             ;;
@@ -69,6 +75,23 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# オプションの排他チェック
+theme_options_count=0
+[ -n "$INIT_PROMPT" ] && ((theme_options_count++))
+[ -n "$FILE_INPUT" ] && ((theme_options_count++))
+[ "$USE_THEMEBOX" = true ] && ((theme_options_count++))
+
+if [ "$theme_options_count" -gt 1 ]; then
+    echo "エラー: テーマ指定オプション（テーマ文字列, -f, -t）は1つしか指定できません。"
+    usage
+fi
+
+# DIRS_ONLY, SESSIONS_ONLY以外の場合、テーマ指定は必須
+if [ "$theme_options_count" -eq 0 ] && [ "$DIRS_ONLY" = false ] && [ "$SESSIONS_ONLY" = false ]; then
+    echo "エラー: 起動するテーマが指定されていません。"
+    usage
+fi
+
 # テーマ取得
 if [ -n "$FILE_INPUT" ]; then
     if [ ! -f "$FILE_INPUT" ]; then
@@ -78,12 +101,6 @@ if [ -n "$FILE_INPUT" ]; then
     # ファイルからテーマを読み込む
     INIT_PROMPT=$(cat "$FILE_INPUT")
     echo "ファイル '$FILE_INPUT' からテーマを読み込みました"
-fi
-
-# テーマが空の場合はエラー（ディレクトリ作成のみ・セッションのみの場合は除く）
-if [ -z "$INIT_PROMPT" ] && [ "$DIRS_ONLY" = false ] && [ "$SESSIONS_ONLY" = false ]; then
-    echo "エラー: テーマが指定されていません"
-    usage
 fi
 
 mkdir -p artifacts
@@ -162,64 +179,43 @@ if [ "$SESSIONS_ONLY" = true ]; then
     exit 0
 fi
 
-# STEP 5: 初期テーマをthemeboxに投入
-if [ -n "$INIT_PROMPT" ]; then
-    # themeboxのファイルを指定した場合の特別処理
-    if [ -n "$FILE_INPUT" ] && [[ "$FILE_INPUT" == themebox/* ]]; then
-        log_info "📝 themeboxファイルを優先実行用にリネーム中..."
-        
-        # ファイル名からprocessed化されたファイル名を生成
-        DIRNAME=$(dirname "$FILE_INPUT")
-        BASENAME=$(basename "$FILE_INPUT")
-        TIMESTAMP=$(date "+%Y%m%d%H%M%S")
-        
-        # 既にprocessed.で始まっている場合はスキップ
-        if [[ "$BASENAME" == processed.* ]]; then
-            log_info "ℹ️ ファイルは既にprocessed化されています: $FILE_INPUT"
-            log_info "ℹ️ 新しい初期テーマファイルは作成しません"
-        elif [[ "$BASENAME" == draft.* ]]; then
-            log_info "ℹ️ draftファイルが指定されました: $FILE_INPUT"
-            log_info "ℹ️ 新しい初期テーマファイルは作成しません"
-        else
-            # 優先実行用にリネーム
-            PRIORITY_FILE="$DIRNAME/000_priority_${TIMESTAMP}_${BASENAME}"
-            
-            # ファイル移動を実行
-            if mv "$FILE_INPUT" "$PRIORITY_FILE" 2>/dev/null; then
-                log_success "✅ themeboxファイルを優先実行用にリネームしました: $FILE_INPUT → $PRIORITY_FILE"
-                log_info "ℹ️ このテーマが最初のハートビートで優先実行されます"
-            else
-                echo -e "\033[1;33m[WARNING]\033[0m themeboxファイルのリネームに失敗しました: $FILE_INPUT"
-                echo -e "\033[1;33m[WARNING]\033[0m 代わりに新しい初期テーマファイルを作成します"
-                
-                # リネームに失敗した場合は通常の処理を実行
-                THEME_FILE="themebox/000_initial_theme_${TIMESTAMP}.md"
-                cat > "$THEME_FILE" << EOF
-# 初期テーマ
+# STEP 5: テーマ投入/確認
 
-$INIT_PROMPT
-EOF
-                log_success "✅ 初期テーマをthemeboxに投入しました: $THEME_FILE"
-            fi
-        fi
+# themeboxに有効なテーマファイルがあるかチェックする関数
+has_active_themes() {
+    # find ... -print -quit を使うと、1つでも見つかったらすぐに終了するので効率的
+    if [ -n "$(find themebox -maxdepth 1 -name "*.md" -not -name "draft.*" -not -name "processed.*" -print -quit)" ]; then
+        return 0 # true
     else
-        # 通常の初期テーマファイル作成
-        log_info "📝 初期テーマをthemeboxに投入中..."
+        return 1 # false
+    fi
+}
+
+if [ "$USE_THEMEBOX" = true ]; then
+    log_info "🔍 themebox内のテーマで起動します..."
+    if has_active_themes; then
+        log_success "✅ themeboxに有効なテーマが見つかりました。システムを起動します。"
+    else
+        echo "エラー: -t オプションが指定されましたが、themeboxに実行可能なテーマがありません。"
+        exit 1
+    fi
+elif [ -n "$INIT_PROMPT" ]; then
+    log_info "📝 新しい初期テーマを投入します..."
+    if has_active_themes; then
+        echo "エラー: 新しいテーマを投入しようとしましたが、themeboxに未処理のテーマが存在します。"
+        echo "       -t オプションを使用するか、themebox内のファイルを整理してください。"
+        exit 1
+    else
         TIMESTAMP=$(date "+%Y%m%d%H%M%S")
         THEME_FILE="themebox/000_initial_theme_${TIMESTAMP}.md"
-        
-        # 初期テーマファイルを作成
         cat > "$THEME_FILE" << EOF
 # 初期テーマ
 
 $INIT_PROMPT
 EOF
-        
         log_success "✅ 初期テーマをthemeboxに投入しました: $THEME_FILE"
         log_info "ℹ️ テーマは最初のハートビートで自動的に開始されます"
     fi
-else
-    log_info "ℹ️ 初期テーマが指定されていないため、themeboxへの投入をスキップします"
 fi
 
 echo ""
