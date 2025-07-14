@@ -8,6 +8,7 @@ AI心臓システム用のModel Context Protocol (MCP) ツール群です。AI�
 
 - 標準フォーマットでの思考ログ作成
 - テーマ開始・終了の履歴記録
+- テーマ固有コンテキスト（専門家視点）の作成
 - themebox/feedbackboxアイテムの処理
 - Web検索統計の管理
 
@@ -41,7 +42,20 @@ AI心臓システム用のModel Context Protocol (MCP) ツール群です。AI�
 
 **出力先:** `artifacts/theme_histories/{heartbeatId}_{action}_{themeDirectory}.md`
 
-### 3. `check_and_process_item`
+### 3. `create_theme_context`
+テーマ固有コンテキスト（専門家視点）ファイルを作成します。
+
+**パラメータ:**
+- `themeName`: テーマ名
+- `themeDirectoryName`: テーマディレクトリ名（サニタイズ済み）
+- `expertRole`: 専門家役割の定義
+- `expertPerspective`: 専門的視点（配列）
+- `constraints`: 重要な制約・注意事項（配列）
+- `expectedOutcome`: 期待される成果（配列）
+
+**出力先:** `artifacts/{themeDirectory}/context.md`
+
+### 4. `check_and_process_item`
 themebox または feedbackbox の最初のアイテムを処理します。
 
 **パラメータ:**
@@ -52,7 +66,7 @@ themebox または feedbackbox の最初のアイテムを処理します。
 - 最初のファイルを `processed.` プレフィックス付きにリネーム
 - ファイル内容を返却
 
-### 4. `update_web_search_stats`
+### 5. `update_web_search_stats`
 Web検索の実行結果に基づいて統計ファイルを更新します。
 
 **パラメータ:**
@@ -120,6 +134,28 @@ create_theme_log({
   "themeDirectoryName": "ai_autonomy",
   "reason": "前テーマでの気づきから発展"
 })
+
+テーマコンテキストを作成:
+create_theme_context({
+  "themeName": "AI自律性の探求",
+  "themeDirectoryName": "ai_autonomy",
+  "expertRole": "AI研究者として、自律性の理論と実践の両面から探求を進めます。",
+  "expertPerspective": [
+    "機械学習と認知科学の融合的視点",
+    "自律システムの設計原理と実装",
+    "倫理的AI開発の重要性"
+  ],
+  "constraints": [
+    "一回のハートビートでは特定の側面に集中",
+    "理論と実践のバランスを保つ",
+    "システムの継続性を最優先"
+  ],
+  "expectedOutcome": [
+    "AI自律性の深い理解",
+    "実装可能なアプローチの提案",
+    "倫理的考察の記録"
+  ]
+})
 ```
 
 ## ファイル構造
@@ -131,10 +167,11 @@ mcp/ai-heartbeat-mcp/
 │   ├── lib/
 │   │   └── timeUtils.ts      # 時刻関連ユーティリティ
 │   └── tools/
-│       ├── thinkingLogTool.ts    # 思考ログ作成ツール
-│       ├── themeLogTool.ts       # テーマ履歴ツール
-│       ├── itemProcessorTool.ts  # アイテム処理ツール
-│       └── webSearchStatsTool.ts # Web検索統計ツール
+│       ├── thinkingLogTool.ts       # 思考ログ作成ツール
+│       ├── themeLogTool.ts          # テーマ履歴ツール
+│       ├── createThemeContextTool.ts # テーマコンテキスト作成ツール
+│       ├── itemProcessorTool.ts     # アイテム処理ツール
+│       └── webSearchStatsTool.ts    # Web検索統計ツール
 ├── dist/                     # ビルド出力
 ├── package.json
 ├── tsconfig.json
