@@ -112,7 +112,7 @@ npm run dev
 
 #### ファイルからテーマを読み込み
 ```bash
-./setup.sh -f themebox/your_theme.md
+./setup.sh -f your_theme.md
 ```
 
 #### themeboxの準備済みテーマで起動
@@ -133,7 +133,7 @@ npm run dev
 ./setup.sh "AIエージェントの自己改善について"
 
 # ファイルからテーマ読み込み
-./setup.sh -f themebox/001_analyze_data.md
+./setup.sh -f analyze_data_task.md
 
 # themeboxの準備済みテーマで起動
 ./setup.sh -t
@@ -149,10 +149,9 @@ npm run dev
 
 ### 推奨セットアップ手順
 
-#### 初回利用時（推奨）
 ```bash
-# 1. チュートリアルテーマを準備
-cp themebox/draft.sample.000_ai_heartbeat_tutorial.md themebox/000_ai_heartbeat_tutorial.md
+# 1. チュートリアルテーマをコピー
+cp theme_sample/000_ai_heartbeat_tutorial.md themebox/000_ai_heartbeat_tutorial.md
 
 # 2. 本テーマを事前準備
 echo "テーマ: あなたの探求したいテーマ" > themebox/001_your_main_theme.md
@@ -162,11 +161,6 @@ echo "テーマ: あなたの探求したいテーマ" > themebox/001_your_main_
 ```
 
 AIがシステムを理解してから本格的なタスクを開始するため、より安定した動作が期待できます。
-
-#### 簡単起動
-```bash
-./setup.sh "あなたのテーマ"
-```
 
 **詳細なセットアップ手順とトラブルシューティングは [SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md) を参照してください。**
 
@@ -208,16 +202,19 @@ tmux attach-session -t heartbeat -r
 * `./restart.sh`を実行するとハートビートのみを再起動できます。
 * AIエージェント自体は継続したまま、ハートビート送信を再開します。
 
-## themebox機能（テーマ事前準備）
+## themebox機能
 
-システムを停止せずに新しいテーマを投入できる機能です。`themebox/`ディレクトリにマークダウンファイルを作成すると、AIがテーマ移行時に自動選択します。
+テーマを事前準備したり、システムを停止せずに新しいテーマを投入できる機能です。`themebox/`ディレクトリにマークダウンファイルを作成すると、AIがテーマ移行時に自動選択します。
 
 ```bash
 # テーマファイルを準備
-echo "テーマ: 量子コンピューティングの未来について" > themebox/001_quantum_computing.md
+echo "テーマ: 量子コンピューティングの未来について" > themebox/001_future_of_cuantum_computing.md
 
 # themeboxのテーマで起動
 ./setup.sh -t
+
+# 起動後も追加可能。現在活動中のテーマ活動完了後に新テーマとして自動選択される。
+echo "テーマ: 汎用人工知能の未来について" > themebox/002_future_of_agi.md
 ```
 
 **詳細な管理方法とファイル命名規則は [SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md) を参照してください。**

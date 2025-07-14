@@ -8,7 +8,5 @@ results/
 feedbackbox/
 
 themebox/*
-!themebox/draft.sample.000_ai_heartbeat_tutorial.md
-!themebox/draft.sample.zzz_summary_of_activities.md
 
 tmp_*

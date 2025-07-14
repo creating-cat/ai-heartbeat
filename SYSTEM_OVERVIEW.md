@@ -53,6 +53,9 @@ AI心臓システム/
 │   ├── 001_example_theme.md    # 準備されたテーマ
 │   ├── draft.002_editing.md    # 編集中（無視される）
 │   └── processed.000_used.md   # 使用済み（無視される）
+├── theme_sample/               # テーマサンプル集
+│   ├── 000_ai_heartbeat_tutorial.md  # チュートリアルテーマ
+│   └── zzz_summary_of_activities.md  # 活動まとめテーマ
 ├── feedbackbox/                # ユーザーフィードバック管理
 │   ├── draft.XXX_title.md      # ドラフト段階（無視）
 │   ├── XXX_title.md            # 処理対象フィードバック
