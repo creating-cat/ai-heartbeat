@@ -14,7 +14,7 @@ AI心臓システム用のModel Context Protocol (MCP) ツール群です。AI�
 
 ## 提供ツール
 
-### 1. `create_thinking_log`
+### 1. `create_activity_log`
 標準フォーマットに従った活動ログを作成します。
 
 **パラメータ:**
@@ -118,7 +118,7 @@ npm run dev
 
 ```markdown
 活動ログを作成:
-create_thinking_log({
+create_activity_log({
   "heartbeatId": "20250115143022",
   "activityType": "思考",
   "activityContent": "AIの自律性について深く考察",
@@ -167,7 +167,7 @@ mcp/ai-heartbeat-mcp/
 │   ├── lib/
 │   │   └── timeUtils.ts      # 時刻関連ユーティリティ
 │   └── tools/
-│       ├── thinkingLogTool.ts       # 活動ログ作成ツール
+│       ├── activityLogTool.ts       # 活動ログ作成ツール
 │       ├── themeLogTool.ts          # テーマ履歴ツール
 │       ├── createThemeExpertContextTool.ts # テーマ専門家コンテキスト作成ツール
 │       ├── itemProcessorTool.ts     # アイテム処理ツール

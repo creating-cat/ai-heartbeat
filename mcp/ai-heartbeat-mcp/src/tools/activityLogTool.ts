@@ -1,5 +1,5 @@
 /**
- * Thinking Log Creation Tool
+ * Activity Log Creation Tool
  */
 
 import { z } from 'zod';
@@ -8,11 +8,11 @@ import * as path from 'path';
 
 import { checkTimeDeviation } from '../lib/timeUtils';
 
-// Zod schema for thinking log input
-export const thinkingLogInputSchema = z.object({
+// Zod schema for activity log input
+export const activityLogInputSchema = z.object({
   heartbeatId: z.string()
     .regex(/^\d{14}$/, 'ハートビートIDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります。')
-    .describe('YYYYMMDDHHMMSS形式のハートビートID。注意: 同じIDのログが既に存在する場合、自動で連番が付与されます（例: _01）。これは思考ログ作成後に処理を継続してしまったことを示唆するため、通常は避けるべきです。'),
+    .describe('YYYYMMDDHHMMSS形式のハートビートID。注意: 同じIDのログが既に存在する場合、自動で連番が付与されます（例: _01）。これは活動ログ作成後に処理を継続してしまったことを示唆するため、通常は避けるべきです。'),
   activityType: z.enum(['観測', '思考', '創造', '内省', 'テーマ開始', 'テーマ終了', '回復', 'その他'])
     .describe("実行した活動の種別。'観測', '思考', '創造', '内省', 'テーマ開始', 'テーマ終了', '回復', 'その他' のいずれかである必要があります。"),
   activityContent: z.array(z.string()).describe('活動内容の簡潔な説明のリスト。'),
@@ -26,7 +26,7 @@ export const thinkingLogInputSchema = z.object({
 });
 
 // Helper functions
-function generateThinkingLogMarkdown(args: z.infer<typeof thinkingLogInputSchema>): string {
+function generateActivityLogMarkdown(args: z.infer<typeof activityLogInputSchema>): string {
   const lines: string[] = [];
   
   // Title
@@ -77,7 +77,7 @@ function generateThinkingLogMarkdown(args: z.infer<typeof thinkingLogInputSchema
   return lines.join('\n');
 }
 
-function getThinkingLogFilePath(theme: string, heartbeatId: string, sequence?: number): string {
+function getActivityLogFilePath(theme: string, heartbeatId: string, sequence?: number): string {
   // MCPサーバーはプロジェクトルートで実行される前提
   // 現在の作業ディレクトリから相対パスで指定
   const filename = sequence ? `${heartbeatId}_${sequence.toString().padStart(2, '0')}.md` : `${heartbeatId}.md`;
@@ -85,7 +85,7 @@ function getThinkingLogFilePath(theme: string, heartbeatId: string, sequence?: n
 }
 
 async function findAvailableSequence(theme: string, heartbeatId: string): Promise<{ sequence: number | null; warning: string | null }> {
-  const basePath = getThinkingLogFilePath(theme, heartbeatId);
+  const basePath = getActivityLogFilePath(theme, heartbeatId);
   
   // 基本ファイルが存在しない場合は連番なしで作成
   if (!await fs.pathExists(basePath)) {
@@ -94,34 +94,34 @@ async function findAvailableSequence(theme: string, heartbeatId: string): Promis
   
   // 連番ファイルをチェック
   for (let i = 1; i <= 99; i++) {
-    const sequencePath = getThinkingLogFilePath(theme, heartbeatId, i);
+    const sequencePath = getActivityLogFilePath(theme, heartbeatId, i);
     if (!await fs.pathExists(sequencePath)) {
       return { 
         sequence: i, 
-        warning: `ハートビートID ${heartbeatId} の思考ログは既に存在するため、連番 ${i.toString().padStart(2, '0')} を付与しました。`
+        warning: `ハートビートID ${heartbeatId} の活動ログは既に存在するため、連番 ${i.toString().padStart(2, '0')} を付与しました。`
       };
     }
   }
   
   // 99個まで埋まっている場合はエラー
-  throw new Error(`ハートビートID ${heartbeatId} の思考ログの連番が上限（99）に達しました。`);
+  throw new Error(`ハートビートID ${heartbeatId} の活動ログの連番が上限（99）に達しました。`);
 }
 
-export const thinkingLogTool = {
-  name: 'create_thinking_log',
-  description: 'Creates a standard format thinking log for the AI Heartbeat System.',
-  input_schema: thinkingLogInputSchema,
-  execute: async (args: z.infer<typeof thinkingLogInputSchema>) => {
+export const activityLogTool = {
+  name: 'create_activity_log',
+  description: 'Creates a standard format activity log for the AI Heartbeat System.',
+  input_schema: activityLogInputSchema,
+  execute: async (args: z.infer<typeof activityLogInputSchema>) => {
     try {
       // Generate markdown content
-      const markdownContent = generateThinkingLogMarkdown(args);
+      const markdownContent = generateActivityLogMarkdown(args);
       
       // Determine file path (use basename for safety)
       const themeDir = path.basename(args.themeDirectory);
       
       // Check for duplicates and find available sequence
       const { sequence, warning } = await findAvailableSequence(themeDir, args.heartbeatId);
-      const filePath = getThinkingLogFilePath(themeDir, args.heartbeatId, sequence ?? undefined);
+      const filePath = getActivityLogFilePath(themeDir, args.heartbeatId, sequence ?? undefined);
       
       // Check time deviation
       const timeWarning = await checkTimeDeviation(args.heartbeatId);
@@ -133,7 +133,7 @@ export const thinkingLogTool = {
       await fs.writeFile(filePath, markdownContent, 'utf-8');
       
       // Prepare response message
-      let responseText = `思考ログを作成しました: ${filePath}`;
+      let responseText = `活動ログを作成しました: ${filePath}`;
       if (warning) {
         responseText += `\n⚠️ ${warning}`;
       }

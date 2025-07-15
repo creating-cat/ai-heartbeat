@@ -202,32 +202,32 @@ check_web_search_restriction() {
 check_agent_health() {
     local current_time=$(date +%s)
     
-    # 8. 思考ログ頻度異常検知（新機能 - v2）
-    local thinking_freq_result=$(check_thinking_log_frequency_anomaly "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
-    local thinking_freq_code=$(echo "$thinking_freq_result" | cut -d':' -f1)
-    local thinking_freq_detail=$(echo "$thinking_freq_result" | cut -d':' -f2)
+    # 8. 活動ログ頻度異常検知（新機能 - v2）
+    local activity_freq_result=$(check_activity_log_frequency_anomaly "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
+    local activity_freq_code=$(echo "$activity_freq_result" | cut -d':' -f1)
+    local activity_freq_detail=$(echo "$activity_freq_result" | cut -d':' -f2)
     
-    if [ "$thinking_freq_code" != "0" ]; then
-        HEALTH_CHECK_DETAIL="$thinking_freq_detail"
-        if [ "$thinking_freq_code" = "1" ]; then
-            log_warning "[CHECK] Thinking log frequency warning detected (code 10): $thinking_freq_detail seconds"
-            return 10 # 思考ログ頻度警告
-        elif [ "$thinking_freq_code" = "2" ]; then
-            log_warning "[CHECK] Thinking log frequency error detected (code 11): $thinking_freq_detail seconds"
-            return 11 # 思考ログ頻度エラー
+    if [ "$activity_freq_code" != "0" ]; then
+        HEALTH_CHECK_DETAIL="$activity_freq_detail"
+        if [ "$activity_freq_code" = "1" ]; then
+            log_warning "[CHECK] Activity log frequency warning detected (code 10): $activity_freq_detail seconds"
+            return 10 # 活動ログ頻度警告
+        elif [ "$activity_freq_code" = "2" ]; then
+            log_warning "[CHECK] Activity log frequency error detected (code 11): $activity_freq_detail seconds"
+            return 11 # 活動ログ頻度エラー
         fi
     fi
 
-    # 9. 思考ログパターン異常検知（新機能 - v2）
-    local thinking_pattern_result=$(check_thinking_log_pattern_anomaly "$current_time" "$HEARTBEAT_START_TIME")
-    local thinking_pattern_code=$(echo "$thinking_pattern_result" | cut -d':' -f1)
-    local thinking_pattern_detail=$(echo "$thinking_pattern_result" | cut -d':' -f2)
+    # 9. 活動ログパターン異常検知（新機能 - v2）
+    local activity_pattern_result=$(check_activity_log_pattern_anomaly "$current_time" "$HEARTBEAT_START_TIME")
+    local activity_pattern_code=$(echo "$activity_pattern_result" | cut -d':' -f1)
+    local activity_pattern_detail=$(echo "$activity_pattern_result" | cut -d':' -f2)
     
-    if [ "$thinking_pattern_code" != "0" ]; then
-        HEALTH_CHECK_DETAIL="$thinking_pattern_detail"
-        if [ "$thinking_pattern_code" = "2" ]; then
-            log_warning "[CHECK] Thinking log pattern error detected (code 13): $thinking_pattern_detail files"
-            return 13 # 思考ログパターンエラー
+    if [ "$activity_pattern_code" != "0" ]; then
+        HEALTH_CHECK_DETAIL="$activity_pattern_detail"
+        if [ "$activity_pattern_code" = "2" ]; then
+            log_warning "[CHECK] Activity log pattern error detected (code 13): $activity_pattern_detail files"
+            return 13 # 活動ログパターンエラー
         fi
     fi
 
@@ -244,16 +244,16 @@ check_agent_health() {
         fi
     fi
 
-    # 11. 思考ログループ異常検知（新機能 - v2）
-    local thinking_loop_result=$(check_thinking_log_loop_anomaly "$current_time" "$HEARTBEAT_START_TIME")
-    local thinking_loop_code=$(echo "$thinking_loop_result" | cut -d':' -f1)
-    local thinking_loop_detail=$(echo "$thinking_loop_result" | cut -d':' -f2)
+    # 11. 活動ログループ異常検知（新機能 - v2）
+    local activity_loop_result=$(check_activity_log_loop_anomaly "$current_time" "$HEARTBEAT_START_TIME")
+    local activity_loop_code=$(echo "$activity_loop_result" | cut -d':' -f1)
+    local activity_loop_detail=$(echo "$activity_loop_result" | cut -d':' -f2)
     
-    if [ "$thinking_loop_code" != "0" ]; then
-        HEALTH_CHECK_DETAIL="$thinking_loop_detail"
-        if [ "$thinking_loop_code" = "2" ]; then
-            log_warning "[CHECK] Thinking log loop error detected (code 14): $thinking_loop_detail loops"
-            return 14 # 思考ログループエラー
+    if [ "$activity_loop_code" != "0" ]; then
+        HEALTH_CHECK_DETAIL="$activity_loop_detail"
+        if [ "$activity_loop_code" = "2" ]; then
+            log_warning "[CHECK] Activity log loop error detected (code 14): $activity_loop_detail loops"
+            return 14 # 活動ログループエラー
         fi
     fi
 
@@ -273,19 +273,19 @@ check_agent_health() {
         fi
     fi
 
-    # 13. 思考ログタイムスタンプ乖離異常検知（新機能 - v2復活）
-    local timestamp_result=$(check_thinking_log_timestamp_anomaly "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
+    # 13. 活動ログタイムスタンプ乖離異常検知（新機能 - v2復活）
+    local timestamp_result=$(check_activity_log_timestamp_anomaly "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
     local timestamp_code=$(echo "$timestamp_result" | cut -d':' -f1)
     local timestamp_detail=$(echo "$timestamp_result" | cut -d':' -f2)
 
     if [ "$timestamp_code" != "0" ]; then
         HEALTH_CHECK_DETAIL="$timestamp_detail"
         if [ "$timestamp_code" = "1" ]; then
-            log_warning "[CHECK] Thinking log timestamp warning detected (code 19): $timestamp_detail seconds"
-            return 19 # 思考ログタイムスタンプ警告
+            log_warning "[CHECK] Activity log timestamp warning detected (code 19): $timestamp_detail seconds"
+            return 19 # 活動ログタイムスタンプ警告
         elif [ "$timestamp_code" = "2" ]; then
-            log_warning "[CHECK] Thinking log timestamp error detected (code 20): $timestamp_detail seconds"
-            return 20 # 思考ログタイムスタンプエラー
+            log_warning "[CHECK] Activity log timestamp error detected (code 20): $timestamp_detail seconds"
+            return 20 # 活動ログタイムスタンプエラー
         fi
     fi
 
@@ -317,36 +317,36 @@ check_recent_activity() {
     case $status in
         0) # 正常
             return 0 ;;
-        10) # 思考ログ頻度警告（新機能 - v2）
-            log_warning "Thinking log frequency warning: No thinking log updates for $((detail / 60)) minutes."
-            INACTIVITY_WARNING_MESSAGE="⚠️ 思考ログ頻度警告: $((detail / 60))分間思考ログの更新がありません。
+        10) # 活動ログ頻度警告（新機能 - v2）
+            log_warning "Activity log frequency warning: No activity log updates for $((detail / 60)) minutes."
+            INACTIVITY_WARNING_MESSAGE="⚠️ 活動ログ頻度警告: $((detail / 60))分間活動ログの更新がありません。
 
-$ADVICE_THINKING_LOG_FREQUENCY"
+$ADVICE_ACTIVITY_LOG_FREQUENCY"
             return 0 ;;
-        11) # 思考ログ頻度エラー（新機能 - v2）
-            handle_failure "Thinking log frequency error: No thinking log updates for $((detail / 60)) minutes." "思考ログ頻度異常" ;;
-        13) # 思考ログパターンエラー（新機能 - v2）
-            handle_failure "Thinking log pattern error: $detail files with same timestamp detected." "思考ログパターン異常" ;;
-        14) # 思考ログループエラー（新機能 - v2）
-            handle_failure "Thinking log loop error: Same thinking log edited $detail times consecutively." "思考ログループ異常" ;;
+        11) # 活動ログ頻度エラー（新機能 - v2）
+            handle_failure "Activity log frequency error: No activity log updates for $((detail / 60)) minutes." "活動ログ頻度異常" ;;
+        13) # 活動ログパターンエラー（新機能 - v2）
+            handle_failure "Activity log pattern error: $detail files with same timestamp detected." "活動ログパターン異常" ;;
+        14) # 活動ログループエラー（新機能 - v2）
+            handle_failure "Activity log loop error: Same activity log edited $detail times consecutively." "活動ログループ異常" ;;
         16) # テーマログパターンエラー（新機能 - v2）
             handle_failure "Theme log pattern error: $detail files with same timestamp detected." "テーマログパターン異常" ;;
         17) # 内省活動警告（新機能 - v2）
             log_warning "Introspection activity warning: No introspection activity for $((detail / 60)) minutes."
             INTROSPECTION_REMINDER_MESSAGE="⚠️ 内省不足警告: $((detail / 60))分間内省活動が行われていません。
 
-$ADVICE_INTROSPECTION"
+$ADVICE_ACTIVITY_LOG_INTROSPECTION"
             return 0 ;;
         18) # 内省活動エラー（新機能 - v2）
-            handle_failure "Introspection activity error: No introspection activity for $((detail / 60)) minutes." "内省活動不足" ;;
-        19) # 思考ログタイムスタンプ警告（新機能 - v2復活）
-            log_warning "Thinking log timestamp warning: Timestamp is $((detail / 60)) minutes old."
-            INACTIVITY_WARNING_MESSAGE="⚠️ 思考ログタイムスタンプ警告: 最新の思考ログのハートビートIDが$((detail / 60))分以上古いです。
-思考ログはハートビート毎に毎回新しく作成する必要があります。
-このハートビートの活動の終わりに必ず新しい思考ログを作成してください。"
+            handle_failure "Introspection activity error: No introspection activity for $((detail / 60)) minutes." "活動ログ内省不足" ;;
+        19) # 活動ログタイムスタンプ警告（新機能 - v2復活）
+            log_warning "Activity log timestamp warning: Timestamp is $((detail / 60)) minutes old."
+            INACTIVITY_WARNING_MESSAGE="⚠️ 活動ログタイムスタンプ警告: 最新の活動ログのハートビートIDが$((detail / 60))分以上古いです。
+活動ログはハートビート毎に毎回新しく作成する必要があります。
+このハートビートの活動の終わりに必ず新しい活動ログを作成してください。"
             return 0 ;;
-        20) # 思考ログタイムスタンプエラー（新機能 - v2復活）
-            handle_failure "Thinking log timestamp error: Timestamp is $((detail / 60)) minutes old." "思考ログタイムスタンプ異常" ;;
+        20) # 活動ログタイムスタンプエラー（新機能 - v2復活）
+            handle_failure "Activity log timestamp error: Timestamp is $((detail / 60)) minutes old." "活動ログタイムスタンプ異常" ;;
         *) # 未知のエラー
             log_error "Unknown health check status: $status" ;;
     esac
@@ -387,23 +387,23 @@ attempt_recovery() {
     # 異常種別に応じたアドバイスメッセージを設定
     local advice_message=""
     case "$detection_type" in
-        "内省活動不足")
+        "活動ログ内省不足")
             advice_message="$ADVICE_INTROSPECTION"
             ;;
-        "思考ログ頻度異常")
-            advice_message="$ADVICE_THINKING_LOG_FREQUENCY"
+        "活動ログ頻度異常")
+            advice_message="$ADVICE_ACTIVITY_LOG_FREQUENCY"
             ;;
-        "思考ログパターン異常")
-            advice_message="$ADVICE_THINKING_LOG_PATTERN"
+        "活動ログパターン異常")
+            advice_message="$ADVICE_ACTIVITY_LOG_PATTERN"
             ;;
-        "思考ログループ異常")
-            advice_message="$ADVICE_THINKING_LOG_LOOP"
+        "活動ログループ異常")
+            advice_message="$ADVICE_ACTIVITY_LOG_LOOP"
             ;;
         "テーマログパターン異常")
             advice_message="$ADVICE_THEME_LOG_PATTERN"
             ;;
-        "思考ログタイムスタンプ異常")
-            advice_message="$ADVICE_THINKING_LOG_TIMESTAMP"
+        "活動ログタイムスタンプ異常")
+            advice_message="$ADVICE_ACTIVITY_LOG_TIMESTAMP"
             ;;
         *)
             advice_message=""
@@ -417,11 +417,11 @@ attempt_recovery() {
 
 以下のドキュメントからシステム仕様を再ロードし、**あなた自身の動作ルールを再設定してください**：
 1. GEMINI.md - AI心臓システムでの基本的な動作ルール
-2. ai-docs/OPERATION_DETAILS.md - 運用詳細ガイド（思考ログ記録、ファイル操作等）
+2. ai-docs/OPERATION_DETAILS.md - 運用詳細ガイド（活動ログ記録、ファイル操作等）
 3. ai-docs/TROUBLESHOOTING_GUIDE.md - 異常状況への対処方法
 4. ai-docs/GUIDELINES.md - 運用ガイドライン
 
-システム仕様の再ロード完了後、artifacts/theme_historiesの最新の履歴および最新の思考ログを確認し、
+システム仕様の再ロード完了後、artifacts/theme_historiesの最新の履歴および最新の活動ログを確認し、
 直前の活動内容を再確認してください。
 
 その後、適切な内省活動を行い、正常な処理を再開してください。

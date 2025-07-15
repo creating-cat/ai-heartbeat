@@ -4,7 +4,7 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { thinkingLogTool } from './tools/thinkingLogTool';
+import { activityLogTool } from './tools/activityLogTool';
 import { themeLogTool } from './tools/themeLogTool';
 import { itemProcessorTool } from './tools/itemProcessorTool';
 import { webSearchStatsTool } from './tools/webSearchStatsTool';
@@ -17,12 +17,12 @@ const server = new McpServer({
   description: 'Model Context Protocol tools for AI Heartbeat System',
 });
 
-// Register thinking log tool
+// Register activity log tool
 server.tool(
-  thinkingLogTool.name,
-  thinkingLogTool.description,
-  thinkingLogTool.input_schema.shape,
-  thinkingLogTool.execute
+  activityLogTool.name,
+  activityLogTool.description,
+  activityLogTool.input_schema.shape,
+  activityLogTool.execute
 );
 
 // Register theme log tool
