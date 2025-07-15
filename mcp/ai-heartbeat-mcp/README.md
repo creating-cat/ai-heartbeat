@@ -32,28 +32,32 @@ AI心臓システム用のModel Context Protocol (MCP) ツール群です。AI�
 テーマの開始・終了履歴を記録します。
 
 **パラメータ:**
-- `heartbeatId`: ハートビートID (YYYYMMDDHHMMSS形式)
 - `action`: アクション種別 (start/end)
+- `themeStartId`: テーマ開始時のハートビートID (YYYYMMDDHHMMSS形式)
+- `themeEndId`: テーマ終了時のハートビートID (終了時のみ必須)
 - `themeName`: テーマ名
-- `themeDirectoryName`: テーマディレクトリ名
+- `themeDirectoryPart`: テーマディレクトリ名の一部（例: "ai_research" → ディレクトリ "20250115143000_ai_research"）
 - `reason`: 開始・終了理由 (オプション)
 - `achievements`: 主な成果 (終了時、オプション)
 - `activityContent`: 活動計画 (開始時、オプション)
 
-**出力先:** `artifacts/theme_histories/{heartbeatId}_{action}_{themeDirectory}.md`
+**出力先:** 
+- テーマディレクトリ: `artifacts/{themeStartId}_{themeDirectoryPart}/`
+- 履歴ファイル: `artifacts/theme_histories/{themeStartId|themeEndId}_{action}_{themeDirectoryPart}.md`
 
 ### 3. `create_theme_expert_context`
 テーマ専門家コンテキストファイルを作成します。
 
 **パラメータ:**
 - `themeName`: テーマ名
-- `themeDirectoryName`: テーマディレクトリ名（サニタイズ済み）
+- `themeStartId`: テーマのTHEME_START_ID (YYYYMMDDHHMMSS形式)
+- `themeDirectoryPart`: テーマディレクトリ名の一部（例: "ai_research" → ディレクトリ "20250115143000_ai_research"）
 - `expertRole`: 専門家役割の定義
 - `expertPerspective`: 専門的視点（配列）
 - `constraints`: 重要な制約・注意事項（配列）
 - `expectedOutcome`: 期待される成果（配列）
 
-**出力先:** `artifacts/{themeDirectory}/context.md`
+**出力先:** `artifacts/{themeStartId}_{themeDirectoryPart}/context.md`
 
 ### 4. `check_and_process_item`
 themebox または feedbackbox の最初のアイテムを処理します。
@@ -128,17 +132,33 @@ create_activity_log({
 
 テーマ開始を記録:
 create_theme_log({
-  "heartbeatId": "20250115143022",
   "action": "start",
+  "themeStartId": "20250115143022",
   "themeName": "AI自律性の探求",
-  "themeDirectoryName": "ai_autonomy",
+  "themeDirectoryPart": "ai_autonomy",
   "reason": "前テーマでの気づきから発展"
+})
+
+テーマ終了を記録:
+create_theme_log({
+  "action": "end",
+  "themeStartId": "20250115143022",
+  "themeEndId": "20250115180000",
+  "themeName": "AI自律性の探求",
+  "themeDirectoryPart": "ai_autonomy",
+  "reason": "探求が一段落",
+  "achievements": [
+    "自律性の理論的フレームワークの構築",
+    "実装可能なアーキテクチャの設計",
+    "倫理的ガイドラインの策定"
+  ]
 })
 
 テーマ専門家コンテキストを作成:
 create_theme_expert_context({
   "themeName": "AI自律性の探求",
-  "themeDirectoryName": "ai_autonomy",
+  "themeStartId": "20250115143022",
+  "themeDirectoryPart": "ai_autonomy",
   "expertRole": "AI研究者として、自律性の理論と実践の両面から探求を進めます。",
   "expertPerspective": [
     "機械学習と認知科学の融合的視点",
@@ -152,8 +172,8 @@ create_theme_expert_context({
   ],
   "expectedOutcome": [
     "AI自律性の深い理解",
-    "実装可能なアプローチの提案",
-    "倫理的考察の記録"
+    "実装可能な自律システムの設計",
+    "倫理的配慮を含む包括的な視点"
   ]
 })
 ```

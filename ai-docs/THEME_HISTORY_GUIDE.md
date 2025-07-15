@@ -75,7 +75,7 @@ themeboxが空の場合は、従来通り自律的に新テーマを決定する
 ```markdown
 # テーマ開始: [テーマ名]
 
-**テーマディレクトリ**: `artifacts/[THEME_START_ID_themeDirectoryName]/`
+**テーマディレクトリ**: `artifacts/[THEME_START_ID_themeDirectoryPart]/`
 
 **開始理由**: 
 [初期テーマ/前テーマ「XXX」から移行/など]
@@ -91,7 +91,7 @@ themeboxが空の場合は、従来通り自律的に新テーマを決定する
 
 **THEME_START_ID**: [テーマ開始時のハートビートID]
 **THEME_END_ID**: [テーマ終了時のハートビートID]
-**テーマディレクトリ**: `artifacts/[THEME_START_ID_themeDirectoryName]/`
+**テーマディレクトリ**: `artifacts/[THEME_START_ID_themeDirectoryPart]/`
 
 **終了理由**: 
 [完了/新テーマ「XXX」へ移行/など]
@@ -124,13 +124,14 @@ themeboxが空の場合は、従来通り自律的に新テーマを決定する
 テーマ履歴ファイルの作成を支援するMCPツール `create_theme_log` が利用可能です。
 
 **使用方法**:
-- テーマ開始時: `action: "start"` (THEME_START_IDを使用)
-- テーマ終了時: `action: "end"` (THEME_END_IDを使用)
-- ハートビートIDと適切なパラメータを指定
+- テーマ開始時: `action: "start"` + `themeStartId` (THEME_START_IDを指定)
+- テーマ終了時: `action: "end"` + `themeStartId` + `themeEndId` (両IDを指定)
+- `themeDirectoryPart`でディレクトリ名の一部を指定
 
 **利点**:
 - 標準的なフォーマットでの自動作成
 - THEME_START_ID/THEME_END_IDを使用した適切なファイル名生成
+- `themeDirectoryPart`による統一されたディレクトリ命名
 - 両IDの関連付けを含む完全な記録
 - 記録漏れの防止
 

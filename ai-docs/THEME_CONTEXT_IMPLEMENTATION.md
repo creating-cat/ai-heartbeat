@@ -61,7 +61,8 @@
 - `create_theme_expert_context` ツールを使用して標準フォーマットで効率的に作成
 - 必要なパラメータ：
   - `themeName`: テーマ名
-  - `themeDirectoryName`: テーマディレクトリ名（サニタイズ済み）
+  - `themeStartId`: テーマのTHEME_START_ID
+  - `themeDirectoryPart`: テーマディレクトリ名の一部（例: "ai_research"）
   - `expertRole`: 専門家役割の定義
   - `expertPerspective`: 専門的視点（配列）
   - `constraints`: 重要な制約・注意事項（配列）
