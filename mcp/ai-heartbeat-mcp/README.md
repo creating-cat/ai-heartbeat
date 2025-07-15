@@ -6,7 +6,7 @@ AI心臓システム用のModel Context Protocol (MCP) ツール群です。AI�
 
 このMCPサーバーは、AI心臓システムで動作するAIエージェント向けに以下の機能を提供します：
 
-- 標準フォーマットでの思考ログ作成
+- 標準フォーマットでの活動ログ作成
 - テーマ開始・終了の履歴記録
 - テーマ専門家コンテキストの作成
 - themebox/feedbackboxアイテムの処理
@@ -15,7 +15,7 @@ AI心臓システム用のModel Context Protocol (MCP) ツール群です。AI�
 ## 提供ツール
 
 ### 1. `create_thinking_log`
-標準フォーマットに従った思考ログを作成します。
+標準フォーマットに従った活動ログを作成します。
 
 **パラメータ:**
 - `heartbeatId`: ハートビートID (YYYYMMDDHHMMSS形式)
@@ -117,7 +117,7 @@ npm run dev
 ### 使用例
 
 ```markdown
-思考ログを作成:
+活動ログを作成:
 create_thinking_log({
   "heartbeatId": "20250115143022",
   "activityType": "思考",
@@ -167,7 +167,7 @@ mcp/ai-heartbeat-mcp/
 │   ├── lib/
 │   │   └── timeUtils.ts      # 時刻関連ユーティリティ
 │   └── tools/
-│       ├── thinkingLogTool.ts       # 思考ログ作成ツール
+│       ├── thinkingLogTool.ts       # 活動ログ作成ツール
 │       ├── themeLogTool.ts          # テーマ履歴ツール
 │       ├── createThemeExpertContextTool.ts # テーマ専門家コンテキスト作成ツール
 │       ├── itemProcessorTool.ts     # アイテム処理ツール
