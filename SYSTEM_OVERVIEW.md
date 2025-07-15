@@ -47,7 +47,7 @@ AI心臓システム/
 ├── ai-docs/                    # AI向け詳細ドキュメント
 │   ├── OPERATION_DETAILS.md    # 運用詳細ガイド
 │   ├── GUIDELINES.md           # 運用ガイドライン
-│   ├── THEME_HISTORY_GUIDE.md  # テーマ管理ガイド
+│   ├── THEME_MANAGEMENT_GUIDE.md  # テーマ管理ガイド
 │   └── TROUBLESHOOTING_GUIDE.md # トラブルシューティング
 ├── themebox/                   # テーマ事前準備ディレクトリ
 │   ├── 001_example_theme.md    # 準備されたテーマ
@@ -465,7 +465,7 @@ heartbeat.shは、AIの知的活動の「質」を評価するため、複数の
 - 活動ログ管理における特殊ケースへの対応方法
 - システムのパフォーマンスを最適化するための高度な設定とノウハウ
 
-### ai-docs/THEME_HISTORY_GUIDE.md
+### ai-docs/THEME_MANAGEMENT_GUIDE.md
 テーマの開始・終了時の履歴記録方法を定義するガイドです。AIがテーマを変更する際の記録ルールと、テーマの変遷を追跡するためのファイル管理方法が記載されています。
 
 主な内容:

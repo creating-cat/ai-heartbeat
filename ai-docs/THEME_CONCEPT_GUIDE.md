@@ -226,6 +226,6 @@
 ---
 
 **関連ドキュメント**:
-- `ai-docs/THEME_HISTORY_GUIDE.md` - テーマ管理の実践的手順
-- `GEMINI.md` - テーマ開始・終了活動の詳細
+- `ai-docs/THEME_MANAGEMENT_GUIDE.md` - テーマ管理の完全ガイド（選択・開始・運用・終了）
+- `GEMINI.md` - AI心臓システムの基本ルール
 - `ai-docs/GUIDELINES.md` - テーマ活動における運用指針

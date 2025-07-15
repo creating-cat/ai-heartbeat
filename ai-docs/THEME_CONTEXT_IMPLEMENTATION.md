@@ -52,6 +52,8 @@
 ### テーマ開始時のコンテキスト設定
 テーマ開始活動時に、そのテーマに最適な専門家役割を決定し、`artifacts/{THEME_START_ID_テーマ名}/context.md` に記録することができます（任意）。
 
+**詳細な手順**: `ai-docs/THEME_MANAGEMENT_GUIDE.md` の「3. テーマ開始手順」を参照してください。
+
 #### 作成方法
 **手動作成**:
 - `artifacts/{THEME_START_ID_テーマ名}/context.md` を直接作成・編集
