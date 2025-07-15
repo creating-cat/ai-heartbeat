@@ -22,7 +22,7 @@ export const activityLogInputSchema = z.object({
     .optional()
     .default([])
     .describe("活動中に使用した補助的な操作。'ファイル読み込み', '軽微な検索', '軽微な置換', 'Web検索', 'その他' の要素を含む配列です。"),
-  themeDirectory: z.string().describe('現在のテーマのディレクトリ名。'),
+  themeDirectory: z.string().describe('現在のテーマのディレクトリ名。推奨形式: "20250115143000_ai_research" (THEME_START_ID付き)。既存の古い形式ディレクトリも使用可能。'),
 });
 
 // Helper functions
@@ -119,6 +119,24 @@ export const activityLogTool = {
       // Determine file path (use basename for safety)
       const themeDir = path.basename(args.themeDirectory);
       
+      // ディレクトリ存在確認
+      const themeDirectoryPath = path.join('artifacts', themeDir);
+      if (!await fs.pathExists(themeDirectoryPath)) {
+        throw new Error(`テーマディレクトリが存在しません: ${themeDirectoryPath}`);
+      }
+
+      // オプション: 形式チェックは警告レベルに
+      const themeStartIdMatch = themeDir.match(/^(\d{14})_(.+)$/);
+      let themeStartId = 'unknown';
+      let themeName = themeDir;
+
+      if (themeStartIdMatch) {
+        [, themeStartId, themeName] = themeStartIdMatch;
+      } else {
+        console.warn(`注意: ディレクトリ名が推奨形式ではありません: ${themeDir}`);
+        themeName = themeDir;
+      }
+      
       // Check for duplicates and find available sequence
       const { sequence, warning } = await findAvailableSequence(themeDir, args.heartbeatId);
       const filePath = getActivityLogFilePath(themeDir, args.heartbeatId, sequence ?? undefined);
@@ -134,6 +152,11 @@ export const activityLogTool = {
       
       // Prepare response message
       let responseText = `活動ログを作成しました: ${filePath}`;
+      if (themeStartId !== 'unknown') {
+        responseText += `\n📁 テーマ: ${themeName} (${themeStartId})`;
+      } else {
+        responseText += `\n📁 テーマ: ${themeName}`;
+      }
       if (warning) {
         responseText += `\n⚠️ ${warning}`;
       }

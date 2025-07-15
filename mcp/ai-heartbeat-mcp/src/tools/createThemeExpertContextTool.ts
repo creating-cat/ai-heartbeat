@@ -9,9 +9,12 @@ import * as path from 'path';
 // Zod schema for the tool input
 export const createThemeExpertContextInputSchema = z.object({
   themeName: z.string().describe('テーマの名称。'),
-  themeDirectoryName: z
+  themeStartId: z.string()
+    .regex(/^\d{14}$/, 'THEME_START_IDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
+    .describe('テーマのTHEME_START_ID。テーマ開始時のハートビートIDと同じ値'),
+  themeDirectoryPart: z
     .string()
-    .describe('テーマのサニタイズされたディレクトリ名。'),
+    .describe('テーマディレクトリ名の一部（THEME_START_IDは含めない）。THEME_START_IDと組み合わせて "{THEME_START_ID}_{themeDirectoryPart}" の形式でテーマディレクトリが作成されます（例: themeDirectoryPart="ai_research" → ディレクトリ="20250115143000_ai_research"）。半角英小文字、数字、アンダースコアのみ推奨'),
   expertRole: z
     .string()
     .describe('このテーマにおける専門家の役割定義。'),
@@ -61,23 +64,45 @@ export const createThemeExpertContextTool = {
     try {
       const {
         themeName,
-        themeDirectoryName,
+        themeStartId,
+        themeDirectoryPart,
         expertRole,
         expertPerspective,
         constraints,
         expectedOutcome,
       } = args;
 
-      const baseThemeDirectoryName = path.basename(themeDirectoryName);
-      const themeArtifactsPath = path.join('artifacts', baseThemeDirectoryName);
+      // THEME_START_ID付きの完全なディレクトリ名を生成
+      const baseThemeDirectoryPart = path.basename(themeDirectoryPart);
+      const sanitizedDirectoryPart = baseThemeDirectoryPart
+        .toLowerCase()
+        .replace(/[^a-z0-9_]+/g, '_')
+        .replace(/_+/g, '_');
+      const fullThemeDirectoryName = `${themeStartId}_${sanitizedDirectoryPart}`;
+      const themeArtifactsPath = path.join('artifacts', fullThemeDirectoryName);
       const contextFilePath = path.join(themeArtifactsPath, 'context.md');
 
-      await fs.ensureDir(themeArtifactsPath);
+      // ディレクトリ存在確認（テーマが開始されているかチェック）
+      if (!await fs.pathExists(themeArtifactsPath)) {
+        // ディレクトリが存在しない場合は作成（テーマ開始前でも作成可能）
+        await fs.ensureDir(themeArtifactsPath);
+        await fs.ensureDir(path.join(themeArtifactsPath, 'histories'));
+      }
 
       const content = generateContextContent(themeName, expertRole, expertPerspective, constraints, expectedOutcome);
       await fs.writeFile(contextFilePath, content, 'utf-8');
 
-      return { content: [{ type: 'text' as const, text: `成功: テーマ専門家コンテキストファイルを作成しました: ${contextFilePath}` }] };
+      // サニタイズ警告の準備
+      const isSanitized = sanitizedDirectoryPart !== themeDirectoryPart;
+      let responseText = `成功: テーマ専門家コンテキストファイルを作成しました: ${contextFilePath}`;
+      responseText += `\n📁 テーマディレクトリ: ${themeArtifactsPath}`;
+      responseText += `\n🆔 THEME_START_ID: ${themeStartId}`;
+      
+      if (isSanitized) {
+        responseText += `\n⚠️ ディレクトリ名を「${themeDirectoryPart}」から「${sanitizedDirectoryPart}」に修正しました`;
+      }
+
+      return { content: [{ type: 'text' as const, text: responseText }] };
     } catch (error: any) {
       return { content: [{ type: 'text' as const, text: `エラー: テーマ専門家コンテキストファイルの作成に失敗しました: ${error.message}` }] };
     }
