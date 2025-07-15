@@ -55,15 +55,16 @@ themeboxが空の場合は、従来通り自律的に新テーマを決定する
 ## 5. ファイル命名規則
 
 ### 5.1 テーマ開始記録
-- ファイル名: `YYYYMMDDHHMMSS_start_テーマ名.md`
+- ファイル名: `{THEME_START_ID}_start_テーマ名.md`
 - 例: `20250115143000_start_AI自己研鑽.md`
 
 ### 5.2 テーマ終了記録
-- ファイル名: `YYYYMMDDHHMMSS_end_テーマ名.md`
+- ファイル名: `{THEME_END_ID}_end_テーマ名.md`
 - 例: `20250115180000_end_AI自己研鑽.md`
 
 ### 5.3 タイムスタンプ
-- ハートビートIDを使用
+- **テーマ開始記録**: THEME_START_ID（テーマ開始時のハートビートID）を使用
+- **テーマ終了記録**: THEME_END_ID（テーマ終了時のハートビートID）を使用
 - 形式: YYYYMMDDHHMMSS（年月日時分秒）
 
 ## 6. ファイル内容
@@ -74,7 +75,7 @@ themeboxが空の場合は、従来通り自律的に新テーマを決定する
 ```markdown
 # テーマ開始: [テーマ名]
 
-**テーマディレクトリ**: `artifacts/[themeDirectoryName]/`
+**テーマディレクトリ**: `artifacts/[THEME_START_ID_themeDirectoryName]/`
 
 **開始理由**: 
 [初期テーマ/前テーマ「XXX」から移行/など]
@@ -88,7 +89,9 @@ themeboxが空の場合は、従来通り自律的に新テーマを決定する
 ```markdown
 # テーマ終了: [テーマ名]
 
-**テーマディレクトリ**: `artifacts/[themeDirectoryName]/`
+**THEME_START_ID**: [テーマ開始時のハートビートID]
+**THEME_END_ID**: [テーマ終了時のハートビートID]
+**テーマディレクトリ**: `artifacts/[THEME_START_ID_themeDirectoryName]/`
 
 **終了理由**: 
 [完了/新テーマ「XXX」へ移行/など]
@@ -111,8 +114,9 @@ themeboxが空の場合は、従来通り自律的に新テーマを決定する
 
 #### テーマ終了時
 1. テーマ移行完了を判断
-2. 上記フォーマットに従って `_end_` ファイルを作成
-3. 新テーマに移行する場合は、続けて新テーマの `_start_` ファイルを作成
+2. **THEME_END_IDの設定**: 現在のハートビートIDをTHEME_END_IDとして記録
+3. 上記フォーマットに従って `_end_` ファイルを作成（THEME_START_IDとTHEME_END_IDの両方を記録）
+4. 新テーマに移行する場合は、続けて新テーマの `_start_` ファイルを作成
 
 ### 7.2 MCPツールによる作成支援（推奨）
 
@@ -120,13 +124,14 @@ themeboxが空の場合は、従来通り自律的に新テーマを決定する
 テーマ履歴ファイルの作成を支援するMCPツール `create_theme_log` が利用可能です。
 
 **使用方法**:
-- テーマ開始時: `action: "start"`
-- テーマ終了時: `action: "end"`
+- テーマ開始時: `action: "start"` (THEME_START_IDを使用)
+- テーマ終了時: `action: "end"` (THEME_END_IDを使用)
 - ハートビートIDと適切なパラメータを指定
 
 **利点**:
 - 標準的なフォーマットでの自動作成
-- ファイル名の自動生成
+- THEME_START_ID/THEME_END_IDを使用した適切なファイル名生成
+- 両IDの関連付けを含む完全な記録
 - 記録漏れの防止
 
 #### MCPツール使用時の注意事項
