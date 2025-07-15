@@ -20,7 +20,7 @@ export const themeLogInputSchema = z.object({
   themeName: z.string().describe('テーマの正式名称。'),
   themeDirectoryPart: z.string()
     .describe('テーマディレクトリ名の一部。THEME_START_IDと組み合わせて "{THEME_START_ID}_{themeDirectoryPart}" の形式でテーマディレクトリが作成されます（例: themeDirectoryPart="ai_research" → ディレクトリ="20250115143000_ai_research"）。半角英小文字、数字、アンダースコアのみ推奨'),
-  reason: z.string().optional().describe('テーマを開始または終了する理由。'),
+  reason: z.string().describe('テーマを開始または終了する理由。'),
   achievements: z.array(z.string()).optional().describe("テーマ終了時に記録する主な成果のリスト。actionが'end'の場合に使用します。"),
   activityContent: z.array(z.string()).optional().describe("テーマ開始時に記録する初期活動計画のリスト。actionが'start'の場合に使用します。"),
 });
