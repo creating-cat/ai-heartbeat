@@ -109,7 +109,7 @@ async function findAvailableSequence(theme: string, heartbeatId: string): Promis
 
 export const activityLogTool = {
   name: 'create_activity_log',
-  description: 'Creates a standard format activity log for the AI Heartbeat System.',
+  description: 'AIハートビートシステム用の、標準形式の活動ログを作成します。原則は1ハートビートに対して1つの活動ログの作成です。このハートビート内での活動がまだ終わっていない場合は、まだこのツールを使用すべきではありません。逆にこのツールを使用した後は活動を終了させて、次の活動は次のハートビートで行うべきです。',
   input_schema: activityLogInputSchema,
   execute: async (args: z.infer<typeof activityLogInputSchema>) => {
     try {

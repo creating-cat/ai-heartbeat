@@ -37,7 +37,7 @@ function formatList(items: string[] | undefined, emptyPlaceholder: string): stri
 
 export const themeLogTool = {
   name: 'create_theme_log',
-  description: 'Create theme history log for AI Heartbeat System',
+  description: 'AIハートビートシステム用のテーマ履歴ログを作成します。',
   input_schema: themeLogInputSchema,
   execute: async (args: z.infer<typeof themeLogInputSchema>) => {
     try {
