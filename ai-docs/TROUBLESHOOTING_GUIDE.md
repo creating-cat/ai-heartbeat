@@ -101,31 +101,18 @@ AI心臓システムには、異常な動作パターンを自動検知し、回
 
 **推奨パターン**:
 ```bash
-# 1. バックグラウンド起動
-npm run dev &
-SERVER_PID=$!
-echo $SERVER_PID > artifacts/current_theme/dev_server_pid.txt
+# 基本的な使用方法（30秒間実行）
+timeout 30s npm run dev
 
-# 2. 起動待機
-sleep 10
-
-# 3. 動作確認
-curl -s http://localhost:3000 > artifacts/current_theme/index_page.html
-echo "サーバー動作確認完了: $(date)" > artifacts/current_theme/server_check.log
-
-# 4. 開発作業の実行
-# （この間にファイル編集、テスト実行等）
-
-# 5. 終了処理
-kill $SERVER_PID
-echo "開発サーバー停止: $(date)" >> artifacts/current_theme/server_check.log
+# 出力も保存したい場合（オプション）
+timeout 30s npm run dev 2>&1 | tee artifacts/current_theme/server_output.log
 ```
 
 **重要なポイント**:
-- サーバー起動後は必ず動作確認を行い、結果をファイルに出力する
-- 長時間実行する場合は定期的に状態をファイルに記録する
-- 作業完了時は適切にプロセスを終了させる
-- バックグラウンド実行により、他の作業を並行して実行可能にする
+- timeoutコマンドにより確実に終了し、プロセス残存を防ぐ
+- 全ての出力がファイルに記録され、後から確認可能
+- 30秒という短時間で動作確認とログ取得が完了
+- 次のハートビートで継続的に監視・再実行が可能
 
 **問題の影響**:
 - 分析途中で無活動検知により中断される
