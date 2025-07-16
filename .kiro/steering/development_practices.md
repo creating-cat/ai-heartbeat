@@ -1,0 +1,161 @@
+---
+inclusion: always
+---
+
+# 開発実践ガイド
+
+## コードベース構造の理解
+
+### Shell Script開発
+- **メインスクリプト**: `setup.sh`, `heartbeat.sh`, `stop.sh`, `restart.sh`
+- **ライブラリ分離**: 機能別に`lib/`ディレクトリで分離
+- **設定外部化**: `heartbeat.conf`で設定値を管理
+- **エラーハンドリング**: `set -e`による厳格なエラー処理
+
+### ライブラリ設計パターン
+```bash
+# 各ライブラリの責務分離
+source "lib/logging.sh"      # ログ機能
+source "lib/config.sh"       # 設定管理
+source "lib/utils.sh"        # ユーティリティ
+source "lib/agent_io.sh"     # エージェント操作
+source "lib/health_check_core.sh"  # 異常検知
+```
+
+### 設定管理
+- **集中管理**: `heartbeat.conf`で閾値・間隔を定義
+- **環境変数**: `DEBUG_MODE`等の実行時制御
+- **OS対応**: macOS/Linux両対応の実装
+
+## 異常検知システムの実装
+
+### 検知機能の階層化
+```bash
+# health_check_core.shの戻り値体系
+# 0: 正常
+# 10-11: 活動ログ頻度異常（警告・エラー）
+# 13: 活動ログパターン異常
+# 14: 活動ログループ異常
+# 16: テーマログパターン異常
+# 17-18: 内省活動異常（警告・エラー）
+# 19-20: タイムスタンプ異常（警告・エラー）
+```
+
+### 状態管理パターン
+```bash
+# heartbeat.shの状態管理
+HEARTBEAT_STATE="normal"  # normal / recovery_waiting
+RECOVERY_ATTEMPT_COUNT=0
+RECOVERY_WAIT_CYCLES=0
+```
+
+## tmuxセッション管理
+
+### セッション構成
+```bash
+# setup.shでの2セッション作成
+tmux new-session -d -s agent      # AIエージェント
+tmux new-session -d -s heartbeat  # ハートビート送信
+```
+
+### エージェント操作パターン
+```bash
+# agent_io.shの操作関数
+send_message_to_agent()     # メッセージ送信
+interrupt_agent()           # 処理中断（Escape×2）
+compress_agent_context()    # コンテキスト圧縮
+save_agent_chat_history()  # チャット履歴保存
+```
+
+## ログ管理システム
+
+### ログレベル設計
+```bash
+log_error()     # エラー（常に出力・記録）
+log_warning()   # 警告（常に出力・記録）
+log_notice()    # 通知（常に出力・記録）
+log_info()      # 情報（常に出力、DEBUG時のみ記録）
+log_heartbeat() # ハートビート（専用フォーマット）
+```
+
+### ファイル管理
+- **自動命名**: `heartbeat_YYYYMMDDHHMMSS.log`
+- **自動クリーンアップ**: 30日以上古いログを削除
+- **色付き出力**: 標準出力での視認性向上
+
+## MCPツール開発
+
+### TypeScript構成
+```typescript
+// src/index.ts - エントリーポイント
+// tools/ - 各ツールの実装
+// - activityLogTool.ts
+// - themeLogTool.ts
+// - itemProcessorTool.ts
+// - webSearchStatsTool.ts
+// - createThemeExpertContextTool.ts
+```
+
+### ツール設計パターン
+- **Zod**によるスキーマ検証
+- **MCP SDK**による標準的な実装
+- **エラーハンドリング**と**警告メッセージ**
+
+## ファイル操作の安全性
+
+### 許可されるディレクトリ
+- `artifacts/`: AI生成物
+- `projects/`: 開発プロジェクト
+- `stats/`: システム状態
+- `themebox/`: テーマ管理（リネームのみ）
+- `feedbackbox/`: フィードバック管理（リネームのみ）
+
+### 禁止されるファイル
+- システムスクリプト（`*.sh`）
+- 設定ファイル（`heartbeat.conf`）
+- AIドキュメント（`ai-docs/`）
+- システムファイル（`.gitignore`, `LICENSE`等）
+
+## OS互換性の実装
+
+### macOS/Linux対応パターン
+```bash
+# utils.shのOS判定
+is_macos() {
+    [[ "$OSTYPE" == "darwin"* ]]
+}
+
+# ファイル時刻取得の分岐
+if is_macos; then
+    stat -f %m "$file"  # macOS
+else
+    stat -c %Y "$file"  # Linux
+fi
+```
+
+## エラー処理のベストプラクティス
+
+### 段階的回復処理
+1. **異常検知**: 複数の検知機能による早期発見
+2. **処理中断**: Escapeキーによる安全な中断
+3. **コンテキスト圧縮**: メモリ使用量の最適化
+4. **チャット保存**: 履歴の保全
+5. **回復待機**: 5サイクル（5分）の回復期間
+6. **状態確認**: 回復成功の検証
+
+### 連続エラー対応
+- **最大試行回数**: 3回まで
+- **試行間隔**: 5サイクル待機
+- **最終手段**: システム停止
+
+## 開発時の注意点
+
+### スクリプト修正時
+- **ライブラリ分離**: 機能追加は適切なライブラリに
+- **設定外部化**: ハードコード値は`heartbeat.conf`に
+- **エラーハンドリング**: 想定外の状況への対応
+
+### MCPツール開発時
+- **型安全性**: TypeScript + Zodによる厳密な型チェック
+- **エラーメッセージ**: ユーザーフレンドリーな警告・エラー
+- **後方互換性**: 既存機能への影響を最小化
