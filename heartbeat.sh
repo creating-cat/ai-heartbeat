@@ -436,21 +436,40 @@ attempt_recovery() {
             ;;
     esac
     
+    # 異常種別に応じた特定ドキュメントを決定
+    local specific_docs=""
+    case "$detection_type" in
+        "活動ログ内省不足"|"活動ログ頻度異常"|"活動ログパターン異常"|"活動ログループ異常"|"活動ログタイムスタンプ異常")
+            specific_docs="3. ai-docs/OPERATION_DETAILS.md - 活動ログ記録の詳細手順"
+            ;;
+        "テーマログパターン異常")
+            specific_docs="3. ai-docs/THEME_MANAGEMENT_GUIDE.md - テーマ管理の完全ガイド"
+            ;;
+        *)
+            specific_docs="3. ai-docs/OPERATION_DETAILS.md - 運用詳細ガイド"
+            ;;
+    esac
+
     # 回復メッセージを設定し、回復待機状態に移行
-    RECOVERY_MESSAGE="異常検知による回復処理: ${detection_type}を検知したため中断処理を行いました。
-コンテキストを圧縮してクリアな状態にリセットしました。
-チャット履歴をタグ「${chat_tag}」で保存しました。
+    RECOVERY_MESSAGE="🚨 **異常検知による回復処理**: ${detection_type}を検知したため緊急回復処理を実行しました。
 
-以下のドキュメントからシステム仕様を再ロードし、**あなた自身の動作ルールを再設定してください**：
-1. GEMINI.md - AI心臓システムでの基本的な動作ルール
-2. ai-docs/OPERATION_DETAILS.md - 運用詳細ガイド（活動ログ記録、ファイル操作等）
-3. ai-docs/TROUBLESHOOTING_GUIDE.md - 異常状況への対処方法
-4. ai-docs/GUIDELINES.md - 運用ガイドライン
+**実行した緊急回復のための処理:**
+- エージェント処理の安全な中断
+- コンテキスト圧縮によるメモリクリア
+- チャット履歴の保存（タグ: ${chat_tag}）
 
-システム仕様の再ロード完了後、artifacts/theme_historiesの最新の履歴および最新の活動ログを確認し、
-直前の活動内容を再確認してください。
+**回復手順:**
+以下のドキュメントを再ロードして、**あなた自身の動作ルールを再設定してください**
 
-その後、適切な内省活動を行い、正常な処理を再開してください。
+1. **GEMINI.md** - 基本的な動作ルールを再確認
+2. **ai-docs/TROUBLESHOOTING_GUIDE.md** - この異常状況への具体的対処法を確認
+${specific_docs}
+
+**次のステップ:**
+1. 上記ドキュメントで動作ルールと対処法を再確認
+2. artifacts/theme_historiesで直前の活動履歴を確認
+3. 最新の活動ログで中断前の状況を把握
+4. 適切な内省活動を実行して、このハートビートの活動を終了し、次のハートビートから活動を再開
 "
 
     # アドバイスメッセージがある場合は追加
