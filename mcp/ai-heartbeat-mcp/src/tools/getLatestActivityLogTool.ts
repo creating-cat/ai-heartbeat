@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { parseActivityLogFileName, FileNameInfo } from '../lib/activityLogParser';
 
 // Zod schema for get latest activity log input
 export const getLatestActivityLogInputSchema = z.object({
@@ -27,36 +28,10 @@ export const getLatestActivityLogInputSchema = z.object({
     .describe('取得する最新ログの件数（1-10件、デフォルト: 1）'),
 });
 
-// Helper function to parse heartbeat ID from filename
-function parseHeartbeatIdFromFilename(filename: string): { heartbeatId: string; sequence: number | null } | null {
-  // Remove .md extension
-  const nameWithoutExt = filename.replace(/\.md$/, '');
-  
-  // Check for sequenced format: YYYYMMDDHHMMSS_NN
-  const sequencedMatch = nameWithoutExt.match(/^(\d{14})_(\d{2})$/);
-  if (sequencedMatch) {
-    return {
-      heartbeatId: sequencedMatch[1],
-      sequence: parseInt(sequencedMatch[2], 10)
-    };
-  }
-  
-  // Check for basic format: YYYYMMDDHHMMSS
-  const basicMatch = nameWithoutExt.match(/^(\d{14})$/);
-  if (basicMatch) {
-    return {
-      heartbeatId: basicMatch[1],
-      sequence: null
-    };
-  }
-  
-  return null;
-}
-
 // Helper function to compare activity log files for sorting (latest first)
 function compareActivityLogFiles(a: string, b: string): number {
-  const parsedA = parseHeartbeatIdFromFilename(a);
-  const parsedB = parseHeartbeatIdFromFilename(b);
+  const parsedA = parseActivityLogFileName(a);
+  const parsedB = parseActivityLogFileName(b);
   
   if (!parsedA || !parsedB) {
     return 0; // Should not happen with filtered files
@@ -121,7 +96,7 @@ export const getLatestActivityLogTool = {
       let activityLogFiles = allFiles.filter(file => {
         if (!file.endsWith('.md')) return false;
         
-        const parsed = parseHeartbeatIdFromFilename(file);
+        const parsed = parseActivityLogFileName(file);
         if (!parsed) return false;
         
         // If includeSequenced is false, exclude sequenced files
@@ -154,12 +129,12 @@ export const getLatestActivityLogTool = {
       const requestedFiles = activityLogFiles.slice(0, numLogs);
       
       // Read content of all requested files
-      const logContents: Array<{ filename: string; content: string; parsed: ReturnType<typeof parseHeartbeatIdFromFilename> }> = [];
+      const logContents: Array<{ filename: string; content: string; parsed: FileNameInfo | null }> = [];
       
       for (const filename of requestedFiles) {
         const filePath = path.join(historiesDirectoryPath, filename);
         const content = await fs.readFile(filePath, 'utf-8');
-        const parsed = parseHeartbeatIdFromFilename(filename);
+        const parsed = parseActivityLogFileName(filename);
         logContents.push({ filename, content, parsed });
       }
       
