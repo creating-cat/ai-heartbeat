@@ -223,7 +223,7 @@ echo ""
 # STEP 6: エージェント起動
 log_info "🚀 エージェント起動中..."
 tmux send-keys -t agent "$AGENT_COMMAND" C-m
-sleep 10  # gemini-cliの起動を待機
+sleep 20  # gemini-cliの起動を待機
 log_success "✅ エージェントプロセス起動コマンド送信完了"
 echo ""
 
