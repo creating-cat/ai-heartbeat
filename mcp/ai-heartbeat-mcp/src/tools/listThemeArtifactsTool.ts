@@ -80,7 +80,20 @@ function shouldIncludeFile(filePath: string): boolean {
 
 export const listThemeArtifactsTool = {
   name: 'list_theme_artifacts',
-  description: '指定されたテーマディレクトリ内の成果物ファイルの一覧を取得します。プロジェクトルートからの絶対パスで表示され、名前順（時系列順）でソートされます。',
+  description: `指定されたテーマディレクトリ内の成果物ファイルの一覧をJSON形式で取得します。
+
+返却されるJSONフィールド:
+- theme_directory_part (string): 指定されたディレクトリ名の一部
+- theme_start_id (string): テーマ開始時のハートビートID
+- artifacts (array): 成果物ファイルのリスト
+  - 各要素は文字列（プロジェクトルートからの相対パス）
+  - 名前順（時系列順）でソート済み
+  - historiesディレクトリ（活動ログ）は除外
+  - 隠しファイル・システムファイルは自動除外
+- total_count (number): 成果物の総数
+- error (string, optional): エラーが発生した場合のエラーメッセージ
+
+創造活動や観測活動での過去成果物参照に使用します。`,
   input_schema: listThemeArtifactsInputSchema,
   execute: async (args: z.infer<typeof listThemeArtifactsInputSchema>) => {
     try {
@@ -99,7 +112,13 @@ export const listThemeArtifactsTool = {
           content: [
             {
               type: 'text' as const,
-              text: `エラー: テーマディレクトリが存在しません: ${themeDirectoryPath}`,
+              text: JSON.stringify({
+                theme_directory_part: sanitizedDirectoryPart,
+                theme_start_id: themeStartId,
+                artifacts: [],
+                total_count: 0,
+                error: 'Theme directory not found'
+              }, null, 2),
             },
           ],
         };
@@ -128,26 +147,19 @@ export const listThemeArtifactsTool = {
         return path.relative(projectRoot, filePath);
       });
       
-      // Generate response
-      if (relativeFiles.length === 0) {
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `テーマディレクトリに成果物ファイルが見つかりませんでした: ${themeDirectoryPath}`,
-            },
-          ],
-        };
-      }
-      
-      // Simple list format - just the file paths
-      const responseText = relativeFiles.join('\n');
+      // Generate JSON response
+      const jsonResponse = {
+        theme_directory_part: sanitizedDirectoryPart,
+        theme_start_id: themeStartId,
+        artifacts: relativeFiles,
+        total_count: relativeFiles.length
+      };
       
       return {
         content: [
           {
             type: 'text' as const,
-            text: responseText,
+            text: JSON.stringify(jsonResponse, null, 2),
           },
         ],
       };
@@ -157,7 +169,13 @@ export const listThemeArtifactsTool = {
         content: [
           {
             type: 'text' as const,
-            text: `エラーが発生しました: ${error instanceof Error ? error.message : String(error)}`,
+            text: JSON.stringify({
+              theme_directory_part: args.themeDirectoryPart,
+              theme_start_id: args.themeStartId,
+              artifacts: [],
+              total_count: 0,
+              error: error instanceof Error ? error.message : String(error)
+            }, null, 2),
           },
         ],
       };
