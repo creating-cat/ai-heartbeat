@@ -7,7 +7,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { activityLogTool } from './tools/activityLogTool';
 import { themeLogTool } from './tools/themeLogTool';
 import { itemProcessorTool } from './tools/itemProcessorTool';
-import { webSearchStatsTool } from './tools/webSearchStatsTool';
+import { reportToolUsageTool } from './tools/reportToolUsageTool.js';
 import { createThemeExpertContextTool } from './tools/createThemeExpertContextTool';
 
 // Create MCP server
@@ -41,12 +41,12 @@ server.tool(
   itemProcessorTool.execute,
 );
 
-// Register web search stats tool
+// Register report tool usage tool
 server.tool(
-  webSearchStatsTool.name,
-  webSearchStatsTool.description,
-  webSearchStatsTool.input_schema.shape,
-  webSearchStatsTool.execute,
+  reportToolUsageTool.name,
+  reportToolUsageTool.description,
+  reportToolUsageTool.input_schema.shape,
+  reportToolUsageTool.execute,
 );
 
 // Register create theme expert context tool

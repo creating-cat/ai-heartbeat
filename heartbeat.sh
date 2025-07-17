@@ -15,8 +15,8 @@ load_config "$CONFIG_FILE" || exit 1
 HEARTBEAT_START_TIME=$(date +%s)                                      # 秒形式（基準・時刻比較用）
 HEARTBEAT_START_TIMESTAMP=$(date -r $HEARTBEAT_START_TIME "+%Y%m%d%H%M%S")  # 文字列形式（ログファイル名・チャットタグ用）
 
-# statsディレクトリ作成
-mkdir -p stats
+ # statsディレクトリ作成（cooldownとlockサブディレクトリも）
+mkdir -p stats/cooldown stats/lock
 
 # Web検索制限メッセージ用グローバル変数
 WEB_RESTRICTION_MESSAGE=""
@@ -46,6 +46,10 @@ HEALTH_CHECK_DETAIL=""
 # 状態管理用変数
 HEARTBEAT_STATE="normal"  # normal / recovery_waiting
 RECOVERY_WAIT_CYCLES=0
+
+# ツールクールダウン設定用連想配列
+declare -A TOOL_COOLDOWNS
+declare -A TOOL_LOCKS
 
 # 終了フラグ
 SHUTDOWN_REQUESTED=false
@@ -141,58 +145,71 @@ check_feedbackbox() {
     return 0  # フィードバックなし
 }
 
-# Web検索制限チェック関数
-check_web_search_restriction() {
-    WEB_RESTRICTION_MESSAGE=""
-    current_time=$(date +%s)
-    
-    # クォータ制限チェック（優先）
-    if [ -f "stats/quota_exceeded.txt" ]; then
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            # macOS
-            quota_time=$(stat -f %m stats/quota_exceeded.txt)
+# ツールクールダウン設定を読み込む
+load_tool_cooldown_config() {
+    local config_file="tool_cooldowns.conf"
+    if [ ! -f "$config_file" ]; then
+        log_warning "Tool cooldown config file not found: $config_file"
+        return
+    fi
+    while IFS=':' read -r tool_id cooldown_sec lock_sec || [[ -n "$tool_id" ]]; do
+        # コメント行と空行をスキップ
+        tool_id=$(echo "$tool_id" | xargs) # trim whitespace
+        [[ "$tool_id" =~ ^\s*# ]] && continue
+        [[ -z "$tool_id" ]] && continue
+
+        TOOL_COOLDOWNS["$tool_id"]=${cooldown_sec:-0}
+        TOOL_LOCKS["$tool_id"]=${lock_sec:-0}
+        log_info "Loaded cooldown for '$tool_id': ${cooldown_sec}s (cooldown), ${lock_sec}s (lock)"
+    done < "$config_file"
+}
+
+# 汎用的なツール利用制限チェック関数
+check_tool_restrictions() {
+    TOOL_RESTRICTION_MESSAGES=""
+    local current_time=$(date +%s)
+
+    # 1. ロックされたツールをチェック (stats/lock/)
+    for lockfile in stats/lock/*; do
+        [ -f "$lockfile" ] || continue
+        local tool_id=$(basename "$lockfile")
+        local lock_time=$(get_file_time "$lockfile")
+        local lock_duration=${TOOL_LOCKS[$tool_id]:-3600} # Default 1 hour
+        local diff=$((current_time - lock_time))
+
+        if [ $diff -lt $lock_duration ]; then
+            local remaining=$((lock_duration - diff))
+            TOOL_RESTRICTION_MESSAGES+="🚫 ツール[${tool_id}]はロック中です (クォータ超過のため、残り約$((remaining / 60))分)\n"
         else
-            # Linux
-            quota_time=$(stat -c %Y stats/quota_exceeded.txt)
+            rm "$lockfile" && log_info "Tool lock for [$tool_id] has been lifted."
         fi
-        
-        diff=$((current_time - quota_time))
-        
-        if [ $diff -lt $WEB_SEARCH_QUOTA_RESTRICTION_TIME ]; then
-            # クォータ制限時間未満：Web検索禁止
-            WEB_RESTRICTION_MESSAGE="🚫 このハートビートでのWeb検索は使用禁止（クォータ制限のため長時間制限中）"
-            return 1
-        else
-            # クォータ制限時間経過：制限解除、ファイル削除
-            rm stats/quota_exceeded.txt
-            log_info "Web search quota restriction lifted"
-            return 0
+    done
+
+    # 2. クールダウン中のツールをチェック (stats/cooldown/)
+    for cooldownfile in stats/cooldown/*; do
+        [ -f "$cooldownfile" ] || continue
+        local tool_id=$(basename "$cooldownfile")
+        # すでにロックされていないか確認
+        if [[ $TOOL_RESTRICTION_MESSAGES != *"$tool_id"* ]]; then
+            local cooldown_time=$(get_file_time "$cooldownfile")
+            local cooldown_duration=${TOOL_COOLDOWNS[$tool_id]:-600} # Default 10 mins
+            local diff=$((current_time - cooldown_time))
+
+            if [ $diff -lt $cooldown_duration ]; then
+                local remaining=$((cooldown_duration - diff))
+                TOOL_RESTRICTION_MESSAGES+="🚫 ツール[${tool_id}]はクールダウン中です (残り約$((remaining / 60))分)\n"
+            else
+                rm "$cooldownfile" && log_info "Tool cooldown for [$tool_id] has ended."
+            fi
         fi
+    done
+
+    # メッセージがあれば制限あり
+    if [ -n "$TOOL_RESTRICTION_MESSAGES" ]; then
+        TOOL_RESTRICTION_MESSAGES=$(echo -e "${TOOL_RESTRICTION_MESSAGES}" | sed '/^$/d')
+        return 1
     fi
     
-    # 通常制限チェック
-    if [ -f "stats/last_web_search.txt" ]; then
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            # macOS
-            last_search=$(stat -f %m stats/last_web_search.txt)
-        else
-            # Linux
-            last_search=$(stat -c %Y stats/last_web_search.txt)
-        fi
-        
-        diff=$((current_time - last_search))
-        
-        if [ $diff -lt $WEB_SEARCH_RESTRICTION_TIME ]; then
-            # 制限時間未満：Web検索禁止
-            WEB_RESTRICTION_MESSAGE="🚫 このハートビートでのWeb検索は使用禁止（クォータ制限回避のため）"
-            return 1
-        else
-            # 制限時間経過：制限解除、ファイル削除
-            rm stats/last_web_search.txt
-            log_info "Web search restriction lifted"
-            return 0
-        fi
-    fi
     return 0
 }
 
@@ -473,6 +490,9 @@ log_notice "Monitored directories: ${MONITORED_DIRS[*]}"
 log_notice "Warning threshold: $((INACTIVITY_WARNING_THRESHOLD / 60)) minutes"
 log_notice "Stop threshold: $((INACTIVITY_STOP_THRESHOLD / 60)) minutes"
 
+# ツールクールダウン設定を読み込む
+load_tool_cooldown_config
+
 # 初回ハートビート送信（起動直後）
 log_notice "Sending initial heartbeat immediately after startup..."
 
@@ -548,8 +568,8 @@ while true; do
         check_recent_activity
     fi
 
-    # 4. Web検索制限チェック
-    check_web_search_restriction
+    # 4. ツール利用制限チェック
+    check_tool_restrictions
     
     # 4.5 feedbackboxチェック
     check_feedbackbox
@@ -568,11 +588,11 @@ while true; do
     # ハートビートメッセージ作成
     heartbeat_msg="Heartbeat: $(date "+%Y%m%d%H%M%S")"
     
-    # Web検索制限メッセージ追加
-    if [ ! -z "$WEB_RESTRICTION_MESSAGE" ]; then
+    # ツール利用制限メッセージ追加
+    if [ ! -z "$TOOL_RESTRICTION_MESSAGES" ]; then
         heartbeat_msg="$heartbeat_msg
 
-$WEB_RESTRICTION_MESSAGE"
+$TOOL_RESTRICTION_MESSAGES"
     fi
     
     # 内省促進メッセージ追加
