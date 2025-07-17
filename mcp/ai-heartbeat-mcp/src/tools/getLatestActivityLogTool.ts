@@ -18,6 +18,13 @@ export const getLatestActivityLogInputSchema = z.object({
     .optional()
     .default(true)
     .describe('連番付きファイル（_01, _02等）も検索対象に含めるか。デフォルトはtrue'),
+  numLogs: z.number()
+    .int()
+    .min(1)
+    .max(10)
+    .optional()
+    .default(1)
+    .describe('取得する最新ログの件数（1-10件、デフォルト: 1）'),
 });
 
 // Helper function to parse heartbeat ID from filename
@@ -69,11 +76,11 @@ function compareActivityLogFiles(a: string, b: string): number {
 
 export const getLatestActivityLogTool = {
   name: 'get_latest_activity_log',
-  description: '指定されたテーマディレクトリ内の最新の活動ログファイルの内容を取得します。過去の活動を振り返る際や、継続的な思考を行う際に有用です。',
+  description: '指定されたテーマディレクトリ内の最新の活動ログファイルの内容を取得します。numLogsパラメータで複数のログを一度に取得可能です。過去の活動を振り返る際や、継続的な思考を行う際に有用です。',
   input_schema: getLatestActivityLogInputSchema,
   execute: async (args: z.infer<typeof getLatestActivityLogInputSchema>) => {
     try {
-      const { themeStartId, themeDirectoryPart, includeSequenced } = args;
+      const { themeStartId, themeDirectoryPart, includeSequenced, numLogs } = args;
       
       // Sanitize directory part to prevent directory traversal
       const sanitizedDirectoryPart = path.basename(themeDirectoryPart);
@@ -140,27 +147,60 @@ export const getLatestActivityLogTool = {
         };
       }
       
-      // Sort files to get the latest one
+      // Sort files to get the latest ones
       activityLogFiles.sort(compareActivityLogFiles);
-      const latestFile = activityLogFiles[0];
-      const latestFilePath = path.join(historiesDirectoryPath, latestFile);
       
-      // Read the content of the latest file
-      const content = await fs.readFile(latestFilePath, 'utf-8');
+      // Get the requested number of latest files
+      const requestedFiles = activityLogFiles.slice(0, numLogs);
       
-      // Parse file info for response
-      const parsed = parseHeartbeatIdFromFilename(latestFile);
-      const sequenceInfo = parsed && parsed.sequence !== null ? ` (連番: ${parsed.sequence.toString().padStart(2, '0')})` : '';
+      // Read content of all requested files
+      const logContents: Array<{ filename: string; content: string; parsed: ReturnType<typeof parseHeartbeatIdFromFilename> }> = [];
       
-      const responseText = `最新の活動ログを取得しました:
+      for (const filename of requestedFiles) {
+        const filePath = path.join(historiesDirectoryPath, filename);
+        const content = await fs.readFile(filePath, 'utf-8');
+        const parsed = parseHeartbeatIdFromFilename(filename);
+        logContents.push({ filename, content, parsed });
+      }
+      
+      // Build response text
+      let responseText: string;
+      
+      if (numLogs === 1) {
+        // Single log format (backward compatibility)
+        const { filename, content, parsed } = logContents[0];
+        const sequenceInfo = parsed && parsed.sequence !== null ? ` (連番: ${parsed.sequence.toString().padStart(2, '0')})` : '';
+        
+        responseText = `最新の活動ログを取得しました:
 📁 テーマ: ${sanitizedDirectoryPart} (${themeStartId})
-📄 ファイル: ${latestFile}${sequenceInfo}
-📍 パス: ${latestFilePath}
+📄 ファイル: ${filename}${sequenceInfo}
+📍 パス: ${path.join(historiesDirectoryPath, filename)}
 📊 総活動ログ数: ${activityLogFiles.length}件
 
 ---
 
 ${content}`;
+      } else {
+        // Multiple logs format
+        responseText = `最新の活動ログ ${numLogs}件を取得しました:
+📁 テーマ: ${sanitizedDirectoryPart} (${themeStartId})
+📊 取得件数: ${logContents.length}件 / 総件数: ${activityLogFiles.length}件
+
+`;
+        
+        logContents.forEach((log, index) => {
+          const sequenceInfo = log.parsed && log.parsed.sequence !== null ? ` (連番: ${log.parsed.sequence.toString().padStart(2, '0')})` : '';
+          const isLatest = index === 0 ? ' (最新)' : '';
+          
+          responseText += `========================================
+📄 ログ ${index + 1}/${logContents.length}: ${log.filename}${sequenceInfo}${isLatest}
+========================================
+
+${log.content}
+
+`;
+        });
+      }
       
       return {
         content: [
