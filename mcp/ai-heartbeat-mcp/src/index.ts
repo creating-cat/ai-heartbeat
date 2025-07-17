@@ -12,6 +12,7 @@ import { createThemeExpertContextTool } from './tools/createThemeExpertContextTo
 import { getLatestActivityLogTool } from './tools/getLatestActivityLogTool';
 import { checkThemeStatusTool } from './tools/checkThemeStatusTool';
 import { listThemeArtifactsTool } from './tools/listThemeArtifactsTool';
+import { getLatestThemeContextTool } from './tools/getLatestThemeContextTool';
 
 // Create MCP server
 const server = new McpServer({
@@ -82,6 +83,14 @@ server.tool(
   listThemeArtifactsTool.description,
   listThemeArtifactsTool.input_schema.shape,
   listThemeArtifactsTool.execute
+);
+
+// Register get latest theme context tool
+server.tool(
+  getLatestThemeContextTool.name,
+  getLatestThemeContextTool.description,
+  getLatestThemeContextTool.input_schema.shape,
+  getLatestThemeContextTool.execute
 );
 
 // Start server with stdio transport
