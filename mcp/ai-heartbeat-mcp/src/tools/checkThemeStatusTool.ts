@@ -19,17 +19,6 @@ export const checkThemeStatusInputSchema = z.object({
     .describe('テーマ開始時のハートビートID'),
   themeDirectoryPart: z.string()
     .describe('テーマディレクトリ名の一部。THEME_START_IDと組み合わせて "{THEME_START_ID}_{themeDirectoryPart}" の形式でテーマディレクトリが特定されます'),
-  includeDetailedStats: z.boolean()
-    .optional()
-    .default(true)
-    .describe('詳細な統計情報を含めるか（false の場合は基本情報のみ）'),
-  recentActivityCount: z.number()
-    .int()
-    .min(3)
-    .max(20)
-    .optional()
-    .default(10)
-    .describe('直近の活動パターン分析に使用する活動数'),
 });
 
 // Types for theme status analysis
@@ -47,6 +36,24 @@ interface ThemeBasicInfo {
     minutes: number;
     totalHours: number;
     humanReadable: string;
+  };
+}
+
+// JSON output format
+interface ThemeStatusJson {
+  is_active: boolean;
+  theme_name?: string;
+  theme_directory_part?: string;
+  theme_start_id?: string;
+  theme_end_id?: string;
+  last_activity_type?: string;
+  last_activity_timestamp?: string;
+  detailed_stats: {
+    total_activities: number;
+    total_artifacts: number;
+    activity_distribution: { [key: string]: number };
+    duration_hours: number;
+    time_since_last_activity_hours?: number;
   };
 }
 
@@ -97,6 +104,59 @@ interface ArtifactStats {
 }
 
 // Helper functions
+
+/**
+ * Get theme information from theme history files
+ */
+async function getThemeInfoFromHistory(themeStartId: string, themeDirectoryPart: string): Promise<{
+  themeName?: string;
+  themeEndId?: string;
+  isActive: boolean;
+}> {
+  try {
+    const themeHistoriesDir = path.join('artifacts', 'theme_histories');
+    
+    if (!await fs.pathExists(themeHistoriesDir)) {
+      return { isActive: false };
+    }
+    
+    const files = await fs.readdir(themeHistoriesDir);
+    
+    // Look for start file
+    const startFileName = `${themeStartId}_start_${themeDirectoryPart}.md`;
+    const startFile = files.find(f => f === startFileName);
+    
+    let themeName: string | undefined;
+    if (startFile) {
+      const startContent = await fs.readFile(path.join(themeHistoriesDir, startFile), 'utf-8');
+      const nameMatch = startContent.match(/^# テーマ開始: (.+)$/m);
+      if (nameMatch) {
+        themeName = nameMatch[1];
+      }
+    }
+    
+    // Look for end file
+    const endFilePattern = new RegExp(`^(\\d{14})_end_${themeDirectoryPart}\\.md$`);
+    const endFile = files.find(f => endFilePattern.test(f));
+    
+    if (endFile) {
+      const endMatch = endFile.match(endFilePattern);
+      const themeEndId = endMatch ? endMatch[1] : undefined;
+      return {
+        themeName,
+        themeEndId,
+        isActive: false
+      };
+    }
+    
+    return {
+      themeName,
+      isActive: true
+    };
+  } catch (error) {
+    return { isActive: false };
+  }
+}
 
 /**
  * Check if theme is active (no end log exists)
@@ -331,19 +391,84 @@ function analyzeArtifactStats(activities: ActivityLogInfo[]): ArtifactStats {
   };
 }
 
+// Function to generate JSON output
+function generateJsonOutput(
+  themeStartId: string,
+  themeDirectoryPart: string,
+  themeInfo: { themeName?: string; themeEndId?: string; isActive: boolean },
+  basicInfo: ThemeBasicInfo,
+  activityStats: ActivityStats,
+  artifactStats: ArtifactStats
+): ThemeStatusJson {
+  const result: ThemeStatusJson = {
+    is_active: themeInfo.isActive,
+    detailed_stats: {
+      total_activities: activityStats.totalCount,
+      total_artifacts: artifactStats.totalCount,
+      activity_distribution: Object.fromEntries(
+        Object.entries(activityStats.typeDistribution).map(([key, value]) => [key, value.count])
+      ),
+      duration_hours: basicInfo.duration.totalHours
+    }
+  };
+  
+  if (themeInfo.isActive) {
+    result.theme_name = themeInfo.themeName;
+    result.theme_directory_part = themeDirectoryPart;
+    result.theme_start_id = themeStartId;
+    
+    if (activityStats.lastActivity) {
+      result.last_activity_timestamp = activityStats.lastActivity;
+      
+      // Extract activity type from the most recent activity
+      if (activityStats.recentPattern.length > 0) {
+        result.last_activity_type = activityStats.recentPattern[0].activityType;
+      }
+    }
+  } else if (themeInfo.themeEndId) {
+    result.theme_end_id = themeInfo.themeEndId;
+  }
+  
+  if (activityStats.timeSinceLastActivity) {
+    result.detailed_stats.time_since_last_activity_hours = activityStats.timeSinceLastActivity.hours + (activityStats.timeSinceLastActivity.minutes / 60);
+  }
+  
+  return result;
+}
+
 export const checkThemeStatusTool = {
   name: 'check_theme_status',
-  description: '指定されたテーマの現在の状態（進行中/終了済み、活動統計、成果物情報など）を分析・報告します。テーマの継続判断や活動パターンの把握に有用です。',
+  description: `指定されたテーマの現在の状態と統計情報をJSON形式で分析・返却します。
+
+返却されるJSONフィールド:
+- is_active (boolean): テーマが現在アクティブ（進行中）かどうか
+- theme_name (string, optional): テーマの正式名称（is_activeがtrueの場合）
+- theme_directory_part (string, optional): ディレクトリ名の一部（is_activeがtrueの場合）
+- theme_start_id (string, optional): テーマ開始時のハートビートID（is_activeがtrueの場合）
+- theme_end_id (string, optional): テーマ終了時のハートビートID（is_activeがfalseかつ終了済みの場合）
+- last_activity_type (string, optional): 最後に記録された活動の種別（is_activeがtrueの場合）
+- last_activity_timestamp (string, optional): 最後の活動のタイムスタンプ（is_activeがtrueの場合）
+- detailed_stats (object): 詳細統計情報
+  - total_activities (number): 総活動数
+  - total_artifacts (number): 総成果物数
+  - activity_distribution (object): 活動種別ごとの件数
+  - duration_hours (number): テーマの継続時間（時間単位）
+  - time_since_last_activity_hours (number, optional): 最終活動からの経過時間（時間単位）
+
+テーマの進捗状況や完了度を客観的に評価するために使用します。`,
   input_schema: checkThemeStatusInputSchema,
   execute: async (args: z.infer<typeof checkThemeStatusInputSchema>) => {
     try {
-      const { themeStartId, themeDirectoryPart, includeDetailedStats, recentActivityCount } = args;
+      const { themeStartId, themeDirectoryPart } = args;
       
       // Sanitize directory part
       const sanitizedDirectoryPart = path.basename(themeDirectoryPart);
       const themeDirectoryName = `${themeStartId}_${sanitizedDirectoryPart}`;
       const themeDirectoryPath = path.join('artifacts', themeDirectoryName);
       const historiesDirectoryPath = path.join(themeDirectoryPath, 'histories');
+      
+      // Get theme information from history files
+      const themeInfo = await getThemeInfoFromHistory(themeStartId, sanitizedDirectoryPart);
       
       // Check basic theme info
       const themeExists = await fs.pathExists(themeDirectoryPath);
@@ -352,7 +477,18 @@ export const checkThemeStatusTool = {
           content: [
             {
               type: 'text' as const,
-              text: `❌ テーマが存在しません: ${themeDirectoryName}\n\n指定されたテーマディレクトリが見つかりませんでした。\nTHEME_START_ID: ${themeStartId}\nテーマ名: ${sanitizedDirectoryPart}`,
+              text: JSON.stringify({
+                is_active: false,
+                error: 'Theme directory not found',
+                theme_start_id: themeStartId,
+                theme_directory_part: sanitizedDirectoryPart,
+                detailed_stats: {
+                  total_activities: 0,
+                  total_artifacts: 0,
+                  activity_distribution: {},
+                  duration_hours: 0
+                }
+              }, null, 2),
             },
           ],
         };
@@ -386,126 +522,29 @@ export const checkThemeStatusTool = {
           console.warn(`Warning: ${parseResult.failed.length} activity logs failed to parse`);
         }
         
-        activityStats = analyzeActivityStats(parseResult.successful, recentActivityCount);
+        activityStats = analyzeActivityStats(parseResult.successful, 10);
         artifactStats = analyzeArtifactStats(parseResult.successful);
       } else {
         // No activities yet
-        activityStats = analyzeActivityStats([], recentActivityCount);
+        activityStats = analyzeActivityStats([], 10);
         artifactStats = analyzeArtifactStats([]);
       }
       
-      // Generate response
-      let responseText = '';
-      
-      if (includeDetailedStats) {
-        // Detailed format
-        responseText = `📊 テーマ状態レポート: ${sanitizedDirectoryPart} (${themeStartId})
-
-🔄 基本情報:
-  ✅ テーマ存在: はい
-  ${basicInfo.isActive ? '🟢 状態: 進行中' : '🔴 状態: 終了済み'}
-  📅 開始: ${startDate.toLocaleString('ja-JP')}
-  ${!basicInfo.isActive && basicInfo.endDate ? `🏁 終了: ${basicInfo.endDate.toLocaleString('ja-JP')}` : ''}
-  ⏱️ ${basicInfo.isActive ? '継続期間' : '総期間'}: ${duration.humanReadable}`;
-
-        if (activityStats.totalCount > 0) {
-          responseText += `
-
-📈 活動統計 (総${activityStats.totalCount}件):
-  🕐 最終活動: ${parseHeartbeatIdToDate(activityStats.lastActivity!).toLocaleString('ja-JP')} (${activityStats.timeSinceLastActivity!.humanReadable})
-  📊 平均間隔: ${activityStats.frequencyAnalysis.averageInterval}分
-  ${activityStats.frequencyAnalysis.isRegular ? '✅ 規則的な活動パターン' : '⚠️ 不規則な活動パターン'}
-  
-  種別内訳:`;
-          
-          for (const [type, stats] of Object.entries(activityStats.typeDistribution)) {
-            const lastOccurrence = stats.lastOccurrence ? parseHeartbeatIdToDate(stats.lastOccurrence) : null;
-            const timeAgo = lastOccurrence ? calculateDuration(lastOccurrence).humanReadable + '前' : '不明';
-            responseText += `\n  - ${type}: ${stats.count}件 (${stats.percentage}%) - 最終: ${timeAgo}`;
-          }
-          
-          responseText += `\n  
-  📋 直近パターン (${activityStats.recentPattern.length}件):
-  ${activityStats.recentPattern.map(p => p.activityType).join(' → ')}`;
-        } else {
-          responseText += `
-
-📈 活動統計:
-  ℹ️ まだ活動ログが記録されていません`;
-        }
-
-        if (artifactStats.totalCount > 0) {
-          responseText += `
-
-🎯 成果物 (総${artifactStats.totalCount}件):
-  📄 ファイル種別: ${Object.entries(artifactStats.fileTypes).map(([ext, info]) => `${ext}(${info.count})`).join(', ')}
-  🆕 最新成果物:`;
-          
-          for (const artifact of artifactStats.recentArtifacts.slice(0, 3)) {
-            responseText += `\n    - ${artifact.filename} (${artifact.heartbeatId})`;
-          }
-          
-          responseText += `\n  
-  📊 生産性: 平均${artifactStats.productivityTrend.artifactsPerActivity}件/活動
-  🏆 最も生産的: ${artifactStats.productivityTrend.mostProductiveActivityType}活動`;
-        } else {
-          responseText += `
-
-🎯 成果物:
-  ℹ️ まだ成果物が記録されていません`;
-        }
-
-        // Analysis and recommendations
-        responseText += `
-
-💡 分析・推奨:`;
-        
-        if (activityStats.totalCount === 0) {
-          responseText += `\n  📝 テーマが開始されましたが、まだ活動が記録されていません`;
-          responseText += `\n  💡 次回推奨: 思考活動でテーマの方向性を検討`;
-        } else {
-          // Activity balance analysis
-          const typeCount = Object.keys(activityStats.typeDistribution).length;
-          if (typeCount >= 3) {
-            responseText += `\n  ✅ バランスの良い活動パターン (${typeCount}種類の活動)`;
-          } else {
-            responseText += `\n  ⚠️ 活動種別が少なめ (${typeCount}種類) - 多様な活動を推奨`;
-          }
-          
-          // Frequency analysis
-          if (activityStats.frequencyAnalysis.lastGap > 240) { // 4 hours
-            responseText += `\n  ⏰ 最終活動から${activityStats.timeSinceLastActivity!.humanReadable}経過 - 活動再開を推奨`;
-          } else if (activityStats.frequencyAnalysis.isRegular) {
-            responseText += `\n  ✅ 定期的な活動継続`;
-          }
-          
-          // Activity type recommendations
-          const introspectionCount = activityStats.typeDistribution['内省']?.count || 0;
-          const introspectionPercentage = activityStats.typeDistribution['内省']?.percentage || 0;
-          if (introspectionPercentage < 15 && activityStats.totalCount >= 5) {
-            responseText += `\n  💭 内省活動が少なめ (${introspectionPercentage}%) - 振り返りを推奨`;
-          }
-          
-          // Productivity analysis
-          if (artifactStats.productivityTrend.artifactsPerActivity > 0.5) {
-            responseText += `\n  🎯 高い生産性 (${artifactStats.productivityTrend.artifactsPerActivity}件/活動)`;
-          }
-        }
-        
-      } else {
-        // Simple format
-        responseText = `📊 テーマ状態: ${sanitizedDirectoryPart} (${themeStartId})
-
-🔄 状態: ${basicInfo.isActive ? '進行中' : '終了済み'} (${duration.humanReadable})
-📝 活動: ${activityStats.totalCount}件${activityStats.lastActivity ? ` (最終: ${activityStats.timeSinceLastActivity!.humanReadable})` : ''}
-🎯 成果物: ${artifactStats.totalCount}件`;
-      }
+      // Generate JSON output
+      const jsonOutput = generateJsonOutput(
+        themeStartId,
+        sanitizedDirectoryPart,
+        themeInfo,
+        basicInfo,
+        activityStats,
+        artifactStats
+      );
       
       return {
         content: [
           {
             type: 'text' as const,
-            text: responseText,
+            text: JSON.stringify(jsonOutput, null, 2),
           },
         ],
       };
@@ -515,7 +554,16 @@ export const checkThemeStatusTool = {
         content: [
           {
             type: 'text' as const,
-            text: `エラーが発生しました: ${error instanceof Error ? error.message : String(error)}`,
+            text: JSON.stringify({
+              is_active: false,
+              error: error instanceof Error ? error.message : String(error),
+              detailed_stats: {
+                total_activities: 0,
+                total_artifacts: 0,
+                activity_distribution: {},
+                duration_hours: 0
+              }
+            }, null, 2),
           },
         ],
       };
