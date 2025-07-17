@@ -11,6 +11,7 @@ import { reportToolUsageTool } from './tools/reportToolUsageTool.js';
 import { createThemeExpertContextTool } from './tools/createThemeExpertContextTool';
 import { getLatestActivityLogTool } from './tools/getLatestActivityLogTool';
 import { checkThemeStatusTool } from './tools/checkThemeStatusTool';
+import { listThemeArtifactsTool } from './tools/listThemeArtifactsTool';
 
 // Create MCP server
 const server = new McpServer({
@@ -73,6 +74,14 @@ server.tool(
   checkThemeStatusTool.description,
   checkThemeStatusTool.input_schema.shape,
   checkThemeStatusTool.execute
+);
+
+// Register list theme artifacts tool
+server.tool(
+  listThemeArtifactsTool.name,
+  listThemeArtifactsTool.description,
+  listThemeArtifactsTool.input_schema.shape,
+  listThemeArtifactsTool.execute
 );
 
 // Start server with stdio transport
