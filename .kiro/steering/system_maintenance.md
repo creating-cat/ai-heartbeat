@@ -33,9 +33,10 @@ inclusion: always
 INTERVAL_SECONDS=60                    # ハートビート間隔
 INACTIVITY_WARNING_THRESHOLD=300       # 無活動警告閾値（5分）
 INACTIVITY_STOP_THRESHOLD=600          # 無活動停止閾値（10分）
+TIMESTAMP_ANOMALY_THRESHOLD=900        # タイムスタンプ異常検知閾値（15分）
 INTROSPECTION_THRESHOLD=1800           # 内省不足閾値（30分）
-WEB_SEARCH_RESTRICTION_TIME=600        # Web検索制限時間（10分）
 MAX_RECOVERY_ATTEMPTS=3                # 最大回復試行回数
+MAX_RECOVERY_WAIT_CYCLES=5             # 最大回復待機サイクル数
 ```
 
 ### Gemini CLI設定
@@ -43,9 +44,27 @@ MAX_RECOVERY_ATTEMPTS=3                # 最大回復試行回数
 // .gemini/settings.json - MCP設定
 {
   "mcpServers": {
+    "gemini-image-mcp-server": {
+      "command": "npx",
+      "args": ["-y", "@creating-cat/gemini-image-mcp-server"],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}"
+      },
+      "timeout": 300000,
+      "trust": true
+    },
+    "mult-fetch-mcp-server": {
+      "command": "npx",
+      "args": ["@lmcc-dev/mult-fetch-mcp-server"],
+      "env": {
+        "MCP_LANG": "en"
+      },
+      "trust": true
+    },
     "ai-heartbeat-mcp": {
       "command": "node",
-      "args": ["mcp/ai-heartbeat-mcp/dist/index.js"]
+      "args": ["./mcp/ai-heartbeat-mcp/dist/index.js"],
+      "trust": true
     }
   }
 }
@@ -108,7 +127,9 @@ npm run dev          # 開発モード実行（テスト用）
 artifacts/          # AI生成物（除外）
 stats/             # システム状態（除外）
 logs/              # ログファイル（除外）
+*.local            # ローカル設定ファイル（除外）
 projects/          # 開発プロジェクト（除外）
+results/           # テスト結果（除外）
 feedbackbox/       # フィードバック（除外）
 themebox/*         # テーマファイル（除外）
 tmp_*              # 一時ファイル（除外）

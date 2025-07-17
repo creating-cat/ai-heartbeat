@@ -88,12 +88,15 @@ log_heartbeat() # ハートビート（専用フォーマット）
 ### TypeScript構成
 ```typescript
 // src/index.ts - エントリーポイント
-// tools/ - 各ツールの実装
+// src/lib/ - ユーティリティライブラリ
+// - timeUtils.ts
+// src/tools/ - 各ツールの実装
 // - activityLogTool.ts
 // - themeLogTool.ts
 // - itemProcessorTool.ts
 // - webSearchStatsTool.ts
 // - createThemeExpertContextTool.ts
+// - reportToolUsageTool.ts
 ```
 
 ### ツール設計パターン
