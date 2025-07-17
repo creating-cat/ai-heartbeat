@@ -15,10 +15,6 @@ export const getLatestActivityLogInputSchema = z.object({
     .describe('テーマ開始時のハートビートID'),
   themeDirectoryPart: z.string()
     .describe('テーマディレクトリ名の一部。THEME_START_IDと組み合わせて "{THEME_START_ID}_{themeDirectoryPart}" の形式でテーマディレクトリが特定されます'),
-  includeSequenced: z.boolean()
-    .optional()
-    .default(true)
-    .describe('連番付きファイル（_01, _02等）も検索対象に含めるか。デフォルトはtrue'),
   numLogs: z.number()
     .int()
     .min(1)
@@ -51,11 +47,11 @@ function compareActivityLogFiles(a: string, b: string): number {
 
 export const getLatestActivityLogTool = {
   name: 'get_latest_activity_log',
-  description: '指定されたテーマディレクトリ内の最新の活動ログファイルの内容を取得します。numLogsパラメータで複数のログを一度に取得可能です。過去の活動を振り返る際や、継続的な思考を行う際に有用です。',
+  description: '指定されたテーマディレクトリ内の最新の活動ログファイルの内容を取得します。numLogsパラメータで複数のログを一度に取得可能です。連番付きファイル（_01, _02等）も自動で検索対象に含まれ、最新の活動状況を正確に把握できます。過去の活動を振り返る際や、継続的な思考を行う際に有用です。',
   input_schema: getLatestActivityLogInputSchema,
   execute: async (args: z.infer<typeof getLatestActivityLogInputSchema>) => {
     try {
-      const { themeStartId, themeDirectoryPart, includeSequenced, numLogs } = args;
+      const { themeStartId, themeDirectoryPart, numLogs } = args;
       
       // Sanitize directory part to prevent directory traversal
       const sanitizedDirectoryPart = path.basename(themeDirectoryPart);
@@ -92,31 +88,22 @@ export const getLatestActivityLogTool = {
       // Read all files in histories directory
       const allFiles = await fs.readdir(historiesDirectoryPath);
       
-      // Filter for activity log files
+      // Filter for activity log files (always include sequenced files)
       let activityLogFiles = allFiles.filter(file => {
         if (!file.endsWith('.md')) return false;
         
         const parsed = parseActivityLogFileName(file);
         if (!parsed) return false;
         
-        // If includeSequenced is false, exclude sequenced files
-        if (!includeSequenced && parsed.sequence !== null) {
-          return false;
-        }
-        
         return true;
       });
       
       if (activityLogFiles.length === 0) {
-        const message = includeSequenced 
-          ? `情報: ${historiesDirectoryPath} に活動ログファイルが見つかりませんでした。`
-          : `情報: ${historiesDirectoryPath} に基本形式の活動ログファイルが見つかりませんでした。（連番付きファイルは除外されています）`;
-        
         return {
           content: [
             {
               type: 'text' as const,
-              text: message,
+              text: `情報: ${historiesDirectoryPath} に活動ログファイルが見つかりませんでした。`,
             },
           ],
         };
