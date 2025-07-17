@@ -15,6 +15,9 @@ export const createThemeExpertContextInputSchema = z.object({
   themeDirectoryPart: z
     .string()
     .describe('テーマディレクトリ名の一部（THEME_START_IDは含めない）。THEME_START_IDと組み合わせて "{THEME_START_ID}_{themeDirectoryPart}" の形式でテーマディレクトリが作成されます（例: themeDirectoryPart="ai_research" → ディレクトリ="20250115143000_ai_research"）。半角英小文字、数字、アンダースコアのみ推奨'),
+  heartbeatId: z.string()
+    .regex(/^\d{14}$/, 'ハートビートIDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
+    .describe('コンテキスト作成時のハートビートID。ファイル名として使用されます'),
   expertRole: z
     .string()
     .describe('このテーマにおける専門家の役割定義。'),
@@ -39,12 +42,12 @@ const generateContextContent = (
   constraints: string[],
   expectedOutcome: string[]
 ): string => {
-  return `# テーマ専門家コンテキスト: ${themeName}
+  return `# テーマ専門家コンテキスト
 
-## 専門家役割
-${expertRole}
+## 専門家設定
+**${expertRole}**
 
-## 専門的視点
+## 専門性・役割
 ${expertPerspective.map(item => `- ${item}`).join('\n')}
 
 ## 重要な制約・注意事項
@@ -58,7 +61,7 @@ ${expectedOutcome.map(item => `- ${item}`).join('\n')}
 // The tool definition
 export const createThemeExpertContextTool = {
   name: 'create_theme_expert_context',
-  description: "テーマの成果物ディレクトリに、テーマ専門家コンテキストファイル（context.md）を作成します。",
+  description: "テーマの成果物ディレクトリのcontexts/フォルダに、テーマ専門家コンテキストファイル（{heartbeat_id}.md）を作成します。",
   input_schema: createThemeExpertContextInputSchema,
   execute: async (args: z.infer<typeof createThemeExpertContextInputSchema>) => {
     try {
@@ -66,6 +69,7 @@ export const createThemeExpertContextTool = {
         themeName,
         themeStartId,
         themeDirectoryPart,
+        heartbeatId,
         expertRole,
         expertPerspective,
         constraints,
@@ -80,13 +84,22 @@ export const createThemeExpertContextTool = {
         .replace(/_+/g, '_');
       const fullThemeDirectoryName = `${themeStartId}_${sanitizedDirectoryPart}`;
       const themeArtifactsPath = path.join('artifacts', fullThemeDirectoryName);
-      const contextFilePath = path.join(themeArtifactsPath, 'context.md');
+      const contextsPath = path.join(themeArtifactsPath, 'contexts');
+      const contextFilePath = path.join(contextsPath, `${heartbeatId}.md`);
 
       // ディレクトリ存在確認（テーマが開始されているかチェック）
       if (!await fs.pathExists(themeArtifactsPath)) {
         // ディレクトリが存在しない場合は作成（テーマ開始前でも作成可能）
         await fs.ensureDir(themeArtifactsPath);
         await fs.ensureDir(path.join(themeArtifactsPath, 'histories'));
+      }
+
+      // contexts/ フォルダを確保
+      await fs.ensureDir(contextsPath);
+
+      // 重複チェック
+      if (await fs.pathExists(contextFilePath)) {
+        throw new Error(`コンテキストファイルは既に存在します: ${contextFilePath}`);
       }
 
       const content = generateContextContent(themeName, expertRole, expertPerspective, constraints, expectedOutcome);
@@ -97,6 +110,7 @@ export const createThemeExpertContextTool = {
       let responseText = `成功: テーマ専門家コンテキストファイルを作成しました: ${contextFilePath}`;
       responseText += `\n📁 テーマディレクトリ: ${themeArtifactsPath}`;
       responseText += `\n🆔 THEME_START_ID: ${themeStartId}`;
+      responseText += `\n🕒 ハートビートID: ${heartbeatId}`;
       
       if (isSanitized) {
         responseText += `\n⚠️ ディレクトリ名を「${themeDirectoryPart}」から「${sanitizedDirectoryPart}」に修正しました`;
