@@ -134,10 +134,10 @@ export const getLatestActivityLogTool = {
         const sequenceInfo = parsed && parsed.sequence !== null ? ` (連番: ${parsed.sequence.toString().padStart(2, '0')})` : '';
         
         responseText = `最新の活動ログを取得しました:
-📁 テーマ: ${sanitizedDirectoryPart} (${themeStartId})
-📄 ファイル: ${filename}${sequenceInfo}
-📍 パス: ${path.join(historiesDirectoryPath, filename)}
-📊 総活動ログ数: ${activityLogFiles.length}件
+テーマ: ${sanitizedDirectoryPart} (${themeStartId})
+ファイル: ${filename}${sequenceInfo}
+パス: ${path.join(historiesDirectoryPath, filename)}
+総活動ログ数: ${activityLogFiles.length}件
 
 ---
 
@@ -145,8 +145,8 @@ ${content}`;
       } else {
         // Multiple logs format
         responseText = `最新の活動ログ ${numLogs}件を取得しました:
-📁 テーマ: ${sanitizedDirectoryPart} (${themeStartId})
-📊 取得件数: ${logContents.length}件 / 総件数: ${activityLogFiles.length}件
+テーマ: ${sanitizedDirectoryPart} (${themeStartId})
+取得件数: ${logContents.length}件 / 総件数: ${activityLogFiles.length}件
 
 `;
         
@@ -155,7 +155,7 @@ ${content}`;
           const isLatest = index === 0 ? ' (最新)' : '';
           
           responseText += `========================================
-📄 ログ ${index + 1}/${logContents.length}: ${log.filename}${sequenceInfo}${isLatest}
+ログ ${index + 1}/${logContents.length}: ${log.filename}${sequenceInfo}${isLatest}
 ========================================
 
 ${log.content}

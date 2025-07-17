@@ -54,10 +54,10 @@ export async function checkTimeDeviation(heartbeatId: string): Promise<string | 
     // 警告レベルを決定
     const warningLevel =
       diffSeconds > criticalThreshold
-        ? '🚨 重大'
+        ? '重大'
         : diffSeconds > warningThreshold
-          ? '⚠️ 警告'
-          : 'ℹ️ 情報';
+          ? '警告'
+          : '情報';
 
     return `${warningLevel}: ハートビートIDの時刻と現在時刻に ${diffText} の乖離があります。`;
   }

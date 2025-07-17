@@ -108,12 +108,12 @@ export const createThemeExpertContextTool = {
       // サニタイズ警告の準備
       const isSanitized = sanitizedDirectoryPart !== themeDirectoryPart;
       let responseText = `成功: テーマ専門家コンテキストファイルを作成しました: ${contextFilePath}`;
-      responseText += `\n📁 テーマディレクトリ: ${themeArtifactsPath}`;
-      responseText += `\n🆔 THEME_START_ID: ${themeStartId}`;
-      responseText += `\n🕒 ハートビートID: ${heartbeatId}`;
+      responseText += `\nテーマディレクトリ: ${themeArtifactsPath}`;
+      responseText += `\nTHEME_START_ID: ${themeStartId}`;
+      responseText += `\nハートビートID: ${heartbeatId}`;
       
       if (isSanitized) {
-        responseText += `\n⚠️ ディレクトリ名を「${themeDirectoryPart}」から「${sanitizedDirectoryPart}」に修正しました`;
+        responseText += `\n警告: ディレクトリ名を「${themeDirectoryPart}」から「${sanitizedDirectoryPart}」に修正しました`;
       }
 
       return { content: [{ type: 'text' as const, text: responseText }] };

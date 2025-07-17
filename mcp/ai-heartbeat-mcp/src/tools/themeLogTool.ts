@@ -148,10 +148,10 @@ ${achievementList}
       // 応答メッセージ作成
       let responseText = `テーマ履歴ファイルを作成しました: ${logFilePath}`;
       if (action === 'start') {
-        responseText += `\n📁 テーマディレクトリ: ${themeDirectoryPath}`;
-        responseText += `\n🆔 THEME_START_ID: ${themeStartId}`;
+        responseText += `\nテーマディレクトリ: ${themeDirectoryPath}`;
+        responseText += `\nTHEME_START_ID: ${themeStartId}`;
       } else {
-        responseText += `\n🏁 テーマ終了: ${themeStartId} → ${themeEndId}`;
+        responseText += `\nテーマ終了: ${themeStartId} → ${themeEndId}`;
       }
       
       if (timeWarning) {
@@ -160,7 +160,7 @@ ${achievementList}
       
       // サニタイズ警告
       if (isSanitized) {
-        responseText += `\n⚠️ ディレクトリ名を「${themeDirectoryPart}」から「${sanitizedDirectoryPart}」に修正しました`;
+        responseText += `\n警告: ディレクトリ名を「${themeDirectoryPart}」から「${sanitizedDirectoryPart}」に修正しました`;
       }
 
       return { content: [{ type: 'text' as const, text: responseText }] };

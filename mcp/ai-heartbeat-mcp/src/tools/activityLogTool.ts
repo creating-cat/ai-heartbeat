@@ -150,15 +150,15 @@ export const activityLogTool = {
       
       // Prepare response message
       let responseText = `活動ログを作成しました: ${filePath}`;
-      responseText += `\n📁 テーマ: ${sanitizedDirectoryPart} (${args.themeStartId})`;
+      responseText += `\nテーマ: ${sanitizedDirectoryPart} (${args.themeStartId})`;
       
       if (warning) {
-        responseText += `\n⚠️ ${warning}`;
+        responseText += `\n警告: ${warning}`;
       }
       
       // Sanitization warning
       if (sanitizedDirectoryPart !== args.themeDirectoryPart) {
-        responseText += `\n⚠️ ディレクトリ名を「${args.themeDirectoryPart}」から「${sanitizedDirectoryPart}」に修正しました`;
+        responseText += `\n警告: ディレクトリ名を「${args.themeDirectoryPart}」から「${sanitizedDirectoryPart}」に修正しました`;
       }
       
       if (timeWarning) {
