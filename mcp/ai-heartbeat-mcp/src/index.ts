@@ -9,6 +9,8 @@ import { themeLogTool } from './tools/themeLogTool';
 import { itemProcessorTool } from './tools/itemProcessorTool';
 import { reportToolUsageTool } from './tools/reportToolUsageTool.js';
 import { createThemeExpertContextTool } from './tools/createThemeExpertContextTool';
+import { getLatestActivityLogTool } from './tools/getLatestActivityLogTool';
+
 
 // Create MCP server
 const server = new McpServer({
@@ -55,6 +57,14 @@ server.tool(
   createThemeExpertContextTool.description,
   createThemeExpertContextTool.input_schema.shape,
   createThemeExpertContextTool.execute
+);
+
+// Register get latest activity log tool
+server.tool(
+  getLatestActivityLogTool.name,
+  getLatestActivityLogTool.description,
+  getLatestActivityLogTool.input_schema.shape,
+  getLatestActivityLogTool.execute
 );
 
 // Start server with stdio transport
