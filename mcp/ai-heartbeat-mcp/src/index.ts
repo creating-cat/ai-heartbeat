@@ -10,6 +10,7 @@ import { itemProcessorTool } from './tools/itemProcessorTool';
 import { reportToolUsageTool } from './tools/reportToolUsageTool.js';
 import { createThemeExpertContextTool } from './tools/createThemeExpertContextTool';
 import { getLatestActivityLogTool } from './tools/getLatestActivityLogTool';
+import { checkThemeStatusTool } from './tools/checkThemeStatusTool';
 
 // Create MCP server
 const server = new McpServer({
@@ -64,6 +65,14 @@ server.tool(
   getLatestActivityLogTool.description,
   getLatestActivityLogTool.input_schema.shape,
   getLatestActivityLogTool.execute
+);
+
+// Register check theme status tool
+server.tool(
+  checkThemeStatusTool.name,
+  checkThemeStatusTool.description,
+  checkThemeStatusTool.input_schema.shape,
+  checkThemeStatusTool.execute
 );
 
 // Start server with stdio transport
