@@ -11,7 +11,6 @@ import { reportToolUsageTool } from './tools/reportToolUsageTool.js';
 import { createThemeExpertContextTool } from './tools/createThemeExpertContextTool';
 import { getLatestActivityLogTool } from './tools/getLatestActivityLogTool';
 
-
 // Create MCP server
 const server = new McpServer({
   name: 'ai-heartbeat-mcp',

@@ -8,7 +8,7 @@ import * as path from 'path';
 
 import { checkTimeDeviation } from '../lib/timeUtils';
 
-// Zod schema for activity log input
+// Zod schema for activity log input (new format only)
 export const activityLogInputSchema = z.object({
   heartbeatId: z.string()
     .regex(/^\d{14}$/, 'ハートビートIDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります。')
@@ -22,7 +22,11 @@ export const activityLogInputSchema = z.object({
     .optional()
     .default([])
     .describe("活動中に使用した補助的な操作。'ファイル読み込み', '軽微な検索', '軽微な置換', 'Web検索', 'その他' の要素を含む配列です。"),
-  themeDirectory: z.string().describe('現在のテーマのディレクトリ名。推奨形式: "20250115143000_ai_research" (THEME_START_ID付き)。既存の古い形式ディレクトリも使用可能。'),
+  themeStartId: z.string()
+    .regex(/^\d{14}$/, 'THEME_START_IDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
+    .describe('テーマ開始時のハートビートID'),
+  themeDirectoryPart: z.string()
+    .describe('テーマディレクトリ名の一部。THEME_START_IDと組み合わせて "{THEME_START_ID}_{themeDirectoryPart}" の形式でテーマディレクトリが特定されます'),
 });
 
 // Helper functions
@@ -77,15 +81,18 @@ function generateActivityLogMarkdown(args: z.infer<typeof activityLogInputSchema
   return lines.join('\n');
 }
 
-function getActivityLogFilePath(theme: string, heartbeatId: string, sequence?: number): string {
-  // MCPサーバーはプロジェクトルートで実行される前提
-  // 現在の作業ディレクトリから相対パスで指定
+function getActivityLogFilePath(themeStartId: string, themeDirectoryPart: string, heartbeatId: string, sequence?: number): string {
+  // Build theme directory name
+  const themeDirectoryName = `${themeStartId}_${themeDirectoryPart}`;
+  
+  // Build filename
   const filename = sequence ? `${heartbeatId}_${sequence.toString().padStart(2, '0')}.md` : `${heartbeatId}.md`;
-  return path.join('artifacts', theme, 'histories', filename);
+  
+  return path.join('artifacts', themeDirectoryName, 'histories', filename);
 }
 
-async function findAvailableSequence(theme: string, heartbeatId: string): Promise<{ sequence: number | null; warning: string | null }> {
-  const basePath = getActivityLogFilePath(theme, heartbeatId);
+async function findAvailableSequence(themeStartId: string, themeDirectoryPart: string, heartbeatId: string): Promise<{ sequence: number | null; warning: string | null }> {
+  const basePath = getActivityLogFilePath(themeStartId, themeDirectoryPart, heartbeatId);
   
   // 基本ファイルが存在しない場合は連番なしで作成
   if (!await fs.pathExists(basePath)) {
@@ -94,7 +101,7 @@ async function findAvailableSequence(theme: string, heartbeatId: string): Promis
   
   // 連番ファイルをチェック
   for (let i = 1; i <= 99; i++) {
-    const sequencePath = getActivityLogFilePath(theme, heartbeatId, i);
+    const sequencePath = getActivityLogFilePath(themeStartId, themeDirectoryPart, heartbeatId, i);
     if (!await fs.pathExists(sequencePath)) {
       return { 
         sequence: i, 
@@ -109,37 +116,28 @@ async function findAvailableSequence(theme: string, heartbeatId: string): Promis
 
 export const activityLogTool = {
   name: 'create_activity_log',
-  description: 'AIハートビートシステム用の、標準形式の活動ログを作成します。原則は1ハートビートに対して1つの活動ログの作成です。このハートビート内での活動がまだ終わっていない場合は、まだこのツールを使用すべきではありません。逆にこのツールを使用した後は活動を終了させて、次の活動は次のハートビートで行うべきです。',
+  description: 'AIハートビートシステム用の、標準形式の活動ログを作成します。原則は1ハートビートに対して1つの活動ログの作成です。このハートビート内での活動がまだ終わっていない場合は、まだこのツールを使用すべきではありません。逆にこのツールを使用した後は活動を終了させて、次の活動は次のハートビートで行うべきです。\n\n新形式: themeStartId + themeDirectoryPart の組み合わせでテーマを指定してください。',
   input_schema: activityLogInputSchema,
   execute: async (args: z.infer<typeof activityLogInputSchema>) => {
     try {
       // Generate markdown content
       const markdownContent = generateActivityLogMarkdown(args);
       
-      // Determine file path (use basename for safety)
-      const themeDir = path.basename(args.themeDirectory);
+      // Sanitize directory part to prevent directory traversal
+      const sanitizedDirectoryPart = path.basename(args.themeDirectoryPart);
       
-      // ディレクトリ存在確認
-      const themeDirectoryPath = path.join('artifacts', themeDir);
+      // Build theme directory path
+      const themeDirectoryName = `${args.themeStartId}_${sanitizedDirectoryPart}`;
+      const themeDirectoryPath = path.join('artifacts', themeDirectoryName);
+      
+      // Check if theme directory exists
       if (!await fs.pathExists(themeDirectoryPath)) {
         throw new Error(`テーマディレクトリが存在しません: ${themeDirectoryPath}`);
       }
-
-      // オプション: 形式チェックは警告レベルに
-      const themeStartIdMatch = themeDir.match(/^(\d{14})_(.+)$/);
-      let themeStartId = 'unknown';
-      let themeName = themeDir;
-
-      if (themeStartIdMatch) {
-        [, themeStartId, themeName] = themeStartIdMatch;
-      } else {
-        console.warn(`注意: ディレクトリ名が推奨形式ではありません: ${themeDir}`);
-        themeName = themeDir;
-      }
       
       // Check for duplicates and find available sequence
-      const { sequence, warning } = await findAvailableSequence(themeDir, args.heartbeatId);
-      const filePath = getActivityLogFilePath(themeDir, args.heartbeatId, sequence ?? undefined);
+      const { sequence, warning } = await findAvailableSequence(args.themeStartId, sanitizedDirectoryPart, args.heartbeatId);
+      const filePath = getActivityLogFilePath(args.themeStartId, sanitizedDirectoryPart, args.heartbeatId, sequence ?? undefined);
       
       // Check time deviation
       const timeWarning = await checkTimeDeviation(args.heartbeatId);
@@ -152,14 +150,17 @@ export const activityLogTool = {
       
       // Prepare response message
       let responseText = `活動ログを作成しました: ${filePath}`;
-      if (themeStartId !== 'unknown') {
-        responseText += `\n📁 テーマ: ${themeName} (${themeStartId})`;
-      } else {
-        responseText += `\n📁 テーマ: ${themeName}`;
-      }
+      responseText += `\n📁 テーマ: ${sanitizedDirectoryPart} (${args.themeStartId})`;
+      
       if (warning) {
         responseText += `\n⚠️ ${warning}`;
       }
+      
+      // Sanitization warning
+      if (sanitizedDirectoryPart !== args.themeDirectoryPart) {
+        responseText += `\n⚠️ ディレクトリ名を「${args.themeDirectoryPart}」から「${sanitizedDirectoryPart}」に修正しました`;
+      }
+      
       if (timeWarning) {
         responseText += `\n${timeWarning}`;
       }
