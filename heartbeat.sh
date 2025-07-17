@@ -281,7 +281,10 @@ check_agent_health() {
     
     if [ "$introspection_code" != "0" ]; then
         HEALTH_CHECK_DETAIL="$introspection_detail"
-        if [ "$introspection_code" = "1" ]; then
+        if [ "$introspection_code" = "3" ]; then
+            log_notice "[CHECK] Introspection activity notification detected (code 21): $introspection_detail seconds"
+            return 21 # 内省活動通知
+        elif [ "$introspection_code" = "1" ]; then
             log_warning "[CHECK] Introspection activity warning detected (code 17): $introspection_detail seconds"
             return 17 # 内省活動警告
         elif [ "$introspection_code" = "2" ]; then
@@ -352,7 +355,7 @@ $ADVICE_ACTIVITY_LOG_FREQUENCY"
             log_warning "Introspection activity warning: No introspection activity for $((detail / 60)) minutes."
             INTROSPECTION_REMINDER_MESSAGE="⚠️ 内省不足警告: $((detail / 60))分間内省活動が行われていません。
 
-$ADVICE_ACTIVITY_LOG_INTROSPECTION"
+$ADVICE_INTROSPECTION"
             return 0 ;;
         18) # 内省活動エラー（新機能 - v2）
             handle_failure "Introspection activity error: No introspection activity for $((detail / 60)) minutes." "活動ログ内省不足" ;;
@@ -364,6 +367,12 @@ $ADVICE_ACTIVITY_LOG_INTROSPECTION"
             return 0 ;;
         20) # 活動ログタイムスタンプエラー（新機能 - v2復活）
             handle_failure "Activity log timestamp error: Timestamp is $((detail / 60)) minutes old." "活動ログタイムスタンプ異常" ;;
+        21) # 内省活動通知（新機能 - v2）
+            log_notice "Introspection activity notification: No introspection activity for $((detail / 60)) minutes."
+            INTROSPECTION_REMINDER_MESSAGE="ℹ️ 内省活動通知: $((detail / 60))分間内省活動が行われていません。
+
+$ADVICE_INTROSPECTION"
+            return 0 ;;
         *) # 未知のエラー
             log_error "Unknown health check status: $status" ;;
     esac

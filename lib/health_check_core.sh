@@ -367,23 +367,23 @@ check_introspection_activity_anomaly() {
         fi
     fi
     
-    # 警告閾値（内省閾値の2/3）を設定
-    local introspection_warning_threshold=$((introspection_threshold * 2 / 3))
-    debug_log "INTROSPECTION_ACTIVITY: Time difference = ${introspection_diff}s, warning_threshold = ${introspection_warning_threshold}s"
+    debug_log "INTROSPECTION_ACTIVITY: Time difference = ${introspection_diff}s"
     
     # エラーコード付きで出力（誤使用防止のためreturnは常に0）
+    # 通知(3) 警告(1) エラー(2)
     if [ $introspection_diff -gt $introspection_threshold ]; then
         debug_warning "INTROSPECTION_ACTIVITY: Error level reached (${introspection_diff}s > ${introspection_threshold}s)"
         echo "2:$introspection_diff"
-        return 0
-    elif [ $introspection_diff -gt $introspection_warning_threshold ]; then
-        debug_log "INTROSPECTION_ACTIVITY: Warning level reached (${introspection_diff}s > ${introspection_warning_threshold}s)"
+    elif [ $introspection_diff -gt $((introspection_threshold * 2 / 3)) ]; then
+        debug_log "INTROSPECTION_ACTIVITY: Warning level reached (${introspection_diff}s > $((introspection_threshold * 2 / 3))s)"
         echo "1:$introspection_diff"
-        return 0
+    elif [ $introspection_diff -gt $((introspection_threshold / 2)) ]; then
+        debug_log "INTROSPECTION_ACTIVITY: Info level reached (${introspection_diff}s > $((introspection_threshold / 2))s)"
+        echo "3:$introspection_diff"
+    else
+        echo "0:$introspection_diff"
     fi
-    
     debug_log "INTROSPECTION_ACTIVITY: Normal operation (${introspection_diff}s <= ${introspection_warning_threshold}s)"
-    echo "0:$introspection_diff"
     return 0
 }
 
