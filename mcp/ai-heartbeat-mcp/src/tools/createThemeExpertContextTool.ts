@@ -6,7 +6,7 @@ import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
-// Zod schema for the tool input
+// Zod schema for the tool input (サブテーマ対応版)
 export const createThemeExpertContextInputSchema = z.object({
   themeName: z.string().describe('テーマの名称。'),
   themeStartId: z.string()
@@ -32,9 +32,49 @@ export const createThemeExpertContextInputSchema = z.object({
     .describe(
       'この専門家コンテキストで期待される成果や方向性を箇条書きのリストで指定します。'
     ),
+  
+  // 🆕 サブテーマ対応の新規フィールド（最小限）
+  parentThemeStartId: z.string()
+    .regex(/^\d{14}$/, 'PARENT_THEME_START_IDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
+    .optional()
+    .describe('サブテーマの場合、親テーマのTHEME_START_IDを指定。nullまたは未指定の場合はルートテーマとして扱われます'),
+  parentThemeDirectoryPart: z.string()
+    .optional()
+    .describe('サブテーマの場合、親テーマのディレクトリ部分を指定。parentThemeStartIdが指定された場合は必須'),
 });
 
-// Helper to generate markdown content
+// ディレクトリパス解決関数
+function resolveThemePath(
+  themeStartId: string,
+  themeDirectoryPart: string,
+  parentThemeStartId?: string,
+  parentThemeDirectoryPart?: string
+): string {
+  if (parentThemeStartId && parentThemeDirectoryPart) {
+    // サブテーマの場合
+    const sanitizedParentPart = path.basename(parentThemeDirectoryPart)
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, '_')
+      .replace(/_+/g, '_');
+    const sanitizedThemePart = path.basename(themeDirectoryPart)
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, '_')
+      .replace(/_+/g, '_');
+    
+    const parentDir = `${parentThemeStartId}_${sanitizedParentPart}`;
+    const subthemeDir = `${themeStartId}_${sanitizedThemePart}`;
+    return path.join('artifacts', parentDir, 'subthemes', subthemeDir);
+  } else {
+    // メインテーマの場合
+    const sanitizedThemePart = path.basename(themeDirectoryPart)
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, '_')
+      .replace(/_+/g, '_');
+    return path.join('artifacts', `${themeStartId}_${sanitizedThemePart}`);
+  }
+}
+
+// Helper to generate markdown content (シンプル版)
 const generateContextContent = (
   themeName: string,
   expertRole: string,
@@ -61,7 +101,7 @@ ${expectedOutcome.map(item => `- ${item}`).join('\n')}
 // The tool definition
 export const createThemeExpertContextTool = {
   name: 'create_theme_expert_context',
-  description: "テーマの成果物ディレクトリのcontexts/フォルダに、テーマ専門家コンテキストファイル（{heartbeat_id}.md）を作成します。",
+  description: "テーマの成果物ディレクトリのcontexts/フォルダに、テーマ専門家コンテキストファイル（{heartbeat_id}.md）を作成します。サブテーマの場合は親テーマのコンテキストを継承することができます。",
   input_schema: createThemeExpertContextInputSchema,
   execute: async (args: z.infer<typeof createThemeExpertContextInputSchema>) => {
     try {
@@ -74,16 +114,39 @@ export const createThemeExpertContextTool = {
         expertPerspective,
         constraints,
         expectedOutcome,
+        parentThemeStartId,
+        parentThemeDirectoryPart,
       } = args;
 
-      // THEME_START_ID付きの完全なディレクトリ名を生成
+      // バリデーション
+      if (parentThemeStartId && !parentThemeDirectoryPart) {
+        throw new Error('parentThemeStartIdが指定された場合、parentThemeDirectoryPartも必須です');
+      }
+
+      if (parentThemeDirectoryPart && !parentThemeStartId) {
+        throw new Error('parentThemeDirectoryPartが指定された場合、parentThemeStartIdも必須です');
+      }
+
+      // ディレクトリ名のサニタイズ
       const baseThemeDirectoryPart = path.basename(themeDirectoryPart);
       const sanitizedDirectoryPart = baseThemeDirectoryPart
         .toLowerCase()
         .replace(/[^a-z0-9_]+/g, '_')
         .replace(/_+/g, '_');
-      const fullThemeDirectoryName = `${themeStartId}_${sanitizedDirectoryPart}`;
-      const themeArtifactsPath = path.join('artifacts', fullThemeDirectoryName);
+      
+      const baseParentThemeDirectoryPart = parentThemeDirectoryPart ? path.basename(parentThemeDirectoryPart) : undefined;
+      const sanitizedParentDirectoryPart = baseParentThemeDirectoryPart
+        ?.toLowerCase()
+        .replace(/[^a-z0-9_]+/g, '_')
+        .replace(/_+/g, '_');
+
+      // テーマディレクトリパスを解決
+      const themeArtifactsPath = resolveThemePath(
+        themeStartId,
+        sanitizedDirectoryPart,
+        parentThemeStartId,
+        sanitizedParentDirectoryPart
+      );
       const contextsPath = path.join(themeArtifactsPath, 'contexts');
       const contextFilePath = path.join(contextsPath, `${heartbeatId}.md`);
 
@@ -92,6 +155,14 @@ export const createThemeExpertContextTool = {
         // ディレクトリが存在しない場合は作成（テーマ開始前でも作成可能）
         await fs.ensureDir(themeArtifactsPath);
         await fs.ensureDir(path.join(themeArtifactsPath, 'histories'));
+        
+        // サブテーマの場合は親テーマの存在確認
+        if (parentThemeStartId && sanitizedParentDirectoryPart) {
+          const parentPath = resolveThemePath(parentThemeStartId, sanitizedParentDirectoryPart);
+          if (!await fs.pathExists(parentPath)) {
+            throw new Error(`親テーマディレクトリが存在しません: ${parentPath}`);
+          }
+        }
       }
 
       // contexts/ フォルダを確保
@@ -102,18 +173,31 @@ export const createThemeExpertContextTool = {
         throw new Error(`コンテキストファイルは既に存在します: ${contextFilePath}`);
       }
 
+      // コンテンツ生成
       const content = generateContextContent(themeName, expertRole, expertPerspective, constraints, expectedOutcome);
       await fs.writeFile(contextFilePath, content, 'utf-8');
 
       // サニタイズ警告の準備
       const isSanitized = sanitizedDirectoryPart !== themeDirectoryPart;
-      let responseText = `成功: テーマ専門家コンテキストファイルを作成しました: ${contextFilePath}`;
-      responseText += `\nテーマディレクトリ: ${themeArtifactsPath}`;
+      const isParentSanitized = sanitizedParentDirectoryPart && baseParentThemeDirectoryPart && 
+                                sanitizedParentDirectoryPart !== parentThemeDirectoryPart;
+      
+      const themeType = parentThemeStartId ? 'サブテーマ' : 'テーマ';
+      let responseText = `成功: ${themeType}専門家コンテキストファイルを作成しました: ${contextFilePath}`;
+      responseText += `\n${themeType}ディレクトリ: ${themeArtifactsPath}`;
       responseText += `\nTHEME_START_ID: ${themeStartId}`;
       responseText += `\nハートビートID: ${heartbeatId}`;
       
+      if (parentThemeStartId) {
+        responseText += `\nPARENT_THEME_START_ID: ${parentThemeStartId}`;
+      }
+      
       if (isSanitized) {
         responseText += `\n警告: ディレクトリ名を「${themeDirectoryPart}」から「${sanitizedDirectoryPart}」に修正しました`;
+      }
+      
+      if (isParentSanitized) {
+        responseText += `\n警告: 親ディレクトリ名を「${parentThemeDirectoryPart}」から「${sanitizedParentDirectoryPart}」に修正しました`;
       }
 
       return { content: [{ type: 'text' as const, text: responseText }] };
