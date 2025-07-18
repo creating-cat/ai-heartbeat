@@ -91,12 +91,14 @@ log_heartbeat() # ハートビート（専用フォーマット）
 // src/lib/ - ユーティリティライブラリ
 // - timeUtils.ts
 // src/tools/ - 各ツールの実装
-// - activityLogTool.ts
-// - themeLogTool.ts
-// - itemProcessorTool.ts
-// - webSearchStatsTool.ts
-// - createThemeExpertContextTool.ts
-// - reportToolUsageTool.ts
+// - activityLogTool.ts (活動ログ作成・参照)
+// - themeLogTool.ts (テーマ履歴管理)
+// - itemProcessorTool.ts (themebox/feedbackbox処理)
+// - webSearchStatsTool.ts (Web検索制限管理)
+// - createThemeExpertContextTool.ts (専門家コンテキスト作成)
+// - reportToolUsageTool.ts (ツール使用報告)
+// - themeStatusTool.ts (テーマ状態分析)
+// - themeArtifactsTool.ts (成果物一覧取得)
 ```
 
 ### ツール設計パターン
@@ -107,17 +109,17 @@ log_heartbeat() # ハートビート（専用フォーマット）
 ## ファイル操作の安全性
 
 ### 許可されるディレクトリ
-- `artifacts/`: AI生成物
-- `projects/`: 開発プロジェクト
-- `stats/`: システム状態
-- `themebox/`: テーマ管理（リネームのみ）
-- `feedbackbox/`: フィードバック管理（リネームのみ）
+- `artifacts/`: AI生成物・活動ログ・テーマ履歴
+- `projects/`: 開発プロジェクト（独立git管理）
+- `stats/`: システム状態・ツール制限管理
+- `themebox/`: テーマ管理（リネームのみ・processed.プレフィックス）
+- `feedbackbox/`: フィードバック管理（リネームのみ・緊急フィードバック対応）
 
 ### 禁止されるファイル
-- システムスクリプト（`*.sh`）
-- 設定ファイル（`heartbeat.conf`）
-- AIドキュメント（`ai-docs/`）
-- システムファイル（`.gitignore`, `LICENSE`等）
+- システムスクリプト（`*.sh`・`lib/`配下）
+- 設定ファイル（`heartbeat.conf`・`.gemini/settings.json`）
+- AIドキュメント（`ai-docs/`・`GEMINI.md`）
+- システムファイル（`.gitignore`, `LICENSE`, `README.md`等）
 
 ## OS互換性の実装
 
@@ -178,3 +180,5 @@ timeout 30s npm run dev 2>&1 | tee artifacts/current_theme/server_output.log
 - **型安全性**: TypeScript + Zodによる厳密な型チェック
 - **エラーメッセージ**: ユーザーフレンドリーな警告・エラー
 - **後方互換性**: 既存機能への影響を最小化
+- **警告システム**: `ai-docs/MCP_WARNING_GUIDE.md`との連携
+- **ツール制限**: クールダウン・ロック機能の実装

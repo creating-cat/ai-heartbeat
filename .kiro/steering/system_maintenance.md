@@ -13,13 +13,14 @@ inclusion: always
 - `GEMINI.md`: AI向けシステム仕様（最重要）
 
 ### AI向け詳細ドキュメント (`ai-docs/`)
-- `GUIDELINES.md`: 運用ガイドライン
-- `OPERATION_DETAILS.md`: 運用詳細手順
-- `THEME_MANAGEMENT_GUIDE.md`: テーマ管理完全ガイド
-- `TROUBLESHOOTING_GUIDE.md`: トラブルシューティング
-- `MCP_WARNING_GUIDE.md`: MCPツール警告対応
-- `THEME_CONCEPT_GUIDE.md`: テーマ概念説明
-- `THEME_CONTEXT_IMPLEMENTATION.md`: テーマ専門家コンテキスト
+- `GUIDELINES.md`: 運用ガイドライン・内省活動詳細
+- `OPERATION_DETAILS.md`: 運用詳細手順・ツール制限管理
+- `THEME_MANAGEMENT_GUIDE.md`: テーマ管理完全ガイド・MCPツール活用
+- `TROUBLESHOOTING_GUIDE.md`: トラブルシューティング・異常検知対応
+- `MCP_WARNING_GUIDE.md`: MCPツール警告対応・エラーハンドリング
+- `THEME_CONCEPT_GUIDE.md`: テーマ概念説明・設計思想
+- `THEME_CONTEXT_IMPLEMENTATION.md`: テーマ専門家コンテキスト実装
+- `TOOL_RESTRICTIONS.md`: ツール使用制限・クールダウン管理
 
 ### サンプル・テンプレート
 - `theme_sample/`: テーマファイルのサンプル
@@ -73,9 +74,11 @@ MAX_RECOVERY_WAIT_CYCLES=5             # 最大回復待機サイクル数
 ## ログ・状態管理
 
 ### ログファイルの種類
-- `logs/heartbeat_YYYYMMDDHHMMSS.log`: ハートビートログ
+- `logs/heartbeat_YYYYMMDDHHMMSS.log`: ハートビートログ（自動命名・クリーンアップ）
 - `stats/last_web_search.txt`: Web検索制限管理
 - `stats/quota_exceeded.txt`: クォータ制限管理
+- `stats/cooldown/`: ツールクールダウン状態管理
+- `stats/lock/`: ツールロック状態管理
 
 ### 自動クリーンアップ機能
 ```bash
@@ -112,7 +115,8 @@ npm run dev          # 開発モード実行（テスト用）
 1. `src/tools/`に新しいツールファイルを作成
 2. `src/index.ts`でツールを登録
 3. Zodスキーマによる入力検証を実装
-4. 適切なエラーハンドリングを追加
+4. 適切なエラーハンドリングと警告メッセージを追加
+5. `ai-docs/MCP_WARNING_GUIDE.md`にツール固有の警告を記載
 
 ## バージョン管理・リリース
 
@@ -170,6 +174,12 @@ ls -la logs/
 # 状態ファイル確認・クリア
 rm stats/last_web_search.txt
 rm stats/quota_exceeded.txt
+
+# ツール制限状態の確認・クリア
+ls -la stats/cooldown/
+ls -la stats/lock/
+rm -rf stats/cooldown/*
+rm -rf stats/lock/*
 ```
 
 ## 性能監視・最適化
@@ -186,16 +196,40 @@ rm stats/quota_exceeded.txt
 - ファイルI/O操作の効率化
 - メモリ使用量の監視
 
+## feedbackbox機能の保守
+
+### 通常フィードバック管理
+- `XXX_title.md`: 処理対象フィードバック
+- `processed.XXX_title.md`: 処理済みフィードバック
+- `draft.XXX_title.md`: 編集中（AIは無視）
+
+### 緊急フィードバック機能
+- `emergency.XXX_title.md`: 緊急フィードバック（即座処理中断）
+- `processed.emergency.XXX_title.md`: 処理済み緊急フィードバック
+- heartbeat.shによる自動検知・即座中断処理
+
+### feedbackbox監視機能
+```bash
+# heartbeat.shの監視機能
+check_feedbackbox() {
+    # 緊急フィードバック検知
+    # 通常フィードバック検知
+    # ハートビートメッセージへの通知追加
+}
+```
+
 ## 将来の拡張性
 
 ### アーキテクチャの拡張ポイント
 - 新しい異常検知機能の追加
-- MCPツールの機能拡張
+- MCPツールの機能拡張（テーマ分析・統計機能等）
 - 複数AIエージェントの対応
 - Web UI・可視化機能の追加
+- feedbackbox機能の高度化（カテゴリ分類等）
 
 ### 互換性の維持
 - 既存のファイル形式との互換性
 - 設定ファイルの後方互換性
 - AIドキュメントの一貫性
 - MCPツールのAPIバージョン管理
+- テーマ履歴フォーマットの後方互換性
