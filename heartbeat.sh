@@ -369,7 +369,7 @@ $ADVICE_INTROSPECTION"
             handle_failure "Activity log timestamp error: Timestamp is $((detail / 60)) minutes old." "活動ログタイムスタンプ異常" ;;
         21) # 内省活動通知（新機能 - v2）
             log_notice "Introspection activity notification: No introspection activity for $((detail / 60)) minutes."
-            INTROSPECTION_REMINDER_MESSAGE="内省活動通知: $((detail / 60))分間内省活動が行われていません。"
+            INTROSPECTION_REMINDER_MESSAGE="内省活動通知: $((detail / 60))分間内省活動が行われていません。
 
 $ADVICE_INTROSPECTION"
             return 0 ;;
