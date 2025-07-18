@@ -6,18 +6,8 @@ import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
-// サブテーマ情報の型定義
-interface SubthemeInfo {
-  subthemeStartId: string;
-  subthemeDirectoryPart: string;
-  subthemeName?: string;
-  status: 'active' | 'completed';
-  activityCount: number;
-  directoryPath: string;
-}
-
-// テーマ状態情報の型定義
-interface EnhancedThemeStatus {
+// テーマ状態情報の型定義（統一版）
+interface ThemeStatus {
   themeStartId: string;
   themeDirectoryPart: string;
   themeName?: string;
@@ -25,14 +15,16 @@ interface EnhancedThemeStatus {
   activityCount: number;
   directoryPath: string;
   
-  // サブテーマ関連情報
+  // 親テーマ情報（サブテーマの場合のみ）
   parentThemeStartId?: string;
   parentThemeDirectoryPart?: string;
-  subthemes: SubthemeInfo[];
   
-  // 統計情報
-  totalActivities: number;
-  activityDistribution: { [key: string]: number };
+  // サブテーマ情報（メインテーマの場合のみ）
+  subthemes: ThemeStatus[];
+  
+  // 統計情報（ルートレベルでのみ計算）
+  totalActivities?: number;
+  activityDistribution?: { [key: string]: number };
 }
 
 // 入力スキーマ
@@ -118,7 +110,7 @@ async function getActivityDistribution(themeDirectoryPath: string): Promise<{ [k
 }
 
 // サブテーマ情報を取得
-async function getSubthemeInfo(subthemeDir: string, parentPath: string): Promise<SubthemeInfo | null> {
+async function getSubthemeInfo(subthemeDir: string, parentPath: string): Promise<ThemeStatus | null> {
   const subthemePath = path.join(parentPath, 'subthemes', subthemeDir);
   
   if (!await fs.pathExists(subthemePath)) {
@@ -170,17 +162,18 @@ async function getSubthemeInfo(subthemeDir: string, parentPath: string): Promise
   }
   
   return {
-    subthemeStartId,
-    subthemeDirectoryPart,
-    subthemeName,
+    themeStartId: subthemeStartId,
+    themeDirectoryPart: subthemeDirectoryPart,
+    themeName: subthemeName,
     status: metadata.status || 'active',
     activityCount,
     directoryPath: subthemePath,
+    subthemes: [], // サブテーマは現在1階層のみ
   };
 }
 
 // 全サブテーマを取得
-async function getAllSubthemes(themeDirectoryPath: string): Promise<SubthemeInfo[]> {
+async function getAllSubthemes(themeDirectoryPath: string): Promise<ThemeStatus[]> {
   const subthemesPath = path.join(themeDirectoryPath, 'subthemes');
   
   if (!await fs.pathExists(subthemesPath)) {
@@ -188,7 +181,7 @@ async function getAllSubthemes(themeDirectoryPath: string): Promise<SubthemeInfo
   }
   
   const subthemeDirs = await fs.readdir(subthemesPath);
-  const subthemes: SubthemeInfo[] = [];
+  const subthemes: ThemeStatus[] = [];
   
   for (const dir of subthemeDirs) {
     const subthemeInfo = await getSubthemeInfo(dir, themeDirectoryPath);
@@ -198,7 +191,7 @@ async function getAllSubthemes(themeDirectoryPath: string): Promise<SubthemeInfo
   }
   
   // 作成日時でソート（ディレクトリ名のIDでソート）
-  subthemes.sort((a, b) => a.subthemeStartId.localeCompare(b.subthemeStartId));
+  subthemes.sort((a, b) => a.themeStartId.localeCompare(b.themeStartId));
   
   return subthemes;
 }
@@ -234,7 +227,7 @@ async function getThemeStatus(
   themeStartId: string,
   themeDirectoryPart: string,
   includeSubthemes: boolean = true
-): Promise<EnhancedThemeStatus | null> {
+): Promise<ThemeStatus | null> {
   const themeDirectoryPath = resolveThemePath(themeStartId, themeDirectoryPart);
   
   if (!await fs.pathExists(themeDirectoryPath)) {
@@ -288,7 +281,7 @@ async function getThemeStatus(
 }
 
 // JSON形式でテーマ状態を生成
-function generateThemeStatusJson(themeStatus: EnhancedThemeStatus): any {
+function generateThemeStatusJson(themeStatus: ThemeStatus): any {
   const result: any = {
     is_active: themeStatus.status === 'active',
     theme_name: themeStatus.themeName,
@@ -306,9 +299,9 @@ function generateThemeStatusJson(themeStatus: EnhancedThemeStatus): any {
   // サブテーマ情報（シンプルで実用的な構造）
   result.subthemes = themeStatus.subthemes.map(subtheme => ({
     is_active: subtheme.status === 'active',
-    theme_name: subtheme.subthemeName,
-    theme_start_id: subtheme.subthemeStartId,
-    theme_directory_part: subtheme.subthemeDirectoryPart,
+    theme_name: subtheme.themeName,
+    theme_start_id: subtheme.themeStartId,
+    theme_directory_part: subtheme.themeDirectoryPart,
     activity_count: subtheme.activityCount,
     parent_theme_start_id: themeStatus.themeStartId,
     parent_theme_directory_part: themeStatus.themeDirectoryPart
