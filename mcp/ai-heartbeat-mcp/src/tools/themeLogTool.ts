@@ -32,9 +32,6 @@ export const themeLogInputSchema = z.object({
   parentThemeDirectoryPart: z.string()
     .optional()
     .describe('サブテーマの場合、親テーマのディレクトリ部分を指定。parentThemeStartIdが指定された場合は必須'),
-  integrationNotes: z.array(z.string())
-    .optional()
-    .describe('サブテーマ終了時、親テーマへの統合に関する情報や引き継ぎ事項のリスト'),
 });
 
 // ディレクトリパス解決関数
@@ -100,7 +97,6 @@ export const themeLogTool = {
         activityContent,
         parentThemeStartId,
         parentThemeDirectoryPart,
-        integrationNotes,
       } = args;
 
       // バリデーション
@@ -212,9 +208,6 @@ export const themeLogTool = {
               const metadata = await fs.readJson(metadataPath);
               metadata.status = 'completed';
               metadata.completedAt = new Date().toISOString();
-              if (integrationNotes && integrationNotes.length > 0) {
-                metadata.integrationNotes = integrationNotes;
-              }
               await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
             } catch (error) {
               console.warn(`メタデータファイルの更新に失敗: ${metadataPath}`);
@@ -258,10 +251,7 @@ ${reason || 'N/A'}
 
 **主な成果**:
 ${achievementList}
-${integrationNotes && integrationNotes.length > 0 && isSubtheme ? `
-**親テーマへの統合情報**:
-${formatList(integrationNotes, 'N/A')}
-` : ''}`;
+`;
       }
 
       // 時刻乖離チェック
