@@ -133,10 +133,10 @@ check_feedbackbox() {
                 fi
             done <<< "$emergency_files"
             
-            FEEDBACK_NOTIFICATION_MESSAGE="📝 【緊急】feedbackboxに未処理のユーザーフィードバックが${feedback_count}件あります。今すぐ内省活動に入り、確認・対応してください。"
+            FEEDBACK_NOTIFICATION_MESSAGE="【緊急】feedbackboxに未処理のユーザーフィードバックが${feedback_count}件あります。今すぐ内省活動に入り、確認・対応してください。"
             log_warning "Found $emergency_count emergency feedback files (total: $feedback_count)"
         else
-            FEEDBACK_NOTIFICATION_MESSAGE="📝 feedbackboxに未処理のユーザーフィードバックが${feedback_count}件あります。内省時に確認・対応してください。"
+            FEEDBACK_NOTIFICATION_MESSAGE="feedbackboxに未処理のユーザーフィードバックが${feedback_count}件あります。内省時に確認・対応してください。"
             log_notice "Found $feedback_count unprocessed feedback files"
         fi
         return 1  # フィードバックあり
@@ -339,7 +339,7 @@ check_recent_activity() {
             return 0 ;;
         10) # 活動ログ頻度警告（新機能 - v2）
             log_warning "Activity log frequency warning: No activity log updates for $((detail / 60)) minutes."
-            INACTIVITY_WARNING_MESSAGE="⚠️ 活動ログ頻度警告: $((detail / 60))分間活動ログの更新がありません。
+            INACTIVITY_WARNING_MESSAGE="活動ログ頻度警告: $((detail / 60))分間活動ログの更新がありません。
 
 $ADVICE_ACTIVITY_LOG_FREQUENCY"
             return 0 ;;
@@ -353,7 +353,7 @@ $ADVICE_ACTIVITY_LOG_FREQUENCY"
             handle_failure "Theme log pattern error: $detail files with same timestamp detected." "テーマログパターン異常" ;;
         17) # 内省活動警告（新機能 - v2）
             log_warning "Introspection activity warning: No introspection activity for $((detail / 60)) minutes."
-            INTROSPECTION_REMINDER_MESSAGE="⚠️ 内省不足警告: $((detail / 60))分間内省活動が行われていません。
+            INTROSPECTION_REMINDER_MESSAGE="内省不足警告: $((detail / 60))分間内省活動が行われていません。
 
 $ADVICE_INTROSPECTION"
             return 0 ;;
@@ -361,7 +361,7 @@ $ADVICE_INTROSPECTION"
             handle_failure "Introspection activity error: No introspection activity for $((detail / 60)) minutes." "活動ログ内省不足" ;;
         19) # 活動ログタイムスタンプ警告（新機能 - v2復活）
             log_warning "Activity log timestamp warning: Timestamp is $((detail / 60)) minutes old."
-            INACTIVITY_WARNING_MESSAGE="⚠️ 活動ログタイムスタンプ警告: 最新の活動ログのハートビートIDが$((detail / 60))分以上古いです。
+            INACTIVITY_WARNING_MESSAGE="活動ログタイムスタンプ警告: 最新の活動ログのハートビートIDが$((detail / 60))分以上古いです。
 活動ログはハートビート毎に毎回新しく作成する必要があります。
 このハートビートの活動の終わりに必ず新しい活動ログを作成してください。"
             return 0 ;;
@@ -369,7 +369,7 @@ $ADVICE_INTROSPECTION"
             handle_failure "Activity log timestamp error: Timestamp is $((detail / 60)) minutes old." "活動ログタイムスタンプ異常" ;;
         21) # 内省活動通知（新機能 - v2）
             log_notice "Introspection activity notification: No introspection activity for $((detail / 60)) minutes."
-            INTROSPECTION_REMINDER_MESSAGE="ℹ️ 内省活動通知: $((detail / 60))分間内省活動が行われていません。
+            INTROSPECTION_REMINDER_MESSAGE="内省活動通知: $((detail / 60))分間内省活動が行われていません。"
 
 $ADVICE_INTROSPECTION"
             return 0 ;;
@@ -451,7 +451,7 @@ attempt_recovery() {
     esac
 
     # 回復メッセージを設定し、回復待機状態に移行
-    RECOVERY_MESSAGE="🚨 **異常検知による回復処理**: ${detection_type}を検知したため緊急回復処理を実行しました。
+    RECOVERY_MESSAGE="**異常検知による回復処理**: ${detection_type}を検知したため緊急回復処理を実行しました。
 
 **実行した緊急回復のための処理:**
 - エージェント処理の安全な中断
@@ -528,7 +528,7 @@ log_notice "Sending initial heartbeat immediately after startup..."
 initial_heartbeat_msg="Heartbeat: $(date "+%Y%m%d%H%M%S")"
 if [ ! -d artifacts/* ] 2>/dev/null || [ -z "$(find artifacts -maxdepth 1 -type d ! -name artifacts ! -name theme_histories 2>/dev/null)" ]; then
     initial_heartbeat_msg="$initial_heartbeat_msg
-🚨 **システム初回起動**: 現在テーマが設定されていません。
+**システム初回起動**: 現在テーマが設定されていません。
 ai-docs/THEME_MANAGEMENT_GUIDE.md の「2. テーマ開始手順」を参照し
 必ずテーマ開始活動を実行してください。"
     log_info "Initial startup detected: No theme directories found"
