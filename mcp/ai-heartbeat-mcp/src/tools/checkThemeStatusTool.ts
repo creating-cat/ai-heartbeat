@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { resolveThemePath } from '../lib/themeUtils';
 
 // テーマ状態情報の型定義（統一版）
 interface ThemeStatus {
@@ -40,36 +41,6 @@ export const checkThemeStatusInputSchema = z.object({
     .describe('サブテーマ情報も含めるかどうか'),
 });
 
-// ディレクトリパス解決関数
-function resolveThemePath(
-  themeStartId: string,
-  themeDirectoryPart: string,
-  parentThemeStartId?: string,
-  parentThemeDirectoryPart?: string
-): string {
-  if (parentThemeStartId && parentThemeDirectoryPart) {
-    // サブテーマの場合
-    const sanitizedParentPart = path.basename(parentThemeDirectoryPart)
-      .toLowerCase()
-      .replace(/[^a-z0-9_]+/g, '_')
-      .replace(/_+/g, '_');
-    const sanitizedThemePart = path.basename(themeDirectoryPart)
-      .toLowerCase()
-      .replace(/[^a-z0-9_]+/g, '_')
-      .replace(/_+/g, '_');
-    
-    const parentDir = `${parentThemeStartId}_${sanitizedParentPart}`;
-    const subthemeDir = `${themeStartId}_${sanitizedThemePart}`;
-    return path.join('artifacts', parentDir, 'subthemes', subthemeDir);
-  } else {
-    // メインテーマの場合
-    const sanitizedThemePart = path.basename(themeDirectoryPart)
-      .toLowerCase()
-      .replace(/[^a-z0-9_]+/g, '_')
-      .replace(/_+/g, '_');
-    return path.join('artifacts', `${themeStartId}_${sanitizedThemePart}`);
-  }
-}
 
 // 活動ログ数をカウント
 async function countActivityLogs(themeDirectoryPath: string): Promise<number> {

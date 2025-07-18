@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { resolveThemePath, resolveThemeContextsPath } from '../lib/themeUtils';
 
 // Zod schema for get latest theme context input
 export const getLatestThemeContextInputSchema = z.object({
@@ -39,10 +40,9 @@ export const getLatestThemeContextTool = {
       // Sanitize directory part to prevent directory traversal
       const sanitizedDirectoryPart = path.basename(themeDirectoryPart);
       
-      // Build theme directory path
-      const fullThemeDirectoryName = `${themeStartId}_${sanitizedDirectoryPart}`;
-      const themeDirectoryPath = path.join('artifacts', fullThemeDirectoryName);
-      const contextsDirectoryPath = path.join(themeDirectoryPath, 'contexts');
+      // Build theme directory path using common utility
+      const themeDirectoryPath = resolveThemePath(themeStartId, sanitizedDirectoryPart);
+      const contextsDirectoryPath = resolveThemeContextsPath(themeStartId, sanitizedDirectoryPart);
       
       // Check if theme directory exists
       if (!await fs.pathExists(themeDirectoryPath)) {

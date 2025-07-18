@@ -7,7 +7,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { activityLogTool } from './tools/activityLogTool';
 import { themeLogTool } from './tools/themeLogTool';
 import { itemProcessorTool } from './tools/itemProcessorTool';
-import { reportToolUsageTool } from './tools/reportToolUsageTool.js';
+import { reportToolUsageTool } from './tools/reportToolUsageTool';
 import { createThemeExpertContextTool } from './tools/createThemeExpertContextTool';
 import { getLatestActivityLogTool } from './tools/getLatestActivityLogTool';
 import { checkThemeStatusTool } from './tools/checkThemeStatusTool';

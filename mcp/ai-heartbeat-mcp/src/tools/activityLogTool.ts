@@ -7,6 +7,7 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 
 import { checkTimeDeviation } from '../lib/timeUtils';
+import { resolveThemePath } from '../lib/themeUtils';
 
 // Zod schema for activity log input (サブテーマ対応版)
 export const activityLogInputSchema = z.object({
@@ -38,36 +39,7 @@ export const activityLogInputSchema = z.object({
     .describe('サブテーマの場合、親テーマのディレクトリ部分を指定。parentThemeStartIdが指定された場合は必須'),
 });
 
-// ディレクトリパス解決関数（themeLogToolと共通）
-function resolveThemePath(
-  themeStartId: string,
-  themeDirectoryPart: string,
-  parentThemeStartId?: string,
-  parentThemeDirectoryPart?: string
-): string {
-  if (parentThemeStartId && parentThemeDirectoryPart) {
-    // サブテーマの場合
-    const sanitizedParentPart = path.basename(parentThemeDirectoryPart)
-      .toLowerCase()
-      .replace(/[^a-z0-9_]+/g, '_')
-      .replace(/_+/g, '_');
-    const sanitizedThemePart = path.basename(themeDirectoryPart)
-      .toLowerCase()
-      .replace(/[^a-z0-9_]+/g, '_')
-      .replace(/_+/g, '_');
-    
-    const parentDir = `${parentThemeStartId}_${sanitizedParentPart}`;
-    const subthemeDir = `${themeStartId}_${sanitizedThemePart}`;
-    return path.join('artifacts', parentDir, 'subthemes', subthemeDir);
-  } else {
-    // メインテーマの場合（既存ロジック）
-    const sanitizedThemePart = path.basename(themeDirectoryPart)
-      .toLowerCase()
-      .replace(/[^a-z0-9_]+/g, '_')
-      .replace(/_+/g, '_');
-    return path.join('artifacts', `${themeStartId}_${sanitizedThemePart}`);
-  }
-}
+
 
 // Helper functions
 function generateActivityLogMarkdown(args: z.infer<typeof activityLogInputSchema>): string {

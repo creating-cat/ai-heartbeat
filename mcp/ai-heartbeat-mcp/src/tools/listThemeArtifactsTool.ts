@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { resolveThemePath } from '../lib/themeUtils';
 
 // Zod schema for list theme artifacts input
 export const listThemeArtifactsInputSchema = z.object({
@@ -102,9 +103,8 @@ export const listThemeArtifactsTool = {
       // Sanitize directory part to prevent directory traversal
       const sanitizedDirectoryPart = path.basename(themeDirectoryPart);
       
-      // Build theme directory path
-      const themeDirectoryName = `${themeStartId}_${sanitizedDirectoryPart}`;
-      const themeDirectoryPath = path.join('artifacts', themeDirectoryName);
+      // Build theme directory path using common utility
+      const themeDirectoryPath = resolveThemePath(themeStartId, sanitizedDirectoryPart);
       
       // Check if theme directory exists
       if (!await fs.pathExists(themeDirectoryPath)) {

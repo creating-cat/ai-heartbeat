@@ -7,6 +7,7 @@ import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { parseActivityLogFileName, FileNameInfo } from '../lib/activityLogParser';
+import { resolveThemePath, resolveThemeHistoriesPath } from '../lib/themeUtils';
 
 // Zod schema for get latest activity log input
 export const getLatestActivityLogInputSchema = z.object({
@@ -56,10 +57,9 @@ export const getLatestActivityLogTool = {
       // Sanitize directory part to prevent directory traversal
       const sanitizedDirectoryPart = path.basename(themeDirectoryPart);
       
-      // Build theme directory path
-      const fullThemeDirectoryName = `${themeStartId}_${sanitizedDirectoryPart}`;
-      const themeDirectoryPath = path.join('artifacts', fullThemeDirectoryName);
-      const historiesDirectoryPath = path.join(themeDirectoryPath, 'histories');
+      // Build theme directory path using common utility
+      const themeDirectoryPath = resolveThemePath(themeStartId, sanitizedDirectoryPart);
+      const historiesDirectoryPath = resolveThemeHistoriesPath(themeStartId, sanitizedDirectoryPart);
       
       // Check if theme directory exists
       if (!await fs.pathExists(themeDirectoryPath)) {

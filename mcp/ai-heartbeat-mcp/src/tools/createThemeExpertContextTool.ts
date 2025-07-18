@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { resolveThemePath } from '../lib/themeUtils';
 
 // Zod schema for the tool input (サブテーマ対応版)
 export const createThemeExpertContextInputSchema = z.object({
@@ -43,36 +44,7 @@ export const createThemeExpertContextInputSchema = z.object({
     .describe('サブテーマの場合、親テーマのディレクトリ部分を指定。parentThemeStartIdが指定された場合は必須'),
 });
 
-// ディレクトリパス解決関数
-function resolveThemePath(
-  themeStartId: string,
-  themeDirectoryPart: string,
-  parentThemeStartId?: string,
-  parentThemeDirectoryPart?: string
-): string {
-  if (parentThemeStartId && parentThemeDirectoryPart) {
-    // サブテーマの場合
-    const sanitizedParentPart = path.basename(parentThemeDirectoryPart)
-      .toLowerCase()
-      .replace(/[^a-z0-9_]+/g, '_')
-      .replace(/_+/g, '_');
-    const sanitizedThemePart = path.basename(themeDirectoryPart)
-      .toLowerCase()
-      .replace(/[^a-z0-9_]+/g, '_')
-      .replace(/_+/g, '_');
-    
-    const parentDir = `${parentThemeStartId}_${sanitizedParentPart}`;
-    const subthemeDir = `${themeStartId}_${sanitizedThemePart}`;
-    return path.join('artifacts', parentDir, 'subthemes', subthemeDir);
-  } else {
-    // メインテーマの場合
-    const sanitizedThemePart = path.basename(themeDirectoryPart)
-      .toLowerCase()
-      .replace(/[^a-z0-9_]+/g, '_')
-      .replace(/_+/g, '_');
-    return path.join('artifacts', `${themeStartId}_${sanitizedThemePart}`);
-  }
-}
+
 
 // Helper to generate markdown content (シンプル版)
 const generateContextContent = (
