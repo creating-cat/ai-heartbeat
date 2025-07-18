@@ -154,7 +154,7 @@ themeboxが空の場合は、従来通り自律的に新テーマを決定する
 - `histories/` サブディレクトリ（活動ログ用）
 
 #### ステップ4: テーマ専門家コンテキストの設定（任意）
-そのテーマに最適な専門家役割を決定し、`context.md` に記録
+そのテーマに最適な専門家役割を決定し、`contexts/{ハートビートID}.md` に記録
 
 **設定判断基準:**
 - テーマの専門性が高い場合
@@ -162,8 +162,13 @@ themeboxが空の場合は、従来通り自律的に新テーマを決定する
 - 一貫した専門性が必要な場合
 
 **作成方法:**
-- 手動作成: `artifacts/{THEME_START_ID}_{themeDirectoryPart}/context.md`
-- MCPツール: `create_theme_expert_context` ツール使用
+
+**基本手順:**
+1. `artifacts/{THEME_START_ID}_{themeDirectoryPart}/contexts/` フォルダを作成
+2. `{ハートビートID}.md` ファイルを作成
+3. テーマ専門家コンテキストの内容を記述
+
+**MCPツール支援**: `create_theme_expert_context` ツールを使用すると、上記の手順を自動で実行
 
 #### ステップ5: テーマ開始履歴の記録
 テーマ開始の事実と詳細を履歴として記録
@@ -200,10 +205,12 @@ themeboxが空の場合は、従来通り自律的に新テーマを決定する
 
 #### 確認タイミング
 - 各ハートビート開始時
-- `artifacts/{THEME_START_ID}_{themeDirectoryPart}/context.md` の存在確認
+- `contexts/` フォルダ内の最新ファイルを確認
+
+**MCPツール支援**: `get_latest_theme_context` ツールで最新のコンテキストを自動取得
 
 #### 適用方法
-- ファイルが存在する場合、その専門家視点で活動を実行
+- コンテキストファイルが存在する場合、その専門家視点で活動を実行
 - システムルールを最優先とし、専門家視点は補完的に使用
 
 #### 優先順位（重要）
@@ -219,7 +226,7 @@ themeboxが空の場合は、従来通り自律的に新テーマを決定する
 - **場所**: `artifacts/{THEME_START_ID}_{themeDirectoryPart}/`
 - **命名**: `{ハートビートID}_filename.md`
 - **例外**: 
-  - `context.md`: テーマ専門家コンテキスト
+  - `contexts/{ハートビートID}.md`: テーマ専門家コンテキスト（履歴管理）
   - `histories/`: 活動ログディレクトリ
 
 #### 活動ログの記録

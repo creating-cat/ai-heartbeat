@@ -95,7 +95,7 @@ MCPツールが利用できない場合や、基本的なファイル操作と�
 
 ### 3.1 許可されるファイル操作
 * `artifacts/{THEME_START_ID_テーマ名}/` 配下にマークダウンファイル等を作成・修正
-  * ファイル名は `{ハートビートID}_filename.md` 形式で作成（例外: `context.md`, `histories/` 配下のファイル）
+  * ファイル名は `{ハートビートID}_filename.md` 形式で作成（例外: `contexts/` 配下のファイル、`histories/` 配下のファイル）
 * `artifacts/theme_histories/` 配下にテーマ履歴ファイルを作成
 * `projects/` 配下のプロジェクトファイルの作成・修正・削除
 * `stats/` 配下にシステム状態ファイルを作成
