@@ -7,7 +7,7 @@ import * as path from 'path';
 import { z } from 'zod';
 import { checkTimeDeviation } from '../lib/timeUtils';
 
-// Zod schema for theme log input
+// Zod schema for theme log input (サブテーマ対応版)
 export const themeLogInputSchema = z.object({
   action: z.enum(['start', 'end']).describe("テーマに対する操作種別。'start'または'end'のいずれかを指定します。"),
   themeStartId: z.string()
@@ -23,7 +23,55 @@ export const themeLogInputSchema = z.object({
   reason: z.string().describe('テーマを開始または終了する理由。'),
   achievements: z.array(z.string()).optional().describe("テーマ終了時に記録する主な成果のリスト。actionが'end'の場合に使用します。"),
   activityContent: z.array(z.string()).optional().describe("テーマ開始時に記録する初期活動計画のリスト。actionが'start'の場合に使用します。"),
+  
+  // 🆕 サブテーマ対応の新規フィールド
+  parentThemeStartId: z.string()
+    .regex(/^\d{14}$/, 'PARENT_THEME_START_IDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
+    .optional()
+    .describe('サブテーマの場合、親テーマのTHEME_START_IDを指定。nullまたは未指定の場合はルートテーマとして扱われます'),
+  parentThemeDirectoryPart: z.string()
+    .optional()
+    .describe('サブテーマの場合、親テーマのディレクトリ部分を指定。parentThemeStartIdが指定された場合は必須'),
+  integrationNotes: z.array(z.string())
+    .optional()
+    .describe('サブテーマ終了時、親テーマへの統合に関する情報や引き継ぎ事項のリスト'),
 });
+
+// ディレクトリパス解決関数
+function resolveThemePath(
+  themeStartId: string,
+  themeDirectoryPart: string,
+  parentThemeStartId?: string,
+  parentThemeDirectoryPart?: string
+): string {
+  if (parentThemeStartId && parentThemeDirectoryPart) {
+    // サブテーマの場合
+    const sanitizedParentPart = path.basename(parentThemeDirectoryPart)
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, '_')
+      .replace(/_+/g, '_');
+    const sanitizedThemePart = path.basename(themeDirectoryPart)
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, '_')
+      .replace(/_+/g, '_');
+    
+    const parentDir = `${parentThemeStartId}_${sanitizedParentPart}`;
+    const subthemeDir = `${themeStartId}_${sanitizedThemePart}`;
+    return path.join('artifacts', parentDir, 'subthemes', subthemeDir);
+  } else {
+    // メインテーマの場合（既存ロジック）
+    const sanitizedThemePart = path.basename(themeDirectoryPart)
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, '_')
+      .replace(/_+/g, '_');
+    return path.join('artifacts', `${themeStartId}_${sanitizedThemePart}`);
+  }
+}
+
+// テーマタイプ判定
+function getThemeType(parentThemeStartId?: string): string {
+  return parentThemeStartId ? 'サブテーマ' : 'テーマ';
+}
 
 function formatList(items: string[] | undefined, emptyPlaceholder: string): string {
   if (!items || items.length === 0) {
@@ -37,7 +85,7 @@ function formatList(items: string[] | undefined, emptyPlaceholder: string): stri
 
 export const themeLogTool = {
   name: 'create_theme_log',
-  description: 'AIハートビートシステム用のテーマ履歴ログを作成します。',
+  description: 'AIハートビートシステム用のテーマ履歴ログを作成します。サブテーマにも対応しており、parentThemeStartIdを指定することでサブテーマとして作成されます。',
   input_schema: themeLogInputSchema,
   execute: async (args: z.infer<typeof themeLogInputSchema>) => {
     try {
@@ -50,6 +98,9 @@ export const themeLogTool = {
         reason,
         achievements,
         activityContent,
+        parentThemeStartId,
+        parentThemeDirectoryPart,
+        integrationNotes,
       } = args;
 
       // バリデーション
@@ -57,19 +108,42 @@ export const themeLogTool = {
         throw new Error('テーマ終了時はthemeEndIdパラメータが必須です');
       }
 
+      if (parentThemeStartId && !parentThemeDirectoryPart) {
+        throw new Error('parentThemeStartIdが指定された場合、parentThemeDirectoryPartも必須です');
+      }
+
+      if (parentThemeDirectoryPart && !parentThemeStartId) {
+        throw new Error('parentThemeDirectoryPartが指定された場合、parentThemeStartIdも必須です');
+      }
+
       // ディレクトリトラバーサルを防ぐためにbasenameを使用
       const baseThemeDirectoryPart = path.basename(themeDirectoryPart);
+      const baseParentThemeDirectoryPart = parentThemeDirectoryPart ? path.basename(parentThemeDirectoryPart) : undefined;
 
       // themeDirectoryPartをサニタイズし、AIにフィードバックできるように変更を追跡
       const sanitizedDirectoryPart = baseThemeDirectoryPart
         .toLowerCase()
         .replace(/[^a-z0-9_]+/g, '_')
         .replace(/_+/g, '_');
-      const isSanitized = sanitizedDirectoryPart !== themeDirectoryPart;
+      const sanitizedParentDirectoryPart = baseParentThemeDirectoryPart
+        ?.toLowerCase()
+        .replace(/[^a-z0-9_]+/g, '_')
+        .replace(/_+/g, '_');
 
-      // ディレクトリ名の生成（統一ルール）
-      const fullThemeDirectoryName = `${themeStartId}_${sanitizedDirectoryPart}`;
-      const themeDirectoryPath = path.join('artifacts', fullThemeDirectoryName);
+      const isSanitized = sanitizedDirectoryPart !== themeDirectoryPart;
+      const isParentSanitized = baseParentThemeDirectoryPart && sanitizedParentDirectoryPart !== parentThemeDirectoryPart;
+
+      // テーマタイプの判定
+      const themeType = getThemeType(parentThemeStartId);
+      const isSubtheme = !!parentThemeStartId;
+
+      // テーマディレクトリパスを解決
+      const themeDirectoryPath = resolveThemePath(
+        themeStartId,
+        sanitizedDirectoryPart,
+        parentThemeStartId,
+        sanitizedParentDirectoryPart
+      );
 
       // ファイル名の生成（IDに基づく）
       const logFileId = action === 'start' ? themeStartId : themeEndId;
@@ -89,6 +163,14 @@ export const themeLogTool = {
 
       // テーマ開始時: ディレクトリ構造の確保
       if (action === 'start') {
+        if (isSubtheme) {
+          // サブテーマの場合：親テーマディレクトリの存在確認
+          const parentPath = resolveThemePath(parentThemeStartId!, sanitizedParentDirectoryPart!);
+          if (!await fs.pathExists(parentPath)) {
+            throw new Error(`親テーマディレクトリが存在しません: ${parentPath}`);
+          }
+        }
+
         // ディレクトリが既に存在する場合（専門家コンテキスト作成済み）
         if (await fs.pathExists(themeDirectoryPath)) {
           console.log(`既存のテーマディレクトリを使用: ${themeDirectoryPath}`);
@@ -99,21 +181,60 @@ export const themeLogTool = {
         
         // historiesディレクトリは常に確保
         await fs.ensureDir(path.join(themeDirectoryPath, 'histories'));
+        
+        // サブテーマの場合はメタデータファイルを作成
+        if (isSubtheme) {
+          const metadataPath = path.join(themeDirectoryPath, 'subtheme_metadata.json');
+          if (!await fs.pathExists(metadataPath)) {
+            const metadata = {
+              parentThemeStartId,
+              parentThemeDirectoryPart: sanitizedParentDirectoryPart,
+              subthemeStartId: themeStartId,
+              subthemeDirectoryPart: sanitizedDirectoryPart,
+              createdAt: new Date().toISOString(),
+              status: 'active'
+            };
+            await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
+          }
+        }
       } else {
         // テーマ終了時: ディレクトリ存在確認
         if (!await fs.pathExists(themeDirectoryPath)) {
           // 警告は出すが、処理は継続（履歴記録は重要）
           console.warn(`警告: テーマディレクトリが見つかりません: ${themeDirectoryPath}`);
         }
+        
+        // サブテーマ終了時はメタデータを更新
+        if (isSubtheme) {
+          const metadataPath = path.join(themeDirectoryPath, 'subtheme_metadata.json');
+          if (await fs.pathExists(metadataPath)) {
+            try {
+              const metadata = await fs.readJson(metadataPath);
+              metadata.status = 'completed';
+              metadata.completedAt = new Date().toISOString();
+              if (integrationNotes && integrationNotes.length > 0) {
+                metadata.integrationNotes = integrationNotes;
+              }
+              await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
+            } catch (error) {
+              console.warn(`メタデータファイルの更新に失敗: ${metadataPath}`);
+            }
+          }
+        }
       }
 
       // マークダウン内容の生成
       let markdownContent = '';
+      const actionType = action === 'start' ? '開始' : '終了';
+      const title = `${themeType}${actionType}: ${themeName}`;
+
       if (action === 'start') {
         const activityList = formatList(activityContent, '(このテーマで何を行うか)');
-        markdownContent = `# テーマ開始: ${themeName}
+        markdownContent = `# ${title}
 
-**THEME_START_ID**: ${themeStartId}
+${isSubtheme ? `**PARENT_THEME_START_ID**: ${parentThemeStartId}
+**PARENT_THEME_DIRECTORY**: ${parentThemeStartId}_${sanitizedParentDirectoryPart}
+` : ''}**THEME_START_ID**: ${themeStartId}
 **テーマディレクトリ**: \`${themeDirectoryPath}/\`
 
 **開始理由**:
@@ -124,9 +245,11 @@ ${activityList}
 `;
       } else {
         const achievementList = formatList(achievements, 'N/A');
-        markdownContent = `# テーマ終了: ${themeName}
+        markdownContent = `# ${title}
 
-**THEME_START_ID**: ${themeStartId}
+${isSubtheme ? `**PARENT_THEME_START_ID**: ${parentThemeStartId}
+**PARENT_THEME_DIRECTORY**: ${parentThemeStartId}_${sanitizedParentDirectoryPart}
+` : ''}**THEME_START_ID**: ${themeStartId}
 **THEME_END_ID**: ${themeEndId}
 **テーマディレクトリ**: \`${themeDirectoryPath}/\`
 
@@ -135,7 +258,10 @@ ${reason || 'N/A'}
 
 **主な成果**:
 ${achievementList}
-`;
+${integrationNotes && integrationNotes.length > 0 && isSubtheme ? `
+**親テーマへの統合情報**:
+${formatList(integrationNotes, 'N/A')}
+` : ''}`;
       }
 
       // 時刻乖離チェック
@@ -146,12 +272,18 @@ ${achievementList}
       await fs.writeFile(logFilePath, markdownContent, 'utf-8');
 
       // 応答メッセージ作成
-      let responseText = `テーマ履歴ファイルを作成しました: ${logFilePath}`;
+      let responseText = `${themeType}履歴ファイルを作成しました: ${logFilePath}`;
       if (action === 'start') {
-        responseText += `\nテーマディレクトリ: ${themeDirectoryPath}`;
+        responseText += `\n${themeType}ディレクトリ: ${themeDirectoryPath}`;
         responseText += `\nTHEME_START_ID: ${themeStartId}`;
+        if (isSubtheme) {
+          responseText += `\nPARENT_THEME_START_ID: ${parentThemeStartId}`;
+        }
       } else {
-        responseText += `\nテーマ終了: ${themeStartId} → ${themeEndId}`;
+        responseText += `\n${themeType}終了: ${themeStartId} → ${themeEndId}`;
+        if (isSubtheme) {
+          responseText += `\n親テーマに戻ります: ${parentThemeStartId}_${sanitizedParentDirectoryPart}`;
+        }
       }
       
       if (timeWarning) {
@@ -161,6 +293,9 @@ ${achievementList}
       // サニタイズ警告
       if (isSanitized) {
         responseText += `\n警告: ディレクトリ名を「${themeDirectoryPart}」から「${sanitizedDirectoryPart}」に修正しました`;
+      }
+      if (isParentSanitized) {
+        responseText += `\n警告: 親ディレクトリ名を「${parentThemeDirectoryPart}」から「${sanitizedParentDirectoryPart}」に修正しました`;
       }
 
       return { content: [{ type: 'text' as const, text: responseText }] };
