@@ -14,7 +14,7 @@ check_command "tmux"
 check_command "gemini"
 
 # AIエージェント起動コマンド
-AGENT_COMMAND="gemini -y"
+AGENT_COMMAND="gemini -y --model gemini-2.5-flash"
 
 # 使用方法表示
 usage() {
