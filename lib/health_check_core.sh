@@ -139,10 +139,10 @@ check_activity_log_pattern_anomaly() {
 
      debug_log "ACTIVITY_LOG_PATTERN: Same timestamp file count: $same_timestamp_count"
 
-    # パターン異常の判定
+    # パターン異常の判定（Phase 1: エラーから警告レベルに緩和）
     if [ $same_timestamp_count -ge 3 ]; then
-        debug_warning "ACTIVITY_LOG_PATTERN: Error level reached ($same_timestamp_count files with same timestamp)"
-        echo "2:$same_timestamp_count"
+        debug_warning "ACTIVITY_LOG_PATTERN: Warning level reached ($same_timestamp_count files with same timestamp)"
+        echo "1:$same_timestamp_count"  # エラー(2)から警告(1)に変更
         return 0
     fi
     
@@ -271,10 +271,10 @@ check_activity_log_loop_anomaly() {
             # 更新時刻を保存
             ACTIVITY_LOG_LOOP_LAST_MTIME="$latest_activity_log_mtime"
             
-            # ループカウントが2以上でエラー
+            # ループカウントが2以上で警告（Phase 1: エラーから警告レベルに緩和）
             if [ $ACTIVITY_LOG_LOOP_COUNT -ge 2 ]; then
-                debug_warning "ACTIVITY_LOG_LOOP: Error level reached (loop count: $ACTIVITY_LOG_LOOP_COUNT)"
-                echo "2:$ACTIVITY_LOG_LOOP_COUNT"
+                debug_warning "ACTIVITY_LOG_LOOP: Warning level reached (loop count: $ACTIVITY_LOG_LOOP_COUNT)"
+                echo "1:$ACTIVITY_LOG_LOOP_COUNT"  # エラー(2)から警告(1)に変更
                 return 0
             fi
         else

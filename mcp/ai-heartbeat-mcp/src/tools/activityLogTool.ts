@@ -6,7 +6,7 @@ import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
-import { checkTimeDeviation } from '../lib/timeUtils';
+import { checkTimeDeviation, convertTimestampToSeconds } from '../lib/timeUtils';
 import { resolveThemePath } from '../lib/themeUtils';
 
 // Zod schema for activity log input (サブテーマ対応版)
@@ -42,6 +42,30 @@ export const activityLogInputSchema = z.object({
 
 
 // Helper functions
+
+/**
+ * ハートビート開始からの経過時間をチェックして警告メッセージを生成
+ */
+function checkProcessingTime(heartbeatId: string): string | null {
+  try {
+    const heartbeatTime = convertTimestampToSeconds(heartbeatId);
+    const currentTime = Math.floor(Date.now() / 1000);
+    const elapsedSeconds = currentTime - heartbeatTime;
+    const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+    
+    if (elapsedSeconds >= 600) { // 10分
+      return `長時間処理警告: ハートビート開始から${elapsedMinutes}分が経過しています。処理を区切ることを推奨します。`;
+    } else if (elapsedSeconds >= 300) { // 5分
+      return `処理時間通知: ハートビート開始から${elapsedMinutes}分が経過しています。`;
+    }
+    
+    return null;
+  } catch (error) {
+    // タイムスタンプ変換エラーの場合は警告を出さない
+    return null;
+  }
+}
+
 function generateActivityLogMarkdown(args: z.infer<typeof activityLogInputSchema>): string {
   const lines: string[] = [];
   
@@ -144,7 +168,7 @@ async function findAvailableSequence(
     return { sequence: null, warning: null };
   }
   
-  // 連番ファイルをチェック
+  // 連番ファイルをチェック（ファイル重複回避のため連番生成ロジックは維持）
   for (let i = 1; i <= 99; i++) {
     const sequencePath = getActivityLogFilePath(
       themeStartId, 
@@ -155,9 +179,10 @@ async function findAvailableSequence(
       parentThemeDirectoryPart
     );
     if (!await fs.pathExists(sequencePath)) {
+      // 連番警告は削除し、時間ベース警告に統一
       return { 
         sequence: i, 
-        warning: `ハートビートID ${heartbeatId} の活動ログは既に存在するため、連番 ${i.toString().padStart(2, '0')} を付与しました。`
+        warning: null  // 連番警告を削除
       };
     }
   }
@@ -221,8 +246,11 @@ export const activityLogTool = {
         sanitizedParentDirectoryPart
       );
       
-      // Check time deviation
+      // Check time deviation (既存の時間チェック)
       const timeWarning = await checkTimeDeviation(args.heartbeatId);
+      
+      // Check processing time (新しい時間ベース警告)
+      const processingTimeWarning = checkProcessingTime(args.heartbeatId);
       
       // Ensure directory exists
       await fs.ensureDir(path.dirname(filePath));
@@ -257,6 +285,11 @@ export const activityLogTool = {
       
       if (timeWarning) {
         responseText += `\n${timeWarning}`;
+      }
+      
+      // 新しい時間ベース警告を追加
+      if (processingTimeWarning) {
+        responseText += `\n${processingTimeWarning}`;
       }
       
       return {

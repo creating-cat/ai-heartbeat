@@ -179,7 +179,7 @@ check_tool_restrictions() {
 
         if [ $diff -lt $lock_duration ]; then
             local remaining=$((lock_duration - diff))
-            TOOL_RESTRICTION_MESSAGES+="🚫 ツール[${tool_id}]はロック中です (クォータ超過のため、残り約$((remaining / 60))分)\n"
+            TOOL_RESTRICTION_MESSAGES+="ツール[${tool_id}]はロック中です (クォータ超過のため、残り約$((remaining / 60))分)\n"
         else
             rm "$lockfile" && log_info "Tool lock for [$tool_id] has been lifted."
         fi
@@ -197,7 +197,7 @@ check_tool_restrictions() {
 
             if [ $diff -lt $cooldown_duration ]; then
                 local remaining=$((cooldown_duration - diff))
-                TOOL_RESTRICTION_MESSAGES+="🚫 ツール[${tool_id}]はクールダウン中です (残り約$((remaining / 60))分)\n"
+                TOOL_RESTRICTION_MESSAGES+="ツール[${tool_id}]はクールダウン中です (残り約$((remaining / 60))分)\n"
             else
                 rm "$cooldownfile" && log_info "Tool cooldown for [$tool_id] has ended."
             fi
@@ -242,9 +242,9 @@ check_agent_health() {
     
     if [ "$activity_pattern_code" != "0" ]; then
         HEALTH_CHECK_DETAIL="$activity_pattern_detail"
-        if [ "$activity_pattern_code" = "2" ]; then
-            log_warning "[CHECK] Activity log pattern error detected (code 13): $activity_pattern_detail files"
-            return 13 # 活動ログパターンエラー
+        if [ "$activity_pattern_code" = "1" ]; then
+            log_warning "[CHECK] Activity log pattern warning detected (code 12): $activity_pattern_detail files"
+            return 12 # 活動ログパターン警告（Phase 1: エラーから警告に変更）
         fi
     fi
 
@@ -268,9 +268,9 @@ check_agent_health() {
     
     if [ "$activity_loop_code" != "0" ]; then
         HEALTH_CHECK_DETAIL="$activity_loop_detail"
-        if [ "$activity_loop_code" = "2" ]; then
-            log_warning "[CHECK] Activity log loop error detected (code 14): $activity_loop_detail loops"
-            return 14 # 活動ログループエラー
+        if [ "$activity_loop_code" = "1" ]; then
+            log_warning "[CHECK] Activity log loop warning detected (code 15): $activity_loop_detail loops"
+            return 15 # 活動ログループ警告（Phase 1: エラーから警告に変更）
         fi
     fi
 
@@ -345,10 +345,18 @@ $ADVICE_ACTIVITY_LOG_FREQUENCY"
             return 0 ;;
         11) # 活動ログ頻度エラー（新機能 - v2）
             handle_failure "Activity log frequency error: No activity log updates for $((detail / 60)) minutes." "活動ログ頻度異常" ;;
-        13) # 活動ログパターンエラー（新機能 - v2）
-            handle_failure "Activity log pattern error: $detail files with same timestamp detected." "活動ログパターン異常" ;;
-        14) # 活動ログループエラー（新機能 - v2）
-            handle_failure "Activity log loop error: Same activity log edited $detail times consecutively." "活動ログループ異常" ;;
+        12) # 活動ログパターン警告（Phase 1: エラーから警告に変更）
+            log_warning "Activity log pattern warning: $detail files with same timestamp detected."
+            INACTIVITY_WARNING_MESSAGE="活動ログパターン警告: 同一タイムスタンプで${detail}個のファイルが検出されました。
+
+$ADVICE_ACTIVITY_LOG_PATTERN"
+            return 0 ;;
+        15) # 活動ログループ警告（Phase 1: エラーから警告に変更）
+            log_warning "Activity log loop warning: Same activity log edited $detail times consecutively."
+            INACTIVITY_WARNING_MESSAGE="活動ログループ警告: 同一ファイルが${detail}回連続で編集されました。
+
+$ADVICE_ACTIVITY_LOG_LOOP"
+            return 0 ;;
         16) # テーマログパターンエラー（新機能 - v2）
             handle_failure "Theme log pattern error: $detail files with same timestamp detected." "テーマログパターン異常" ;;
         17) # 内省活動警告（新機能 - v2）
@@ -420,12 +428,6 @@ attempt_recovery() {
         "活動ログ頻度異常")
             advice_message="$ADVICE_ACTIVITY_LOG_FREQUENCY"
             ;;
-        "活動ログパターン異常")
-            advice_message="$ADVICE_ACTIVITY_LOG_PATTERN"
-            ;;
-        "活動ログループ異常")
-            advice_message="$ADVICE_ACTIVITY_LOG_LOOP"
-            ;;
         "テーマログパターン異常")
             advice_message="$ADVICE_THEME_LOG_PATTERN"
             ;;
@@ -440,7 +442,7 @@ attempt_recovery() {
     # 異常種別に応じた特定ドキュメントを決定
     local specific_docs=""
     case "$detection_type" in
-        "活動ログ内省不足"|"活動ログ頻度異常"|"活動ログパターン異常"|"活動ログループ異常"|"活動ログタイムスタンプ異常")
+        "活動ログ内省不足"|"活動ログ頻度異常"|"活動ログタイムスタンプ異常")
             specific_docs="3. ai-docs/OPERATION_DETAILS.md - 活動ログ記録の詳細手順"
             ;;
         "テーマログパターン異常")
