@@ -8,13 +8,22 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { resolveThemePath, resolveThemeContextsPath } from '../lib/themeUtils';
 
-// Zod schema for get latest theme context input
+// Zod schema for get latest theme context input (サブテーマ対応版)
 export const getLatestThemeContextInputSchema = z.object({
   themeStartId: z.string()
     .regex(/^\d{14}$/, 'THEME_START_IDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
     .describe('テーマ開始時のハートビートID'),
   themeDirectoryPart: z.string()
     .describe('テーマディレクトリ名の一部。THEME_START_IDと組み合わせて "{THEME_START_ID}_{themeDirectoryPart}" の形式でテーマディレクトリが特定されます'),
+  
+  // 🆕 サブテーマ対応の新規フィールド
+  parentThemeStartId: z.string()
+    .regex(/^\d{14}$/, 'PARENT_THEME_START_IDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
+    .optional()
+    .describe('サブテーマの場合、親テーマのTHEME_START_IDを指定。nullまたは未指定の場合はルートテーマとして扱われます'),
+  parentThemeDirectoryPart: z.string()
+    .optional()
+    .describe('サブテーマの場合、親テーマのディレクトリ部分を指定。parentThemeStartIdが指定された場合は必須'),
 });
 
 // Helper function to validate heartbeat ID format
@@ -35,14 +44,35 @@ export const getLatestThemeContextTool = {
   input_schema: getLatestThemeContextInputSchema,
   execute: async (args: z.infer<typeof getLatestThemeContextInputSchema>) => {
     try {
-      const { themeStartId, themeDirectoryPart } = args;
+      const { themeStartId, themeDirectoryPart, parentThemeStartId, parentThemeDirectoryPart } = args;
+      
+      // バリデーション
+      if (parentThemeStartId && !parentThemeDirectoryPart) {
+        throw new Error('parentThemeStartIdが指定された場合、parentThemeDirectoryPartも必須です');
+      }
+
+      if (parentThemeDirectoryPart && !parentThemeStartId) {
+        throw new Error('parentThemeDirectoryPartが指定された場合、parentThemeStartIdも必須です');
+      }
       
       // Sanitize directory part to prevent directory traversal
       const sanitizedDirectoryPart = path.basename(themeDirectoryPart);
+      const sanitizedParentDirectoryPart = parentThemeDirectoryPart ? 
+        path.basename(parentThemeDirectoryPart) : undefined;
       
-      // Build theme directory path using common utility
-      const themeDirectoryPath = resolveThemePath(themeStartId, sanitizedDirectoryPart);
-      const contextsDirectoryPath = resolveThemeContextsPath(themeStartId, sanitizedDirectoryPart);
+      // Build theme directory path using common utility (サブテーマ対応)
+      const themeDirectoryPath = resolveThemePath(
+        themeStartId, 
+        sanitizedDirectoryPart,
+        parentThemeStartId,
+        sanitizedParentDirectoryPart
+      );
+      const contextsDirectoryPath = resolveThemeContextsPath(
+        themeStartId, 
+        sanitizedDirectoryPart,
+        parentThemeStartId,
+        sanitizedParentDirectoryPart
+      );
       
       // Check if theme directory exists
       if (!await fs.pathExists(themeDirectoryPath)) {
