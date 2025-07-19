@@ -5,6 +5,7 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { z } from 'zod';
+import { glob } from 'glob';
 import { checkTimeDeviation } from '../lib/timeUtils';
 import { resolveThemePath } from '../lib/themeUtils';
 
@@ -122,7 +123,20 @@ export const themeLogTool = {
         logFileName
       );
 
-      // 重複チェック (heartbeat.shの異常検知を避けるため)
+      // ハートビートID重複チェック（全テーマ履歴ファイルを検索）
+      const themeHistoryPattern = path.join('artifacts', 'theme_histories', `${logFileId}_*.md`);
+      const existingThemeHistories = await glob(themeHistoryPattern);
+      
+      if (existingThemeHistories.length > 0) {
+        const existingFile = path.basename(existingThemeHistories[0]);
+        throw new Error(
+          `ルール違反: ハートビートID (${logFileId}) は既にテーマ履歴で使用されています: ${existingFile}\n` +
+          `1つのハートビートでは1つのテーマ操作のみ実行可能です。\n` +
+          `解決方法: 次のハートビートを待ってからテーマ操作を実行してください。`
+        );
+      }
+
+      // 個別ファイル重複チェック（念のため）
       if (await fs.pathExists(logFilePath)) {
         throw new Error(
           `テーマ履歴ファイルは既に存在します: ${logFilePath}。ハートビートIDが重複していないか確認してください。`
