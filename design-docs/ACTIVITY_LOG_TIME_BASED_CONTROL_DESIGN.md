@@ -70,9 +70,9 @@ function checkProcessingTime(heartbeatId: string): string | null {
   const elapsedMinutes = Math.floor((currentTime - heartbeatTime) / 60);
   
   if (elapsedMinutes >= 10) {
-    return `⚠️ 長時間処理警告: ハートビート開始から${elapsedMinutes}分が経過しています。処理を区切ることを推奨します。`;
+    return `長時間処理警告: ハートビート開始から${elapsedMinutes}分が経過しています。処理を区切ることを推奨します。`;
   } else if (elapsedMinutes >= 5) {
-    return `ℹ️ 処理時間通知: ハートビート開始から${elapsedMinutes}分が経過しています。`;
+    return `処理時間通知: ハートビート開始から${elapsedMinutes}分が経過しています。`;
   }
   
   return null;
@@ -324,6 +324,8 @@ check_activity_log_timestamp_anomaly() {
 ```
 
 #### MCPツールの実装
+
+##### 長時間処理宣言ツール
 ```typescript
 export const declareExtendedProcessingTool = {
   name: 'declare_extended_processing',
@@ -374,6 +376,46 @@ REASON="${args.reason}"
     }
   },
 } as const;
+```
+
+##### 活動ログツールでの自動削除機能
+```typescript
+// activityLogTool.ts の execute 関数内で自動削除を実装
+export const activityLogTool = {
+  description: 'AIハートビートシステム用の、標準形式の活動ログを作成します。',
+  
+  execute: async (args) => {
+    try {
+      // 1. 活動ログ作成処理
+      const markdownContent = generateActivityLogMarkdown(args);
+      const filePath = getActivityLogFilePath(/* ... */);
+      await fs.writeFile(filePath, markdownContent, 'utf-8');
+      
+      let responseText = `活動ログを作成しました: ${filePath}`;
+      
+      // 2. 長時間処理宣言ファイルの自動削除
+      const declarationFile = 'stats/extended_processing/current.conf';
+      if (await fs.pathExists(declarationFile)) {
+        try {
+          await fs.remove(declarationFile);
+          responseText += '\n長時間処理宣言を完了しました（宣言ファイルを削除）。';
+        } catch (deleteError) {
+          responseText += '\n警告: 宣言ファイルの削除に失敗しましたが、活動ログは正常に作成されました。';
+        }
+      }
+      
+      // 3. その他の既存処理（時間警告など）
+      const timeWarning = checkProcessingTime(args.heartbeatId);
+      if (timeWarning) {
+        responseText += `\n${timeWarning}`;
+      }
+      
+      return { content: [{ type: 'text', text: responseText }] };
+    } catch (error) {
+      return { content: [{ type: 'text', text: `エラー: ${error.message}` }] };
+    }
+  }
+};
 ```
 
 #### 使用フロー例
