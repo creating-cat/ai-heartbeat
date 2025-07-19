@@ -75,8 +75,8 @@ AI心臓システム/
 │   ├── original_app/          # 新規アプリ開発プロジェクト例
 │   └── cloned_opensource_repo/ # クローンした既存リポジトリ例
 └── stats/                     # システム状態管理
-    ├── last_web_search.txt     # Web検索制限管理
-    └── quota_exceeded.txt      # クォータ制限管理
+    ├── cooldown/               # ツールクールダウン管理
+    └── lock/                   # ツールロック管理
 ```
 
 ## 詳細なディレクトリ説明

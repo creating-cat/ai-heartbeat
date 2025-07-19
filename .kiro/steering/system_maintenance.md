@@ -75,8 +75,6 @@ MAX_RECOVERY_WAIT_CYCLES=5             # 最大回復待機サイクル数
 
 ### ログファイルの種類
 - `logs/heartbeat_YYYYMMDDHHMMSS.log`: ハートビートログ（自動命名・クリーンアップ）
-- `stats/last_web_search.txt`: Web検索制限管理
-- `stats/quota_exceeded.txt`: クォータ制限管理
 - `stats/cooldown/`: ツールクールダウン状態管理
 - `stats/lock/`: ツールロック状態管理
 
@@ -170,10 +168,6 @@ cat .gemini/settings.json
 ```bash
 # ログディレクトリ確認
 ls -la logs/
-
-# 状態ファイル確認・クリア
-rm stats/last_web_search.txt
-rm stats/quota_exceeded.txt
 
 # ツール制限状態の確認・クリア
 ls -la stats/cooldown/

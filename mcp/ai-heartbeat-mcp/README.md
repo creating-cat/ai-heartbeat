@@ -77,8 +77,8 @@ Web検索の実行結果に基づいて統計ファイルを更新します。
 - `status`: 検索結果 (success/quota_exceeded)
 
 **動作:**
-- 成功時: `stats/last_web_search.txt` を更新、クォータ制限ファイルを削除
-- 制限時: `stats/quota_exceeded.txt` を作成
+- 成功時: クールダウンファイルを作成
+- 制限時: ロックファイルを作成してツール使用を制限
 
 ## セットアップ
 
