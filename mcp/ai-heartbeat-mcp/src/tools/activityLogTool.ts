@@ -9,6 +9,13 @@ import * as path from 'path';
 import { checkTimeDeviation, convertTimestampToSeconds } from '../lib/timeUtils';
 import { resolveThemePath } from '../lib/themeUtils';
 
+// 処理時間制御の設定（MCPツール独立設定）
+const PROCESSING_TIME_CONFIG = {
+  infoThreshold: 300,    // 5分で情報通知
+  warningThreshold: 600, // 10分で警告
+  errorThreshold: 900    // 15分でエラー
+};
+
 // Zod schema for activity log input (サブテーマ対応版)
 export const activityLogInputSchema = z.object({
   heartbeatId: z.string()
@@ -53,9 +60,11 @@ function checkProcessingTime(heartbeatId: string): string | null {
     const elapsedSeconds = currentTime - heartbeatTime;
     const elapsedMinutes = Math.floor(elapsedSeconds / 60);
     
-    if (elapsedSeconds >= 600) { // 10分
+    if (elapsedSeconds >= PROCESSING_TIME_CONFIG.errorThreshold) { // 15分
+      return `処理時間エラー: ハートビート開始から${elapsedMinutes}分が経過しています。即座に処理を完了してください。`;
+    } else if (elapsedSeconds >= PROCESSING_TIME_CONFIG.warningThreshold) { // 10分
       return `長時間処理警告: ハートビート開始から${elapsedMinutes}分が経過しています。処理を区切ることを推奨します。`;
-    } else if (elapsedSeconds >= 300) { // 5分
+    } else if (elapsedSeconds >= PROCESSING_TIME_CONFIG.infoThreshold) { // 5分
       return `処理時間通知: ハートビート開始から${elapsedMinutes}分が経過しています。`;
     }
     
@@ -193,7 +202,7 @@ async function findAvailableSequence(
 
 export const activityLogTool = {
   name: 'create_activity_log',
-  description: 'AIハートビートシステム用の、標準形式の活動ログを作成します。サブテーマにも対応しており、parentThemeStartIdを指定することでサブテーマの活動ログとして作成されます。原則は1ハートビートに対して1つの活動ログの作成です。このハートビート内での活動がまだ終わっていない場合は、まだこのツールを使用すべきではありません。逆にこのツールを使用した後は活動を終了させて、次の活動は次のハートビートで行うべきです。',
+  description: 'AIハートビートシステム用の、標準形式の活動ログを作成します。サブテーマにも対応しており、parentThemeStartIdを指定することでサブテーマの活動ログとして作成されます。時間ベース制御により、適切な時間内で自然な思考フロー（観測→思考→創造）に基づく複数の活動を行い、各活動でログを記録できます。処理時間が5分を超えると通知、10分を超えると警告、15分を超えるとエラーメッセージが表示されます。長時間処理が必要な場合は事前にdeclare_extended_processingツールで宣言してください。',
   input_schema: activityLogInputSchema,
   execute: async (args: z.infer<typeof activityLogInputSchema>) => {
     try {
