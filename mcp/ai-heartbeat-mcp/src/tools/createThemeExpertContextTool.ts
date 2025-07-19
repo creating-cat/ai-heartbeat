@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { glob } from 'glob';
 import { resolveThemePath } from '../lib/themeUtils';
 
 // Zod schema for the tool input (サブテーマ対応版)
@@ -122,10 +123,17 @@ export const createThemeExpertContextTool = {
       const contextsPath = path.join(themeArtifactsPath, 'contexts');
       const contextFilePath = path.join(contextsPath, `${heartbeatId}.md`);
 
-      // 重複チェック（最初に実行してエラー時のディレクトリ作成を防ぐ）
+      // ハートビートID重複チェック（全contextsディレクトリを検索）
+      const contextPattern = path.join('artifacts', '**', 'contexts', `${heartbeatId}.md`);
+      const existingContexts = await glob(contextPattern);
       
-      if (await fs.pathExists(contextFilePath)) {
-        throw new Error(`コンテキストファイルは既に存在します: ${contextFilePath}`);
+      if (existingContexts.length > 0) {
+        const existingPath = existingContexts[0].replace('artifacts/', '');
+        throw new Error(
+          `ルール違反: ハートビートID (${heartbeatId}) は既に専門家コンテキストで使用されています: ${existingPath}\n` +
+          `1つのハートビートでは1つのテーマ操作のみ実行可能です。\n` +
+          `解決方法: 次のハートビートを待ってから専門家コンテキスト作成を実行してください。`
+        );
       }
 
       // ディレクトリ存在確認（テーマが開始されているかチェック）
