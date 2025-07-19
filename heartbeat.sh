@@ -235,8 +235,6 @@ check_agent_health() {
         fi
     fi
 
-    # Phase 2: 活動ログパターン異常検知を削除（時間ベース制御に移行）
-
     # 9. テーマログパターン異常検知（新機能 - v2）
     local theme_pattern_result=$(check_theme_log_pattern_anomaly "$current_time")
     local theme_pattern_code=$(echo "$theme_pattern_result" | cut -d':' -f1)

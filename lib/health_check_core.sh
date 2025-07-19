@@ -168,8 +168,6 @@ check_activity_log_frequency_anomaly() {
     return 0
 }
 
-# Phase 2: 活動ログパターン異常検知を削除（時間ベース制御に移行）
-
 # 最新テーマログファイル情報を取得するヘルパー関数
 _get_latest_theme_log_info() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
