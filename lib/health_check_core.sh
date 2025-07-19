@@ -90,66 +90,7 @@ check_activity_log_frequency_anomaly() {
     return 0
 }
 
-# 活動ログパターン異常の判定（新機能 - v2）
-# 最新活動ログと同じタイムスタンプの活動ログファイル数をチェックして重複作成異常を検知
-# 引数: current_time, heartbeat_start_time
-# 戻り値: 常に0（エラーコードはecho出力に含める）
-# 出力: "error_code:detail" 形式（0:count=正常, 1:count=警告, 2:count=エラー）
-check_activity_log_pattern_anomaly() {
-    local current_time="$1"
-    local heartbeat_start_time="$2"
-    
-    debug_log "ACTIVITY_LOG_PATTERN check started: current_time=$current_time"
-    
-    # 最新活動ログファイル情報を取得
-    local latest_activity_log_info=$(_get_latest_activity_log_info)
-    
-    if [ -z "$latest_activity_log_info" ]; then
-        debug_log "ACTIVITY_LOG_PATTERN: No activity log files found"
-        echo "0:0"
-        return 0
-    fi
-    
-    # ハートビート起動時刻以降に作成されたログのみを対象とする
-    local latest_log_time=$(echo "$latest_activity_log_info" | cut -d' ' -f1)
-    if [ $latest_log_time -lt $heartbeat_start_time ]; then
-        debug_log "ACTIVITY_LOG_PATTERN: Latest log older than heartbeat start, skipping check"
-        echo "0:0"
-        return 0
-    fi
-    
-    # 最新活動ログのファイル名からタイムスタンプを抽出
-    local latest_activity_log_file=$(echo "$latest_activity_log_info" | cut -d' ' -f2-)
-    local latest_filename=$(basename "$latest_activity_log_file")
-    
-    # ファイル名からタイムスタンプ部分を抽出（YYYYMMDDHHMMSS）
-    local timestamp_pattern=""
-    if [[ "$latest_filename" =~ ^([0-9]{14}) ]]; then
-        timestamp_pattern="${BASH_REMATCH[1]}"
-    else
-        debug_log "ACTIVITY_LOG_PATTERN: Could not extract timestamp from filename: $latest_filename"
-        echo "0:1"
-        return 0
-    fi
-
-     debug_log "ACTIVITY_LOG_PATTERN: Latest activity log timestamp: $timestamp_pattern"
-
-    # 同じタイムスタンプの活動ログファイル数を取得
-    local same_timestamp_count=$(find artifacts -path "*/histories/*.md" -name "${timestamp_pattern}*.md" -type f 2>/dev/null | wc -l)
-
-     debug_log "ACTIVITY_LOG_PATTERN: Same timestamp file count: $same_timestamp_count"
-
-    # パターン異常の判定（Phase 1: エラーから警告レベルに緩和）
-    if [ $same_timestamp_count -ge 3 ]; then
-        debug_warning "ACTIVITY_LOG_PATTERN: Warning level reached ($same_timestamp_count files with same timestamp)"
-        echo "1:$same_timestamp_count"  # エラー(2)から警告(1)に変更
-        return 0
-    fi
-    
-    debug_log "ACTIVITY_LOG_PATTERN: Normal operation ($same_timestamp_count file with timestamp)"
-    echo "0:$same_timestamp_count"
-    return 0
-}
+# Phase 2: 活動ログパターン異常検知を削除（時間ベース制御に移行）
 
 # 最新テーマログファイル情報を取得するヘルパー関数
 _get_latest_theme_log_info() {
@@ -219,7 +160,7 @@ ACTIVITY_LOG_LOOP_LAST_FILE=""
 ACTIVITY_LOG_LOOP_LAST_MTIME=""
 ACTIVITY_LOG_LOOP_COUNT=0
 
-# 活動ログループ異常の判定（新機能 - v2）
+# 活動ログループ異常の判定（復活 - 手動編集による問題行動検知のため）
 # 同一活動ログファイルの継続編集を検知してループ異常を判定
 # 引数: current_time, heartbeat_start_time
 # 戻り値: 常に0（エラーコードはecho出力に含める）
@@ -271,10 +212,10 @@ check_activity_log_loop_anomaly() {
             # 更新時刻を保存
             ACTIVITY_LOG_LOOP_LAST_MTIME="$latest_activity_log_mtime"
             
-            # ループカウントが2以上で警告（Phase 1: エラーから警告レベルに緩和）
+            # ループカウントが2以上でエラー（手動編集による問題行動として検知）
             if [ $ACTIVITY_LOG_LOOP_COUNT -ge 2 ]; then
-                debug_warning "ACTIVITY_LOG_LOOP: Warning level reached (loop count: $ACTIVITY_LOG_LOOP_COUNT)"
-                echo "1:$ACTIVITY_LOG_LOOP_COUNT"  # エラー(2)から警告(1)に変更
+                debug_warning "ACTIVITY_LOG_LOOP: Error level reached (loop count: $ACTIVITY_LOG_LOOP_COUNT)"
+                echo "2:$ACTIVITY_LOG_LOOP_COUNT"
                 return 0
             fi
         else

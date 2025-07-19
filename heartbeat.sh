@@ -235,20 +235,9 @@ check_agent_health() {
         fi
     fi
 
-    # 9. 活動ログパターン異常検知（新機能 - v2）
-    local activity_pattern_result=$(check_activity_log_pattern_anomaly "$current_time" "$HEARTBEAT_START_TIME")
-    local activity_pattern_code=$(echo "$activity_pattern_result" | cut -d':' -f1)
-    local activity_pattern_detail=$(echo "$activity_pattern_result" | cut -d':' -f2)
-    
-    if [ "$activity_pattern_code" != "0" ]; then
-        HEALTH_CHECK_DETAIL="$activity_pattern_detail"
-        if [ "$activity_pattern_code" = "1" ]; then
-            log_warning "[CHECK] Activity log pattern warning detected (code 12): $activity_pattern_detail files"
-            return 12 # 活動ログパターン警告（Phase 1: エラーから警告に変更）
-        fi
-    fi
+    # Phase 2: 活動ログパターン異常検知を削除（時間ベース制御に移行）
 
-    # 10. テーマログパターン異常検知（新機能 - v2）
+    # 9. テーマログパターン異常検知（新機能 - v2）
     local theme_pattern_result=$(check_theme_log_pattern_anomaly "$current_time")
     local theme_pattern_code=$(echo "$theme_pattern_result" | cut -d':' -f1)
     local theme_pattern_detail=$(echo "$theme_pattern_result" | cut -d':' -f2)
@@ -261,20 +250,20 @@ check_agent_health() {
         fi
     fi
 
-    # 11. 活動ログループ異常検知（新機能 - v2）
+    # 10. 活動ログループ異常検知（復活 - 手動編集による問題行動検知のため）
     local activity_loop_result=$(check_activity_log_loop_anomaly "$current_time" "$HEARTBEAT_START_TIME")
     local activity_loop_code=$(echo "$activity_loop_result" | cut -d':' -f1)
     local activity_loop_detail=$(echo "$activity_loop_result" | cut -d':' -f2)
     
     if [ "$activity_loop_code" != "0" ]; then
         HEALTH_CHECK_DETAIL="$activity_loop_detail"
-        if [ "$activity_loop_code" = "1" ]; then
-            log_warning "[CHECK] Activity log loop warning detected (code 15): $activity_loop_detail loops"
-            return 15 # 活動ログループ警告（Phase 1: エラーから警告に変更）
+        if [ "$activity_loop_code" = "2" ]; then
+            log_warning "[CHECK] Activity log loop error detected (code 14): $activity_loop_detail loops"
+            return 14 # 活動ログループエラー
         fi
     fi
 
-    # 12. 内省活動異常検知（新機能 - v2）
+    # 11. 内省活動異常検知（新機能 - v2）
     local introspection_result=$(check_introspection_activity_anomaly "$current_time" "$INTROSPECTION_THRESHOLD" "$HEARTBEAT_START_TIME")
     local introspection_code=$(echo "$introspection_result" | cut -d':' -f1)
     local introspection_detail=$(echo "$introspection_result" | cut -d':' -f2)
@@ -293,7 +282,7 @@ check_agent_health() {
         fi
     fi
 
-    # 13. 活動ログタイムスタンプ乖離異常検知（新機能 - v2復活）
+    # 12. 活動ログタイムスタンプ乖離異常検知（新機能 - v2復活）
     local timestamp_result=$(check_activity_log_timestamp_anomaly "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
     local timestamp_code=$(echo "$timestamp_result" | cut -d':' -f1)
     local timestamp_detail=$(echo "$timestamp_result" | cut -d':' -f2)
@@ -345,18 +334,8 @@ $ADVICE_ACTIVITY_LOG_FREQUENCY"
             return 0 ;;
         11) # 活動ログ頻度エラー（新機能 - v2）
             handle_failure "Activity log frequency error: No activity log updates for $((detail / 60)) minutes." "活動ログ頻度異常" ;;
-        12) # 活動ログパターン警告（Phase 1: エラーから警告に変更）
-            log_warning "Activity log pattern warning: $detail files with same timestamp detected."
-            INACTIVITY_WARNING_MESSAGE="活動ログパターン警告: 同一タイムスタンプで${detail}個のファイルが検出されました。
-
-$ADVICE_ACTIVITY_LOG_PATTERN"
-            return 0 ;;
-        15) # 活動ログループ警告（Phase 1: エラーから警告に変更）
-            log_warning "Activity log loop warning: Same activity log edited $detail times consecutively."
-            INACTIVITY_WARNING_MESSAGE="活動ログループ警告: 同一ファイルが${detail}回連続で編集されました。
-
-$ADVICE_ACTIVITY_LOG_LOOP"
-            return 0 ;;
+        14) # 活動ログループエラー（復活 - 手動編集による問題行動検知のため）
+            handle_failure "Activity log loop error: Same activity log edited $detail times consecutively." "活動ログループ異常" ;;
         16) # テーマログパターンエラー（新機能 - v2）
             handle_failure "Theme log pattern error: $detail files with same timestamp detected." "テーマログパターン異常" ;;
         17) # 内省活動警告（新機能 - v2）
@@ -428,6 +407,9 @@ attempt_recovery() {
         "活動ログ頻度異常")
             advice_message="$ADVICE_ACTIVITY_LOG_FREQUENCY"
             ;;
+        "活動ログループ異常")
+            advice_message="$ADVICE_ACTIVITY_LOG_LOOP"
+            ;;
         "テーマログパターン異常")
             advice_message="$ADVICE_THEME_LOG_PATTERN"
             ;;
@@ -442,7 +424,7 @@ attempt_recovery() {
     # 異常種別に応じた特定ドキュメントを決定
     local specific_docs=""
     case "$detection_type" in
-        "活動ログ内省不足"|"活動ログ頻度異常"|"活動ログタイムスタンプ異常")
+        "活動ログ内省不足"|"活動ログ頻度異常"|"活動ログループ異常"|"活動ログタイムスタンプ異常")
             specific_docs="3. ai-docs/OPERATION_DETAILS.md - 活動ログ記録の詳細手順"
             ;;
         "テーマログパターン異常")
