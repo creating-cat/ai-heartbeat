@@ -122,28 +122,29 @@ export const createThemeExpertContextTool = {
       const contextsPath = path.join(themeArtifactsPath, 'contexts');
       const contextFilePath = path.join(contextsPath, `${heartbeatId}.md`);
 
+      // 重複チェック（最初に実行してエラー時のディレクトリ作成を防ぐ）
+      
+      if (await fs.pathExists(contextFilePath)) {
+        throw new Error(`コンテキストファイルは既に存在します: ${contextFilePath}`);
+      }
+
       // ディレクトリ存在確認（テーマが開始されているかチェック）
       if (!await fs.pathExists(themeArtifactsPath)) {
-        // ディレクトリが存在しない場合は作成（テーマ開始前でも作成可能）
-        await fs.ensureDir(themeArtifactsPath);
-        await fs.ensureDir(path.join(themeArtifactsPath, 'histories'));
-        
-        // サブテーマの場合は親テーマの存在確認
+        // サブテーマの場合は親テーマの存在確認（ディレクトリ作成前）
         if (parentThemeStartId && sanitizedParentDirectoryPart) {
           const parentPath = resolveThemePath(parentThemeStartId, sanitizedParentDirectoryPart);
           if (!await fs.pathExists(parentPath)) {
             throw new Error(`親テーマディレクトリが存在しません: ${parentPath}`);
           }
         }
+        
+        // ディレクトリが存在しない場合は作成（テーマ開始前でも作成可能）
+        await fs.ensureDir(themeArtifactsPath);
+        await fs.ensureDir(path.join(themeArtifactsPath, 'histories'));
       }
 
       // contexts/ フォルダを確保
       await fs.ensureDir(contextsPath);
-
-      // 重複チェック
-      if (await fs.pathExists(contextFilePath)) {
-        throw new Error(`コンテキストファイルは既に存在します: ${contextFilePath}`);
-      }
 
       // コンテンツ生成
       const content = generateContextContent(themeName, expertRole, expertPerspective, constraints, expectedOutcome);
