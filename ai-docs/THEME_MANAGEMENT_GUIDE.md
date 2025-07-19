@@ -340,25 +340,8 @@ PARENT_THEME_START_ID = 親テーマのTHEME_START_ID
 - サブテーマメインディレクトリ
 - `histories/` サブディレクトリ（活動ログ用）
 - `contexts/` サブディレクトリ（専門家コンテキスト用）
-- `subtheme_metadata.json` ファイル（親子関係管理用）
 
-##### ステップ6: メタデータファイルの作成
-`subtheme_metadata.json` に親子関係情報を記録：
-
-```json
-{
-  "parentThemeStartId": "20250115143000",
-  "parentThemeName": "AI技術の現在と未来",
-  "parentThemeDirectoryPart": "ai_technology_future",
-  "subthemeStartId": "20250115150000",
-  "subthemeName": "機械学習の現状分析",
-  "subthemeDirectoryPart": "machine_learning_analysis",
-  "createdAt": "2025-01-15T15:00:00Z",
-  "description": "親テーマの機械学習部分に特化した深い分析"
-}
-```
-
-##### ステップ7: サブテーマ専門家コンテキストの設定（任意）
+##### ステップ6: サブテーマ専門家コンテキストの設定（任意）
 サブテーマに特化した専門家コンテキストを設定
 
 **重要**: 親テーマ情報は含めず、サブテーマに完全集中したコンテキストを作成
@@ -382,7 +365,8 @@ PARENT_THEME_START_ID = 親テーマのTHEME_START_ID
 - **専門家コンテキスト**: サブテーマ専用のコンテキストを使用
 
 #### 親テーマとの関係管理
-- **メタデータ**: `subtheme_metadata.json` で技術的関係を管理
+- **履歴管理**: theme_historiesファイルで親子関係を記録・管理
+- **ディレクトリ構造**: パス構造による技術的関係の表現
 - **MCPツール**: サブテーマ対応ツールで統合的操作
 - **履歴追跡**: theme_histories で完全な時系列管理
 

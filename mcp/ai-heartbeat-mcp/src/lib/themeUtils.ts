@@ -21,24 +21,15 @@ export function resolveThemePath(
 ): string {
   if (parentThemeStartId && parentThemeDirectoryPart) {
     // サブテーマの場合
-    const sanitizedParentPart = path.basename(parentThemeDirectoryPart)
-      .toLowerCase()
-      .replace(/[^a-z0-9_]+/g, '_')
-      .replace(/_+/g, '_');
-    const sanitizedThemePart = path.basename(themeDirectoryPart)
-      .toLowerCase()
-      .replace(/[^a-z0-9_]+/g, '_')
-      .replace(/_+/g, '_');
+    const sanitizedParentPart = path.basename(parentThemeDirectoryPart);
+    const sanitizedThemePart = path.basename(themeDirectoryPart);
     
     const parentDir = `${parentThemeStartId}_${sanitizedParentPart}`;
     const subthemeDir = `${themeStartId}_${sanitizedThemePart}`;
     return path.join('artifacts', parentDir, 'subthemes', subthemeDir);
   } else {
     // メインテーマの場合
-    const sanitizedThemePart = path.basename(themeDirectoryPart)
-      .toLowerCase()
-      .replace(/[^a-z0-9_]+/g, '_')
-      .replace(/_+/g, '_');
+    const sanitizedThemePart = path.basename(themeDirectoryPart);
     return path.join('artifacts', `${themeStartId}_${sanitizedThemePart}`);
   }
 }

@@ -415,7 +415,7 @@ if (isSubtheme && args.action === 'end' && args.integrationNotes) {
 
 ##### 2. 情報管理の分離
 - **AIが見る情報**: 親テーマ情報を含まない純粋なサブテーマコンテキスト
-- **システムが管理する情報**: `subtheme_metadata.json`で親子関係を完全管理
+- **システムが管理する情報**: theme_historiesファイルとディレクトリ構造で親子関係を完全管理
 - **統合時の情報**: `integrationNotes`で親テーマとの関連を明示
 
 ##### 3. パラメータの簡素化

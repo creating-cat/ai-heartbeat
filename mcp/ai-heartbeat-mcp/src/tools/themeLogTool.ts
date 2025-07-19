@@ -149,22 +149,6 @@ export const themeLogTool = {
         
         // historiesディレクトリは常に確保
         await fs.ensureDir(path.join(themeDirectoryPath, 'histories'));
-        
-        // サブテーマの場合はメタデータファイルを作成
-        if (isSubtheme) {
-          const metadataPath = path.join(themeDirectoryPath, 'subtheme_metadata.json');
-          if (!await fs.pathExists(metadataPath)) {
-            const metadata = {
-              parentThemeStartId,
-              parentThemeDirectoryPart: sanitizedParentDirectoryPart,
-              subthemeStartId: themeStartId,
-              subthemeDirectoryPart: sanitizedDirectoryPart,
-              createdAt: new Date().toISOString(),
-              status: 'active'
-            };
-            await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
-          }
-        }
       } else {
         // テーマ終了時: ディレクトリ存在確認
         if (!await fs.pathExists(themeDirectoryPath)) {
@@ -172,20 +156,7 @@ export const themeLogTool = {
           console.warn(`警告: テーマディレクトリが見つかりません: ${themeDirectoryPath}`);
         }
         
-        // サブテーマ終了時はメタデータを更新
-        if (isSubtheme) {
-          const metadataPath = path.join(themeDirectoryPath, 'subtheme_metadata.json');
-          if (await fs.pathExists(metadataPath)) {
-            try {
-              const metadata = await fs.readJson(metadataPath);
-              metadata.status = 'completed';
-              metadata.completedAt = new Date().toISOString();
-              await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
-            } catch (error) {
-              console.warn(`メタデータファイルの更新に失敗: ${metadataPath}`);
-            }
-          }
-        }
+
       }
 
       // マークダウン内容の生成

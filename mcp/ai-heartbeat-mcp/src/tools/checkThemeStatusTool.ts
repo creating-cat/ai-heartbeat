@@ -96,14 +96,16 @@ async function getSubthemeInfo(subthemeDir: string, parentPath: string): Promise
   
   const [, subthemeStartId, subthemeDirectoryPart] = match;
   
-  // メタデータファイルを確認
-  const metadataPath = path.join(subthemePath, 'subtheme_metadata.json');
-  let metadata: any = {};
-  if (await fs.pathExists(metadataPath)) {
-    try {
-      metadata = await fs.readJson(metadataPath);
-    } catch (error) {
-      console.warn(`メタデータファイルの読み込みに失敗: ${metadataPath}`);
+  // サブテーマのステータスをtheme_historiesから判定
+  let status: 'active' | 'completed' = 'active';
+  const themeHistoriesPath = path.join('artifacts', 'theme_histories');
+  if (await fs.pathExists(themeHistoriesPath)) {
+    const historyFiles = await fs.readdir(themeHistoriesPath);
+    const endFile = historyFiles.find(file => 
+      file.startsWith(`${subthemeStartId}_end_`) && file.endsWith('.md')
+    );
+    if (endFile) {
+      status = 'completed';
     }
   }
   
@@ -112,7 +114,6 @@ async function getSubthemeInfo(subthemeDir: string, parentPath: string): Promise
   
   // テーマ履歴からテーマ名を取得
   let subthemeName: string | undefined;
-  const themeHistoriesPath = path.join('artifacts', 'theme_histories');
   if (await fs.pathExists(themeHistoriesPath)) {
     const historyFiles = await fs.readdir(themeHistoriesPath);
     const startFile = historyFiles.find(file => 
@@ -136,7 +137,7 @@ async function getSubthemeInfo(subthemeDir: string, parentPath: string): Promise
     themeStartId: subthemeStartId,
     themeDirectoryPart: subthemeDirectoryPart,
     themeName: subthemeName,
-    status: metadata.status || 'active',
+    status: status,
     activityCount,
     directoryPath: subthemePath,
     subthemes: [], // サブテーマは現在1階層のみ
