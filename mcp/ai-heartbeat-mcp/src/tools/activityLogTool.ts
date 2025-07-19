@@ -258,6 +258,18 @@ export const activityLogTool = {
       // Write file
       await fs.writeFile(filePath, markdownContent, 'utf-8');
       
+      // 長時間処理宣言ファイルの自動削除
+      const declarationFile = 'stats/extended_processing/current.conf';
+      let extendedProcessingMessage = '';
+      if (await fs.pathExists(declarationFile)) {
+        try {
+          await fs.remove(declarationFile);
+          extendedProcessingMessage = '\n長時間処理宣言を完了しました（宣言ファイルを削除）。';
+        } catch (deleteError) {
+          extendedProcessingMessage = '\n警告: 宣言ファイルの削除に失敗しましたが、活動ログは正常に作成されました。';
+        }
+      }
+      
       // Prepare response message
       const themeType = args.parentThemeStartId ? 'サブテーマ' : 'テーマ';
       let responseText = `活動ログを作成しました: ${filePath}`;
@@ -290,6 +302,11 @@ export const activityLogTool = {
       // 新しい時間ベース警告を追加
       if (processingTimeWarning) {
         responseText += `\n${processingTimeWarning}`;
+      }
+      
+      // 長時間処理宣言の完了メッセージを追加
+      if (extendedProcessingMessage) {
+        responseText += extendedProcessingMessage;
       }
       
       return {

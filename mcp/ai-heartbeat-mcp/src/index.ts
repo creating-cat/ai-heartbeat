@@ -13,6 +13,7 @@ import { getLatestActivityLogTool } from './tools/getLatestActivityLogTool';
 import { checkThemeStatusTool } from './tools/checkThemeStatusTool';
 import { listThemeArtifactsTool } from './tools/listThemeArtifactsTool';
 import { getLatestThemeContextTool } from './tools/getLatestThemeContextTool';
+import { declareExtendedProcessingTool } from './tools/declareExtendedProcessingTool';
 
 // Create MCP server
 const server = new McpServer({
@@ -91,6 +92,14 @@ server.tool(
   getLatestThemeContextTool.description,
   getLatestThemeContextTool.input_schema.shape,
   getLatestThemeContextTool.execute
+);
+
+// Register declare extended processing tool
+server.tool(
+  declareExtendedProcessingTool.name,
+  declareExtendedProcessingTool.description,
+  declareExtendedProcessingTool.input_schema.shape,
+  declareExtendedProcessingTool.execute
 );
 
 // Start server with stdio transport

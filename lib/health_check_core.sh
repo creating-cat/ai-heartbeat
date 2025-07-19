@@ -20,6 +20,77 @@ debug_warning() {
     fi
 }
 
+# タイムスタンプをUnix秒に変換するヘルパー関数
+convert_timestamp_to_seconds() {
+    local timestamp="$1"
+    if [[ "$timestamp" =~ ^([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2}) ]]; then
+        local year="${BASH_REMATCH[1]}"
+        local month="${BASH_REMATCH[2]}"
+        local day="${BASH_REMATCH[3]}"
+        local hour="${BASH_REMATCH[4]}"
+        local minute="${BASH_REMATCH[5]}"
+        local second="${BASH_REMATCH[6]}"
+        
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS
+            date -j -f "%Y%m%d%H%M%S" "$timestamp" "+%s" 2>/dev/null
+        else
+            # Linux
+            date -d "${year}-${month}-${day} ${hour}:${minute}:${second}" "+%s" 2>/dev/null
+        fi
+    fi
+}
+
+# 長時間処理宣言の期限チェック関数
+# 引数: なし
+# 戻り値: 0=期限内または宣言なし, 1=期限切れ（ファイル削除済み）
+check_extended_processing_deadline() {
+    local declaration_file="stats/extended_processing/current.conf"
+    
+    # 宣言ファイルが存在しない場合は期限チェック不要
+    if [ ! -f "$declaration_file" ]; then
+        debug_log "EXTENDED_PROCESSING: No declaration file found"
+        return 0
+    fi
+    
+    # 宣言ファイルからハートビートIDと計画時間を取得
+    local heartbeat_id=$(grep "ハートビートID:" "$declaration_file" 2>/dev/null | cut -d' ' -f2)
+    local planned_minutes=$(grep "計画処理時間:" "$declaration_file" 2>/dev/null | sed 's/.*: \([0-9]*\)分.*/\1/')
+    
+    if [ -z "$heartbeat_id" ] || [ -z "$planned_minutes" ]; then
+        debug_warning "EXTENDED_PROCESSING: Invalid declaration file format, removing"
+        rm "$declaration_file" 2>/dev/null
+        return 1
+    fi
+    
+    # ハートビートIDから開始時刻を算出
+    local heartbeat_time=$(convert_timestamp_to_seconds "$heartbeat_id")
+    if [ -z "$heartbeat_time" ]; then
+        debug_warning "EXTENDED_PROCESSING: Invalid heartbeat ID format, removing declaration"
+        rm "$declaration_file" 2>/dev/null
+        return 1
+    fi
+    
+    # 期限時刻を算出
+    local planned_duration_seconds=$((planned_minutes * 60))
+    local deadline_time=$((heartbeat_time + planned_duration_seconds))
+    local current_time=$(date +%s)
+    
+    debug_log "EXTENDED_PROCESSING: heartbeat_time=$heartbeat_time, planned_minutes=$planned_minutes, deadline_time=$deadline_time, current_time=$current_time"
+    
+    # 期限チェック
+    if [ $current_time -gt $deadline_time ]; then
+        local elapsed_minutes=$(((current_time - deadline_time) / 60))
+        debug_warning "EXTENDED_PROCESSING: Declaration expired ${elapsed_minutes} minutes ago, removing file"
+        rm "$declaration_file" 2>/dev/null
+        return 1  # 期限切れ
+    else
+        local remaining_minutes=$(((deadline_time - current_time) / 60))
+        debug_log "EXTENDED_PROCESSING: Declaration valid, ${remaining_minutes} minutes remaining"
+        return 0  # 期限内
+    fi
+}
+
 # 最新活動ログファイル情報を取得するヘルパー関数
 _get_latest_activity_log_info() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -43,6 +114,13 @@ check_activity_log_frequency_anomaly() {
     local heartbeat_start_time="$4"
     
     debug_log "ACTIVITY_LOG_FREQUENCY check started: current_time=$current_time"
+    
+    # 長時間処理宣言の期限チェック
+    if check_extended_processing_deadline; then
+        debug_log "ACTIVITY_LOG_FREQUENCY: Extended processing declared and valid, skipping check"
+        echo "0:0"
+        return 0
+    fi
     debug_log "ACTIVITY_LOG_FREQUENCY thresholds: warning=${warning_threshold}s, stop=${stop_threshold}s"
 
     # 最新活動ログファイル情報を取得
@@ -236,26 +314,7 @@ check_activity_log_loop_anomaly() {
     return 0
 }
 
-# タイムスタンプをUnix秒に変換するヘルパー関数
-convert_timestamp_to_seconds() {
-    local timestamp="$1"
-    if [[ "$timestamp" =~ ^([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2}) ]]; then
-        local year="${BASH_REMATCH[1]}"
-        local month="${BASH_REMATCH[2]}"
-        local day="${BASH_REMATCH[3]}"
-        local hour="${BASH_REMATCH[4]}"
-        local minute="${BASH_REMATCH[5]}"
-        local second="${BASH_REMATCH[6]}"
-        
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            # macOS
-            date -j -f "%Y%m%d%H%M%S" "$timestamp" "+%s" 2>/dev/null
-        else
-            # Linux
-            date -d "${year}-${month}-${day} ${hour}:${minute}:${second}" "+%s" 2>/dev/null
-        fi
-    fi
-}
+# 重複した関数定義を削除（上部に移動済み）
 
 # 最新の内省活動があった活動ログ情報を取得するヘルパー関数
 _get_latest_introspection_info() {
@@ -341,6 +400,13 @@ check_activity_log_timestamp_anomaly() {
 
     debug_log "ACTIVITY_LOG_TIMESTAMP check started: current_time=$current_time"
     debug_log "ACTIVITY_LOG_TIMESTAMP thresholds: warning=${warning_threshold}s, error=${error_threshold}s"
+    
+    # 長時間処理宣言の期限チェック
+    if check_extended_processing_deadline; then
+        debug_log "ACTIVITY_LOG_TIMESTAMP: Extended processing declared and valid, skipping check"
+        echo "0:0"
+        return 0
+    fi
 
     # 最新活動ログファイル情報を取得
     local latest_activity_log_info=$(_get_latest_activity_log_info)
