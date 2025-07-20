@@ -577,6 +577,23 @@ while true; do
     
     # 3. 異常チェック（ハートビート送信直前）
     if [ "$HEARTBEAT_STATE" = "normal" ]; then
+        # 長時間処理宣言の状況をログに記録
+        if check_extended_processing_deadline; then
+            local extended_info=$(get_extended_processing_info)
+            if [ $? -eq 0 ]; then
+                local heartbeat_id=$(echo "$extended_info" | cut -d':' -f1)
+                local planned_minutes=$(echo "$extended_info" | cut -d':' -f2)
+                local remaining_minutes=$(echo "$extended_info" | cut -d':' -f3)
+                local reason=$(echo "$extended_info" | cut -d':' -f4)
+                
+                if [ -n "$reason" ]; then
+                    log_notice "Activity monitoring disabled: Extended processing declared (remaining: ${remaining_minutes}min, reason: $reason)"
+                else
+                    log_notice "Activity monitoring disabled: Extended processing declared (remaining: ${remaining_minutes}min)"
+                fi
+            fi
+        fi
+        
         check_recent_activity
     fi
 

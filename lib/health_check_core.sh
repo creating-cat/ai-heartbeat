@@ -43,19 +43,20 @@ convert_timestamp_to_seconds() {
 
 # 長時間処理宣言の期限チェック関数
 # 引数: なし
-# 戻り値: 0=期限内または宣言なし, 1=期限切れ（ファイル削除済み）
+# 戻り値: 0=期限内, 1=期限切れまたは宣言なし（ファイル削除済み）
 check_extended_processing_deadline() {
     local declaration_file="stats/extended_processing/current.conf"
     
     # 宣言ファイルが存在しない場合は期限チェック不要
     if [ ! -f "$declaration_file" ]; then
         debug_log "EXTENDED_PROCESSING: No declaration file found"
-        return 0
+        return 1  # 宣言なし
     fi
     
-    # 宣言ファイルからハートビートIDと計画時間を取得
+    # 宣言ファイルからハートビートIDと計画時間を取得（1回だけ）
     local heartbeat_id=$(grep "ハートビートID:" "$declaration_file" 2>/dev/null | cut -d' ' -f2)
     local planned_minutes=$(grep "計画処理時間:" "$declaration_file" 2>/dev/null | sed 's/.*: \([0-9]*\)分.*/\1/')
+    local reason=$(grep "理由:" "$declaration_file" 2>/dev/null | cut -d' ' -f2-)
     
     if [ -z "$heartbeat_id" ] || [ -z "$planned_minutes" ]; then
         debug_warning "EXTENDED_PROCESSING: Invalid declaration file format, removing"
@@ -71,7 +72,7 @@ check_extended_processing_deadline() {
         return 1
     fi
     
-    # 期限時刻を算出
+    # 期限時刻を算出（1回だけ）
     local planned_duration_seconds=$((planned_minutes * 60))
     local deadline_time=$((heartbeat_time + planned_duration_seconds))
     local current_time=$(date +%s)
@@ -89,6 +90,48 @@ check_extended_processing_deadline() {
         debug_log "EXTENDED_PROCESSING: Declaration valid, ${remaining_minutes} minutes remaining"
         return 0  # 期限内
     fi
+}
+
+# 長時間処理宣言の詳細情報を取得する関数
+# 戻り値: 0=情報取得成功, 1=宣言ファイルなしまたは無効
+# 出力: "heartbeat_id:planned_minutes:remaining_minutes:reason" 形式
+get_extended_processing_info() {
+    local declaration_file="stats/extended_processing/current.conf"
+    
+    # 宣言ファイルが存在しない場合
+    if [ ! -f "$declaration_file" ]; then
+        return 1
+    fi
+    
+    # 宣言ファイルから情報を取得
+    local heartbeat_id=$(grep "ハートビートID:" "$declaration_file" 2>/dev/null | cut -d' ' -f2)
+    local planned_minutes=$(grep "計画処理時間:" "$declaration_file" 2>/dev/null | sed 's/.*: \([0-9]*\)分.*/\1/')
+    local reason=$(grep "理由:" "$declaration_file" 2>/dev/null | cut -d' ' -f2-)
+    
+    # バリデーション
+    if [ -z "$heartbeat_id" ] || [ -z "$planned_minutes" ]; then
+        return 1
+    fi
+    
+    # 残り時間を計算
+    local heartbeat_time=$(convert_timestamp_to_seconds "$heartbeat_id")
+    if [ -z "$heartbeat_time" ]; then
+        return 1
+    fi
+    
+    local planned_duration_seconds=$((planned_minutes * 60))
+    local deadline_time=$((heartbeat_time + planned_duration_seconds))
+    local current_time=$(date +%s)
+    local remaining_minutes=$(((deadline_time - current_time) / 60))
+    
+    # 期限切れの場合
+    if [ $current_time -gt $deadline_time ]; then
+        return 1
+    fi
+    
+    # 情報を出力（reasonが空の場合は空文字列）
+    echo "${heartbeat_id}:${planned_minutes}:${remaining_minutes}:${reason}"
+    return 0
 }
 
 # 最新活動ログファイル情報を取得するヘルパー関数
