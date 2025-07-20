@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { EXTENDED_PROCESSING_DIR } from '../lib/pathConstants';
 import { convertTimestampToSeconds } from '../lib/timeUtils';
 
 // Zod schema for extended processing declaration
@@ -38,8 +39,7 @@ function generateDeclarationContent(args: z.infer<typeof declareExtendedProcessi
  * 既存の宣言ファイルをクリーンアップ（異なるハートビートIDの場合）
  */
 async function cleanupOldDeclarations(currentHeartbeatId: string): Promise<string[]> {
-  const declarationDir = 'stats/extended_processing';
-  const declarationFile = path.join(declarationDir, 'current.conf');
+  const declarationFile = path.join(EXTENDED_PROCESSING_DIR, 'current.conf');
   const cleanupMessages: string[] = [];
   
   if (await fs.pathExists(declarationFile)) {
@@ -68,8 +68,7 @@ export const declareExtendedProcessingTool = {
   execute: async (args: z.infer<typeof declareExtendedProcessingInputSchema>) => {
     try {
       // 宣言ディレクトリの作成
-      const declarationDir = 'stats/extended_processing';
-      await fs.ensureDir(declarationDir);
+      await fs.ensureDir(EXTENDED_PROCESSING_DIR);
       
       // 古い宣言のクリーンアップ
       const cleanupMessages = await cleanupOldDeclarations(args.heartbeatId);
@@ -78,7 +77,7 @@ export const declareExtendedProcessingTool = {
       const declarationContent = generateDeclarationContent(args);
       
       // 宣言ファイルの作成
-      const declarationFile = path.join(declarationDir, 'current.conf');
+      const declarationFile = path.join(EXTENDED_PROCESSING_DIR, 'current.conf');
       await fs.writeFile(declarationFile, declarationContent, 'utf-8');
       
       // レスポンスメッセージの構築

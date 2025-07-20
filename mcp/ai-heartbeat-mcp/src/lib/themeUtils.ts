@@ -4,6 +4,7 @@
  */
 
 import * as path from 'path';
+import { ARTIFACTS_DIR } from './pathConstants';
 
 /**
  * Resolves the full path to a theme directory
@@ -26,11 +27,11 @@ export function resolveThemePath(
     
     const parentDir = `${parentThemeStartId}_${sanitizedParentPart}`;
     const subthemeDir = `${themeStartId}_${sanitizedThemePart}`;
-    return path.join('artifacts', parentDir, 'subthemes', subthemeDir);
+    return path.join(ARTIFACTS_DIR, parentDir, 'subthemes', subthemeDir);
   } else {
     // メインテーマの場合
     const sanitizedThemePart = path.basename(themeDirectoryPart);
-    return path.join('artifacts', `${themeStartId}_${sanitizedThemePart}`);
+    return path.join(ARTIFACTS_DIR, `${themeStartId}_${sanitizedThemePart}`);
   }
 }
 

@@ -1,12 +1,8 @@
-artifacts/
-stats/
+ai-works/
+
 logs/
 
 *.local
-projects/
 results/
-feedbackbox/
-
-themebox/*
 
 tmp_*

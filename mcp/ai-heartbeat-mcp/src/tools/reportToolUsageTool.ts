@@ -4,9 +4,7 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { z } from 'zod';
-
-const COOLDOWN_DIR = path.join('stats', 'cooldown');
-const LOCK_DIR = path.join('stats', 'lock');
+import { COOLDOWN_DIR, LOCK_DIR } from '../lib/pathConstants';
 
 export const reportToolUsageInputSchema = z.object({
   toolId: z.string()

@@ -128,11 +128,11 @@ export const createThemeExpertContextTool = {
       const contextFilePath = path.join(contextsPath, `${heartbeatId}.md`);
 
       // ハートビートID重複チェック（全contextsディレクトリを検索）
-      const contextPattern = path.join('artifacts', '**', 'contexts', `${heartbeatId}.md`);
+      const contextPattern = path.join('ai-works', 'artifacts', '**', 'contexts', `${heartbeatId}.md`);
       const existingContexts = await glob(contextPattern);
       
       if (existingContexts.length > 0) {
-        const existingPath = existingContexts[0].replace('artifacts/', '');
+        const existingPath = existingContexts[0].replace('ai-works/artifacts/', '');
         throw new Error(
           `ルール違反: ハートビートID (${heartbeatId}) は既に専門家コンテキストで使用されています: ${existingPath}\n` +
           `1つのハートビートでは1つのテーマ操作のみ実行可能です。\n` +

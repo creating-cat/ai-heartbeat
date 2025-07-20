@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { THEME_HISTORIES_DIR } from '../lib/pathConstants';
 import { resolveThemePath } from '../lib/themeUtils';
 
 // テーマ状態情報の型定義（統一版）
@@ -98,7 +99,7 @@ async function getSubthemeInfo(subthemeDir: string, parentPath: string): Promise
   
   // サブテーマのステータスをtheme_historiesから判定
   let status: 'active' | 'completed' = 'active';
-  const themeHistoriesPath = path.join('artifacts', 'theme_histories');
+  const themeHistoriesPath = THEME_HISTORIES_DIR;
   if (await fs.pathExists(themeHistoriesPath)) {
     const historyFiles = await fs.readdir(themeHistoriesPath);
     const endFile = historyFiles.find(file => 
@@ -170,7 +171,7 @@ async function getAllSubthemes(themeDirectoryPath: string): Promise<ThemeStatus[
 
 // テーマ名を取得
 async function getThemeName(themeStartId: string): Promise<string | undefined> {
-  const themeHistoriesPath = path.join('artifacts', 'theme_histories');
+  const themeHistoriesPath = THEME_HISTORIES_DIR;
   if (!await fs.pathExists(themeHistoriesPath)) {
     return undefined;
   }
@@ -228,7 +229,7 @@ async function getThemeStatus(
   
   // テーマの完了状態を判定（テーマ履歴から）
   let status: 'active' | 'completed' = 'active';
-  const themeHistoriesPath = path.join('artifacts', 'theme_histories');
+  const themeHistoriesPath = THEME_HISTORIES_DIR;
   if (await fs.pathExists(themeHistoriesPath)) {
     const historyFiles = await fs.readdir(themeHistoriesPath);
     const endFile = historyFiles.find(file => 

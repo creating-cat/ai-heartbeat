@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { THEMEBOX_DIR, FEEDBACKBOX_DIR } from '../lib/pathConstants';
 
 // Zod schema for the tool input
 export const itemProcessorInputSchema = z.object({
@@ -19,7 +20,7 @@ export const itemProcessorTool = {
   input_schema: itemProcessorInputSchema,
   execute: async (args: z.infer<typeof itemProcessorInputSchema>) => {
     const { type } = args;
-    const directoryPath = type; // Assumes execution from project root
+    const directoryPath = type === 'themebox' ? THEMEBOX_DIR : FEEDBACKBOX_DIR;
 
     try {
       // 1. Ensure directory exists

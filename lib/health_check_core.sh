@@ -45,7 +45,7 @@ convert_timestamp_to_seconds() {
 # 引数: なし
 # 戻り値: 0=期限内, 1=期限切れまたは宣言なし（ファイル削除済み）
 check_extended_processing_deadline() {
-    local declaration_file="stats/extended_processing/current.conf"
+    local declaration_file="ai-works/stats/extended_processing/current.conf"
     
     # 宣言ファイルが存在しない場合は期限チェック不要
     if [ ! -f "$declaration_file" ]; then
@@ -96,7 +96,7 @@ check_extended_processing_deadline() {
 # 戻り値: 0=情報取得成功, 1=宣言ファイルなしまたは無効
 # 出力: "heartbeat_id:planned_minutes:remaining_minutes:reason" 形式
 get_extended_processing_info() {
-    local declaration_file="stats/extended_processing/current.conf"
+    local declaration_file="ai-works/stats/extended_processing/current.conf"
     
     # 宣言ファイルが存在しない場合
     if [ ! -f "$declaration_file" ]; then
@@ -138,10 +138,10 @@ get_extended_processing_info() {
 _get_latest_activity_log_info() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS
-        find artifacts -path "*/histories/*.md" -name "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]*.md" -type f -exec stat -f "%m %N" {} + 2>/dev/null | sort -nr | head -n 1
+        find ai-works/artifacts -path "*/histories/*.md" -name "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]*.md" -type f -exec stat -f "%m %N" {} + 2>/dev/null | sort -nr | head -n 1
     else
         # Linux
-        find artifacts -path "*/histories/*.md" -name "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]*.md" -type f -exec stat -c "%Y %n" {} + 2>/dev/null | sort -nr | head -n 1
+        find ai-works/artifacts -path "*/histories/*.md" -name "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]*.md" -type f -exec stat -c "%Y %n" {} + 2>/dev/null | sort -nr | head -n 1
     fi
 }
 
@@ -215,10 +215,10 @@ check_activity_log_frequency_anomaly() {
 _get_latest_theme_log_info() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS
-        find artifacts/theme_histories -name "*.md" -type f -exec stat -f "%m %N" {} + 2>/dev/null | sort -nr | head -n 1
+        find ai-works/artifacts/theme_histories -name "*.md" -type f -exec stat -f "%m %N" {} + 2>/dev/null | sort -nr | head -n 1
     else
         # Linux
-        find artifacts/theme_histories -name "*.md" -type f -exec stat -c "%Y %n" {} + 2>/dev/null | sort -nr | head -n 1
+        find ai-works/artifacts/theme_histories -name "*.md" -type f -exec stat -c "%Y %n" {} + 2>/dev/null | sort -nr | head -n 1
     fi
 }
 
@@ -258,7 +258,7 @@ check_theme_log_pattern_anomaly() {
     debug_log "THEME_LOG_PATTERN: Latest theme log timestamp: $timestamp_pattern"
     
     # 同じタイムスタンプのテーマログファイル数を取得
-    local same_timestamp_count=$(find artifacts/theme_histories -name "${timestamp_pattern}*.md" -type f 2>/dev/null | wc -l)
+    local same_timestamp_count=$(find ai-works/artifacts/theme_histories -name "${timestamp_pattern}*.md" -type f 2>/dev/null | wc -l)
     
     debug_log "THEME_LOG_PATTERN: Same timestamp file count: $same_timestamp_count"
     
@@ -363,10 +363,10 @@ _get_latest_introspection_info() {
     # `grep -l`でファイルリストを取得し、`xargs`で`stat`に渡す
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS
-        find artifacts -path "*/histories/*.md" -type f -exec grep -l "内省" {} + 2>/dev/null | xargs -I {} stat -f "%m %N" {} 2>/dev/null | sort -nr | head -n 1
+        find ai-works/artifacts -path "*/histories/*.md" -type f -exec grep -l "内省" {} + 2>/dev/null | xargs -I {} stat -f "%m %N" {} 2>/dev/null | sort -nr | head -n 1
     else
         # Linux
-        find artifacts -path "*/histories/*.md" -type f -exec grep -l "内省" {} + 2>/dev/null | xargs stat -c "%Y %n" 2>/dev/null | sort -nr | head -n 1
+        find ai-works/artifacts -path "*/histories/*.md" -type f -exec grep -l "内省" {} + 2>/dev/null | xargs stat -c "%Y %n" 2>/dev/null | sort -nr | head -n 1
     fi
 }
 

@@ -8,6 +8,7 @@ import * as path from 'path';
 
 import { convertTimestampToSeconds } from '../lib/timeUtils';
 import { resolveThemePath } from '../lib/themeUtils';
+import { EXTENDED_PROCESSING_DIR } from '../lib/pathConstants';
 
 // 未来ハートビートID検証（未来は即エラー）
 
@@ -93,7 +94,7 @@ function validateHeartbeatIdTiming(heartbeatId: string): void {
 async function checkProcessingTime(heartbeatId: string): Promise<string | null> {
   try {
     // 長時間処理宣言の確認
-    const declarationFile = 'stats/extended_processing/current.conf';
+    const declarationFile = path.join(EXTENDED_PROCESSING_DIR, 'current.conf');
     if (await fs.pathExists(declarationFile)) {
       // 宣言ファイルが存在する場合は時間チェックを抑制
       return null;
@@ -310,7 +311,7 @@ export const activityLogTool = {
       await fs.writeFile(filePath, markdownContent, 'utf-8');
       
       // 長時間処理宣言ファイルの自動削除
-      const declarationFile = 'stats/extended_processing/current.conf';
+      const declarationFile = path.join(EXTENDED_PROCESSING_DIR, 'current.conf');
       let extendedProcessingMessage = '';
       if (await fs.pathExists(declarationFile)) {
         try {

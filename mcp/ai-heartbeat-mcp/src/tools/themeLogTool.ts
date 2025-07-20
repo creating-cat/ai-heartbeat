@@ -7,6 +7,7 @@ import * as path from 'path';
 import { z } from 'zod';
 import { glob } from 'glob';
 import { resolveThemePath } from '../lib/themeUtils';
+import { THEME_HISTORIES_DIR } from '../lib/pathConstants';
 
 // Zod schema for theme log input (サブテーマ対応版)
 export const themeLogInputSchema = z.object({
@@ -117,13 +118,12 @@ export const themeLogTool = {
       const logFileId = action === 'start' ? themeStartId : themeEndId;
       const logFileName = `${logFileId}_${action}_${sanitizedDirectoryPart}.md`;
       const logFilePath = path.join(
-        'artifacts',
-        'theme_histories',
+        THEME_HISTORIES_DIR,
         logFileName
       );
 
       // ハートビートID重複チェック（全テーマ履歴ファイルを検索）
-      const themeHistoryPattern = path.join('artifacts', 'theme_histories', `${logFileId}_*.md`);
+      const themeHistoryPattern = path.join(THEME_HISTORIES_DIR, `${logFileId}_*.md`);
       const existingThemeHistories = await glob(themeHistoryPattern);
       
       if (existingThemeHistories.length > 0) {

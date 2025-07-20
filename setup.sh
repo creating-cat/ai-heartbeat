@@ -103,18 +103,20 @@ if [ -n "$FILE_INPUT" ]; then
     echo "ファイル '$FILE_INPUT' からテーマを読み込みました"
 fi
 
-mkdir -p artifacts
-mkdir -p themebox
-mkdir -p feedbackbox
-mkdir -p projects
+mkdir -p ai-works/artifacts/theme_histories
+mkdir -p ai-works/themebox
+mkdir -p ai-works/feedbackbox
+mkdir -p ai-works/projects
+mkdir -p ai-works/stats
 
 # ディレクトリ作成のみのオプションが指定された場合はここで終了
 if [ "$DIRS_ONLY" = true ]; then
     echo -e "\033[1;32m[INFO]\033[0m 必要なディレクトリを作成しました:"
-    echo "  - artifacts/"
-    echo "  - themebox/"
-    echo "  - feedbackbox/"
-    echo "  - projects/"
+    echo "  - ai-works/artifacts/"
+    echo "  - ai-works/themebox/"
+    echo "  - ai-works/feedbackbox/"
+    echo "  - ai-works/projects/"
+    echo "  - ai-works/stats/"
     echo "セットアップを終了します。"
     exit 0
 fi
@@ -184,7 +186,7 @@ fi
 # themeboxに有効なテーマファイルがあるかチェックする関数
 has_active_themes() {
     # find ... -print -quit を使うと、1つでも見つかったらすぐに終了するので効率的
-    if [ -n "$(find themebox -maxdepth 1 -name "*.md" -not -name "draft.*" -not -name "processed.*" -print -quit)" ]; then
+    if [ -n "$(find ai-works/themebox -maxdepth 1 -name "*.md" -not -name "draft.*" -not -name "processed.*" -print -quit)" ]; then
         return 0 # true
     else
         return 1 # false
@@ -207,7 +209,7 @@ elif [ -n "$INIT_PROMPT" ]; then
         exit 1
     else
         TIMESTAMP=$(date "+%Y%m%d%H%M%S")
-        THEME_FILE="themebox/000_initial_theme_${TIMESTAMP}.md"
+        THEME_FILE="ai-works/themebox/000_initial_theme_${TIMESTAMP}.md"
         cat > "$THEME_FILE" << EOF
 # 初期テーマ
 

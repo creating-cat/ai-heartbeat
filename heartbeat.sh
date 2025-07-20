@@ -16,7 +16,7 @@ HEARTBEAT_START_TIME=$(date +%s)                                      # 秒形�
 HEARTBEAT_START_TIMESTAMP=$(date -r $HEARTBEAT_START_TIME "+%Y%m%d%H%M%S")  # 文字列形式（ログファイル名・チャットタグ用）
 
  # statsディレクトリ作成（cooldownとlockサブディレクトリも）
-mkdir -p stats/cooldown stats/lock
+mkdir -p ai-works/stats/cooldown ai-works/stats/lock
 
 # Web検索制限メッセージ用グローバル変数
 WEB_RESTRICTION_MESSAGE=""
@@ -105,13 +105,13 @@ check_feedbackbox() {
     INTERRUPT_FEEDBACK_DETECTED=false  # フラグリセット
     
     # feedbackboxディレクトリが存在しない場合は作成
-    if [ ! -d "feedbackbox" ]; then
-        mkdir -p feedbackbox
+    if [ ! -d "ai-works/feedbackbox" ]; then
+        mkdir -p ai-works/feedbackbox
         return 0
     fi
     
     # プレフィックスなしのmdファイル（処理対象のフィードバック）を検出
-    local feedback_files=$(find feedbackbox -name "*.md" -not -name "draft.*" -not -name "processed.*" 2>/dev/null)
+    local feedback_files=$(find ai-works/feedbackbox -name "*.md" -not -name "draft.*" -not -name "processed.*" 2>/dev/null)
     local feedback_count=$(echo "$feedback_files" | grep -v "^$" | wc -l | tr -d ' ')
     
     if [ $feedback_count -gt 0 ]; then
@@ -169,8 +169,8 @@ check_tool_restrictions() {
     TOOL_RESTRICTION_MESSAGES=""
     local current_time=$(date +%s)
 
-    # 1. ロックされたツールをチェック (stats/lock/)
-    for lockfile in stats/lock/*; do
+    # 1. ロックされたツールをチェック (ai-works/stats/lock/)
+    for lockfile in ai-works/stats/lock/*; do
         [ -f "$lockfile" ] || continue
         local tool_id=$(basename "$lockfile")
         local lock_time=$(get_file_time "$lockfile")
@@ -185,8 +185,8 @@ check_tool_restrictions() {
         fi
     done
 
-    # 2. クールダウン中のツールをチェック (stats/cooldown/)
-    for cooldownfile in stats/cooldown/*; do
+    # 2. クールダウン中のツールをチェック (ai-works/stats/cooldown/)
+    for cooldownfile in ai-works/stats/cooldown/*; do
         [ -f "$cooldownfile" ] || continue
         local tool_id=$(basename "$cooldownfile")
         # すでにロックされていないか確認
@@ -509,7 +509,7 @@ log_notice "Sending initial heartbeat immediately after startup..."
 
 # Initial startup check for first heartbeat
 initial_heartbeat_msg="Heartbeat: $(date "+%Y%m%d%H%M%S")"
-if [ ! -d artifacts/* ] 2>/dev/null || [ -z "$(find artifacts -maxdepth 1 -type d ! -name artifacts ! -name theme_histories 2>/dev/null)" ]; then
+if [ ! -d ai-works/artifacts/* ] 2>/dev/null || [ -z "$(find ai-works/artifacts -maxdepth 1 -type d ! -name artifacts ! -name theme_histories 2>/dev/null)" ]; then
     initial_heartbeat_msg="$initial_heartbeat_msg
 **システム初回起動**: 現在テーマが設定されていません。
 ai-docs/THEME_MANAGEMENT_GUIDE.md の「2. テーマ開始手順」を参照し
