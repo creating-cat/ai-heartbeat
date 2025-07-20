@@ -205,6 +205,397 @@ AI心臓システムの各種ドキュメント（GEMINI.md、ai-docs配下、he
 6. **活動ログ制限ルールの具体化**
 7. **表現の統一**
 
+## 修正方針
+
+### 1. 連続活動の許可 vs 連番ID警告の矛盾 - 修正方針
+
+**決定事項**: 連続活動許可側に統一し、適切なバランスを保つ方針を採用
+
+#### 統一の理由
+1. **システム設計思想との整合性**
+   - AI心臓システムの核心は「時間ベース制御による自然な思考フロー」
+   - 観測→思考→創造の論理的連続性は、思考の質を高める重要な要素
+   - 機械的な分割よりも、自然な思考の流れを尊重する設計
+
+2. **実用性の観点**
+   - 複雑な分析や創造活動では、中断により思考の一貫性が失われるリスク
+   - 「完璧主義の回避」と「自然な思考フロー」は両立可能
+   - 連番ファイルの存在自体は技術的に問題ない
+
+3. **バランスの取れたアプローチ**
+   - 推奨まではせず、必要な場合は許可
+   - 適切な単位での区切りを基本推奨
+   - AIが自律的に適切性を判断
+
+#### 統一方針
+```markdown
+【連続活動に関する統一方針】
+1. **基本推奨**: 適切な時間内での区切りを推奨
+2. **連続許可**: 以下の場合は連続活動を許可
+   - 論理的に連続した処理（観測→思考→創造）
+   - 分割により思考の一貫性が失われる場合
+   - 明確な効率性の向上が見込める場合
+3. **判断基準**: AIが自律的に適切性を判断
+4. **記録義務**: 連続活動の理由を活動ログに記録
+5. **内省評価**: 定期的に連続活動の適切性を内省で評価
+```
+
+#### 具体的な修正内容
+
+**MCPツールの警告メッセージ修正**:
+- **現在**: 「問題行動」として否定的に扱う
+- **修正後**: 情報提供として中立的に扱う
+```typescript
+// 修正例
+return { 
+  sequence: i, 
+  warning: `情報: 同一ハートビートで複数の活動ログを作成しています。論理的な連続処理の場合は問題ありませんが、適切な区切りでの分割も検討してください。`
+};
+```
+
+**MCP_WARNING_GUIDE.mdの修正**:
+- **現在**: 「問題行動」「予防策が必要」として扱う
+- **修正後**: 「適切性の判断」「バランスの重要性」を重視
+
+**ドキュメント間の統一**:
+- `GUIDELINES.md`の連続処理許可条件を明確化
+- `GEMINI.md`の時間ベース制御説明を強化
+- 各ドキュメントで一貫したメッセージを発信
+
+#### 修正対象ファイル
+- `mcp/ai-heartbeat-mcp/src/tools/activityLogTool.ts`
+- `ai-docs/MCP_WARNING_GUIDE.md`
+- `ai-docs/GUIDELINES.md` (連続処理の条件明確化)
+- `GEMINI.md` (時間ベース制御の説明強化)
+
+### 2. 時間制御の基準が複数存在 - 用途調査結果
+
+**調査結果**: 各時間制御機能は実際に異なる用途を持っており、認識は概ね正確
+
+#### 各機能の詳細用途
+
+**1. heartbeat.sh の時間制御**
+- **用途**: 活動ログファイルの**作成頻度**をチェック
+- **監視対象**: 最新活動ログファイルの更新時刻（ファイルシステムのmtime）
+- **判定基準**: 
+  - 5分: 警告メッセージをハートビートに追加
+  - 10分: エラーレベル、回復処理を開始
+  - 15分: タイムスタンプ異常検知（別機能）
+- **抑制機能**: `stats/extended_processing/current.conf` による宣言で抑制可能
+- **実装場所**: `lib/health_check_core.sh` の `check_activity_log_frequency_anomaly()`
+
+**2. activityLogTool.ts の時間制御**
+- **用途**: ハートビートIDと現在時刻の**乖離**をチェック
+- **監視対象**: ハートビートID（タイムスタンプ）と現在時刻の差
+- **判定基準**:
+  - 5分: 情報通知（処理時間通知）
+  - 10分: 警告（長時間処理警告）
+  - 15分: エラー（処理時間エラー）
+- **目的**: 長時間の連続処理を検知し、適切な区切りを促す
+- **実装場所**: `checkProcessingTime()` 関数
+
+**3. timeUtils.ts の時間乖離チェック**
+- **用途**: ハートビートIDの時刻と現在時刻の**乖離**をチェック（activityLogTool.tsとは別実装）
+- **監視対象**: ハートビートIDから解析した時刻と現在時刻の差
+- **判定基準**: `heartbeat.conf`の`TIMESTAMP_ANOMALY_THRESHOLD`（15分）を基準に段階的警告
+  - 50%（7.5分）: 情報
+  - 75%（11.25分）: 警告  
+  - 90%（13.5分）: 重大
+- **実装場所**: `checkTimeDeviation()` 関数
+
+**4. declareExtendedProcessingTool.ts**
+- **用途**: 長時間処理の**事前宣言**による異常検知抑制
+- **機能**: `stats/extended_processing/current.conf` ファイルを作成
+- **効果**: heartbeat.shの活動ログ頻度異常検知とタイムスタンプ異常検知を抑制
+- **制限**: 最大30分まで宣言可能
+- **自動削除**: 活動ログ作成時または期限切れ時に自動削除
+
+#### 用途の整理と問題点
+
+**認識の確認**:
+✅ heartbeat.sh: 活動ログが作成されない期間をチェック
+✅ activityLogTool.ts: ハートビートIDと現在時刻の乖離をチェック  
+✅ declareExtendedProcessingTool.ts: 異常検知の抑制機能
+
+**発見された追加の複雑さ**:
+- **timeUtils.ts**: activityLogTool.tsとは別に、同様の時刻乖離チェック機能が存在
+- **二重の時刻乖離チェック**: activityLogTool.tsとtimeUtils.tsで類似機能が重複
+- **基準値の不整合**: 同じ目的でも微妙に異なる閾値設定
+
+#### 実際の問題
+
+**1. 機能重複**:
+- activityLogTool.tsの`checkProcessingTime()`とtimeUtils.tsの`checkTimeDeviation()`が類似機能
+- 両方とも「ハートビートIDと現在時刻の乖離」をチェックしているが、実装と基準が異なる
+
+**2. 基準値の不整合**:
+- heartbeat.sh: 10分でエラーレベル
+- activityLogTool.ts: 15分でエラーレベル
+- 長時間処理宣言: 30分まで許可
+
+**3. 抑制機能の適用範囲**:
+- 長時間処理宣言はheartbeat.shの異常検知のみ抑制
+- activityLogTool.tsの時間チェックは抑制されない（独立動作）
+
+#### 統一方針の検討ポイント
+
+1. **機能の役割分担明確化**: 各時間制御機能の責務を明確に分離
+2. **基準値の統一**: 同じレベルの警告・エラーは統一した時間基準を使用
+3. **抑制機能の統合**: 長時間処理宣言の効果範囲を統一
+4. **重複機能の整理**: 類似機能の統合または明確な差別化
+
+#### 修正方針: checkTimeDeviation機能の廃止
+
+**決定事項**: `checkTimeDeviation`機能を廃止し、`checkProcessingTime`に統一
+
+**廃止の理由**:
+
+1. **機能重複の解消**
+   - activityLogTool: `checkTimeDeviation` + `checkProcessingTime` の2つの時間チェックが重複
+   - 両方とも「ハートビートIDと現在時刻の乖離」をチェックする同様の機能
+   - `checkProcessingTime`の方が新しく、より適切な実装
+
+2. **themeLogToolでの必要性の低さ**
+   - テーマログ作成は比較的軽量な処理で、長時間処理になりにくい
+   - activityLogToolでの時間チェックで十分カバー可能
+   - テーマログでの時間チェックは過剰な監視
+
+3. **実装の一貫性向上**
+   - `checkProcessingTime`: 同期関数、シンプルな実装、高パフォーマンス
+   - `checkTimeDeviation`: 非同期関数、設定ファイル読み込み必要、低パフォーマンス
+
+4. **警告メッセージの品質**
+   ```typescript
+   // checkProcessingTime (採用)
+   "処理時間通知: ハートビート開始から5分が経過しています。"
+   "長時間処理警告: ハートビート開始から10分が経過しています。処理を区切ることを推奨します。"
+
+   // checkTimeDeviation (廃止)  
+   "情報: ハートビートIDの時刻と現在時刻に 8分 の乖離があります。"
+   ```
+   - `checkProcessingTime`の方が具体的で実用的なメッセージ
+
+**修正内容**:
+
+**削除対象**:
+- `mcp/ai-heartbeat-mcp/src/lib/timeUtils.ts`の`checkTimeDeviation`関数
+- `mcp/ai-heartbeat-mcp/src/lib/timeUtils.ts`の`loadTimestampThreshold`関数
+- 関連するimport文と型定義
+
+**修正対象**:
+1. `mcp/ai-heartbeat-mcp/src/tools/activityLogTool.ts`
+   - `checkTimeDeviation`の呼び出し削除
+   - import文の修正
+   - 重複する時間警告の統合
+
+2. `mcp/ai-heartbeat-mcp/src/tools/themeLogTool.ts`
+   - `checkTimeDeviation`の呼び出し削除
+   - import文の修正
+   - 時間チェック機能の完全削除
+
+**期待される効果**:
+- コードの簡素化（重複機能の削除）
+- パフォーマンス向上（非同期処理の削減）
+- 一貫性の向上（時間チェック機能の統一）
+- 保守性の向上（管理すべき時間基準の削減）
+
+**修正手順**:
+1. activityLogTool.ts: `checkTimeDeviation`削除、`checkProcessingTime`のみ使用
+2. themeLogTool.ts: 時間チェック機能を完全削除
+3. timeUtils.ts: `checkTimeDeviation`と`loadTimestampThreshold`を削除
+4. 型定義ファイル: 対応する宣言を削除
+
+#### 修正方針: activityLogToolでの長時間処理宣言抑制機能の追加
+
+**決定事項**: activityLogToolの`checkProcessingTime`に長時間処理宣言による抑制機能を追加
+
+**問題の分析**:
+
+**現在の状況**:
+```typescript
+// activityLogTool.ts の現在の処理順序
+1. checkProcessingTime() → 警告メッセージ生成
+2. ファイル作成
+3. 長時間処理宣言ファイルの削除 ← ここで初めてチェック
+4. 警告メッセージを表示 ← 宣言があっても警告が出る
+```
+
+**問題点**:
+- **タイミングの問題**: 警告チェック時点では宣言ファイルの存在を確認していない
+- **抑制機能の不統一**: heartbeat.shでは抑制されるが、MCPツールでは抑制されない
+- **ユーザー体験の悪化**: 正当な長時間処理でも警告が表示される
+
+**解決方針**:
+
+**1. 処理順序の改善**:
+```typescript
+// 修正後の理想的な処理順序
+1. 長時間処理宣言ファイルの存在確認
+2. 宣言がある場合: checkProcessingTime() をスキップ
+3. 宣言がない場合: checkProcessingTime() で警告チェック
+4. ファイル作成
+5. 宣言ファイルの削除（存在する場合）
+```
+
+**2. 簡素化された実装方針**:
+
+期限切れ判定ロジックは**不要**と判断：
+
+**理由**:
+- **処理の実行順序**: MCPツール実行 → 活動ログ作成 → ファイル削除 → heartbeat.shチェック
+- **期限切れでも正当**: 活動ログ作成 = 処理完了の証明のため、期限切れでも問題なし
+- **自然な辻褄合わせ**: heartbeat.shより先にMCPツールが実行されれば自動的に整合性が保たれる
+
+**実装内容**:
+
+```typescript
+// 新規追加: シンプルな存在チェック関数
+async function checkExtendedProcessingDeclaration(): Promise<boolean> {
+  const declarationFile = 'stats/extended_processing/current.conf';
+  return await fs.pathExists(declarationFile);
+}
+
+// 修正版: checkProcessingTime関数
+async function checkProcessingTime(heartbeatId: string): Promise<string | null> {
+  // 長時間処理宣言の単純存在チェック
+  if (await checkExtendedProcessingDeclaration()) {
+    return null; // 宣言がある場合は警告を出さない
+  }
+  
+  // 既存の時間チェックロジック（変更なし）
+  try {
+    const heartbeatTime = convertTimestampToSeconds(heartbeatId);
+    const currentTime = Math.floor(Date.now() / 1000);
+    const elapsedSeconds = currentTime - heartbeatTime;
+    const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+    
+    if (elapsedSeconds >= PROCESSING_TIME_CONFIG.errorThreshold) {
+      return `処理時間エラー: ハートビート開始から${elapsedMinutes}分が経過しています。即座に処理を完了してください。`;
+    } else if (elapsedSeconds >= PROCESSING_TIME_CONFIG.warningThreshold) {
+      return `長時間処理警告: ハートビート開始から${elapsedMinutes}分が経過しています。処理を区切ることを推奨します。`;
+    } else if (elapsedSeconds >= PROCESSING_TIME_CONFIG.infoThreshold) {
+      return `処理時間通知: ハートビート開始から${elapsedMinutes}分が経過しています。`;
+    }
+    
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+```
+
+**期待される効果**:
+
+1. **抑制機能の統一**: heartbeat.shとMCPツールで一貫した長時間処理宣言の効果
+2. **ユーザー体験の向上**: 正当な長時間処理では警告が表示されない
+3. **システムの整合性**: 時間制御ポリシーの統一
+4. **実装の簡素化**: 複雑な期限判定ロジックが不要
+5. **パフォーマンス向上**: 単純なファイル存在チェックのみ
+6. **保守性向上**: 責務の分離（期限管理: heartbeat.sh、抑制: MCPツール）
+
+**修正対象ファイル**:
+- `mcp/ai-heartbeat-mcp/src/tools/activityLogTool.ts`
+  - `checkExtendedProcessingDeclaration`関数の追加
+  - `checkProcessingTime`関数の修正（非同期化と宣言チェック追加）
+  - 呼び出し部分の非同期対応
+
+#### 修正方針: 時間制御基準の役割分離と15分エラーの削除
+
+**決定事項**: heartbeat.shとactivityLogTool.tsの時間基準は統一せず、それぞれの目的に応じた独立した基準を維持。activityLogTool.tsの15分エラーレベルを削除。
+
+**分析結果**: 2つのチェック機能は性質と目的が根本的に異なる
+
+**1. heartbeat.sh の活動ログ頻度チェック**
+- **性質**: **活動の継続性**を監視（システム監視）
+- **監視対象**: 活動ログファイルの作成頻度（ファイルシステムのmtime）
+- **目的**: AIが活動を継続しているかの生存確認
+- **検知内容**: 
+  - 長時間処理中（正当）
+  - 活動ログ作成忘れ（問題）
+  - システム停止・フリーズ（異常）
+- **基準**: 5分警告、10分エラー（比較的短い間隔で厳格）
+- **理由**: システムの安定性確保のため、早期の異常検知が必要
+
+**2. activityLogTool.ts の処理時間チェック**
+- **性質**: **活動の適切性**を監視（品質推奨）
+- **監視対象**: ハートビートIDと現在時刻の乖離
+- **目的**: 適切な単位での活動区切りを促進
+- **検知内容**:
+  - 長時間の連続処理（推奨されないが禁止ではない）
+  - 適切でない活動単位（改善推奨）
+- **基準**: 5分通知、10分警告（段階的な推奨、エラーレベル削除）
+- **理由**: 「小さな一歩」の理念に基づく品質向上のため
+
+**15分エラー削除の理由**:
+
+1. **哲学的整合性**
+   - AI心臓システムの理念: 「継続性重視」「完璧主義の回避」
+   - 長時間処理は「推奨されない」が「禁止」ではない
+   - エラーレベルは「禁止」を意味するため、理念と矛盾
+
+2. **機能の役割分担**
+   - heartbeat.sh: システム異常の検知（エラーレベル必要）
+   - activityLogTool.ts: 品質向上の推奨（警告レベルで十分）
+
+3. **ユーザー体験の向上**
+   - 正当な長時間処理でエラーメッセージは不適切
+   - 警告レベルまでなら「推奨」の範囲内
+
+4. **長時間処理宣言との整合性**
+   - 最大30分まで宣言可能
+   - 15分でエラーなら宣言の意味が薄れる
+
+**修正後の構成**:
+
+```bash
+# heartbeat.sh（システム監視）
+INACTIVITY_WARNING_THRESHOLD=300   # 5分警告
+INACTIVITY_STOP_THRESHOLD=600      # 10分エラー（回復処理開始）
+```
+
+```typescript
+// activityLogTool.ts（品質推奨）
+const PROCESSING_TIME_CONFIG = {
+  infoThreshold: 300,     // 5分で情報通知
+  warningThreshold: 600,  // 10分で警告
+  // errorThreshold: 削除  // エラーレベルは不要
+};
+```
+
+**この方針の利点**:
+
+1. **明確な責務分離**
+   - システム監視: heartbeat.sh（異常検知・回復）
+   - 品質向上: activityLogTool.ts（推奨・誘導）
+
+2. **理念との整合性**
+   - 継続性を最優先
+   - 完璧主義を回避
+   - 推奨レベルでの品質向上
+
+3. **柔軟性の確保**
+   - 必要な場合の長時間処理を許容
+   - 段階的な改善を促進
+   - ユーザーの自律的判断を尊重
+
+4. **実用性の向上**
+   - 過度な制約を回避
+   - 自然な使用感
+   - ストレスの少ない運用
+
+**修正対象ファイル**:
+- `mcp/ai-heartbeat-mcp/src/tools/activityLogTool.ts`
+  - `PROCESSING_TIME_CONFIG.errorThreshold`の削除
+  - `checkProcessingTime`関数内の15分エラー判定の削除
+  - 関連するエラーメッセージの削除
+
+**結論**: heartbeat.shとactivityLogTool.tsの基準値は統一する必要がなく、それぞれの目的に最適化された独立した基準を維持することで、より効果的なシステムを実現する。
+
 ## 次のステップ
 
 各問題に対する具体的な修正案の検討と、システム全体の一貫性を保つための統一方針の策定が必要。
+
+**優先対応**:
+1. ✅ 連続活動の許可 vs 連番ID警告の矛盾 - 修正方針決定済み
+2. 🔄 時間制御の基準が複数存在 - 用途調査完了、修正方針検討中
+3. ⏳ その他の問題 - 順次対応予定
