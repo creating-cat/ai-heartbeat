@@ -203,6 +203,96 @@ check_feedbackbox() {
 }
 ```
 
+## 各コンポーネントへの影響範囲詳細分析
+
+### 1. **MCPツール群への影響**
+
+#### 1.1 直接的なパス参照を含むツール
+
+**activityLogTool.ts** (影響度: 高):
+- `artifacts/{THEME_START_ID_テーマ名}/histories/{ハートビートID}.md` → `ai-works/artifacts/{THEME_START_ID_テーマ名}/histories/{ハートビートID}.md`
+- `stats/extended_processing/current.conf` → `ai-works/stats/extended_processing/current.conf`
+- **修正箇所**: パス定数、ファイル作成・参照処理
+
+**itemProcessorTool.ts** (影響度: 高):
+- `themebox/` → `ai-works/themebox/`
+- `feedbackbox/` → `ai-works/feedbackbox/`
+- **修正箇所**: directoryPath変数の設定
+
+**themeLogTool.ts** (影響度: 高):
+- `artifacts/theme_histories/` → `ai-works/artifacts/theme_histories/`
+- **修正箇所**: THEME_HISTORIES_DIR定数
+
+**listThemeArtifactsTool.ts** (影響度: 中):
+- `artifacts/{THEME_START_ID_テーマ名}/` → `ai-works/artifacts/{THEME_START_ID_テーマ名}/`
+- **修正箇所**: resolveThemePath関数の呼び出し
+
+**reportToolUsageTool.ts** (影響度: 中):
+- `stats/cooldown/` → `ai-works/stats/cooldown/`
+- `stats/lock/` → `ai-works/stats/lock/`
+- **修正箇所**: COOLDOWN_DIR, LOCK_DIR定数
+
+**checkThemeStatusTool.ts** (影響度: 中):
+- `artifacts/theme_histories/` → `ai-works/artifacts/theme_histories/`
+- **修正箇所**: パス参照処理
+
+**createThemeExpertContextTool.ts** (影響度: 中):
+- `artifacts/{THEME_START_ID_テーマ名}/contexts/` → `ai-works/artifacts/{THEME_START_ID_テーマ名}/contexts/`
+- **修正箇所**: resolveThemePath関数の呼び出し
+
+**declareExtendedProcessingTool.ts** (影響度: 中):
+- `stats/extended_processing/` → `ai-works/stats/extended_processing/`
+- **修正箇所**: declarationFile変数
+
+#### 1.2 ライブラリファイルへの影響
+
+**themeUtils.ts** (影響度: 高):
+- `resolveThemePath()` 関数でのパス解決ロジック
+- **修正箇所**: artifacts基準パスの変更
+
+### 2. **シェルスクリプトへの影響**
+
+#### 2.1 heartbeat.sh (影響度: 高)
+- `mkdir -p stats/cooldown stats/lock` → `mkdir -p ai-works/stats/cooldown ai-works/stats/lock`
+- feedbackboxチェック処理のパス参照
+- **修正箇所**: ディレクトリ作成、feedbackbox監視処理
+
+#### 2.2 setup.sh (影響度: 中)
+- 初期ディレクトリ作成処理
+- **修正箇所**: mkdir処理でのパス指定
+
+#### 2.3 lib/health_check_core.sh (影響度: 高)
+- `stats/extended_processing/current.conf` → `ai-works/stats/extended_processing/current.conf`
+- `artifacts/` パス参照 → `ai-works/artifacts/`
+- **修正箇所**: _get_latest_activity_log_info, _get_latest_theme_log_info, check_extended_processing_deadline関数
+
+### 3. **設定・ドキュメントファイルへの影響**
+
+#### 3.1 GEMINI.md (影響度: 高)
+- `artifacts/{THEME_START_ID_テーマ名}/` → `ai-works/artifacts/{THEME_START_ID_テーマ名}/`
+- `projects/` → `ai-works/projects/`
+- `feedbackbox/` → `ai-works/feedbackbox/`
+- **修正箇所**: AI動作ルールでのパス指定
+
+#### 3.2 ai-docs/ 配下のドキュメント (影響度: 中)
+- 各種ガイドでのパス参照
+- **修正箇所**: 操作例、パス説明
+
+### 4. **影響度別優先順位**
+
+#### 高影響度（移行必須・即座に修正）
+1. **MCPツール**: activityLogTool, itemProcessorTool, themeLogTool, themeUtils
+2. **シェルスクリプト**: heartbeat.sh, health_check_core.sh
+3. **設定ファイル**: GEMINI.md
+
+#### 中影響度（移行推奨・順次修正）
+1. **MCPツール**: その他のツール群
+2. **初期化**: setup.sh
+3. **ドキュメント**: ai-docs/ 配下
+
+#### 低影響度（移行後対応可）
+1. **ユーザー向けドキュメント**: README.md, SYSTEM_OVERVIEW.md等
+
 ## リスク分析と対策
 
 ### 1. **データ損失リスク**
@@ -216,12 +306,20 @@ check_feedbackbox() {
 - MCPツールの事前ビルド確認
 - 基本機能の動作テスト
 - 統合テストの実施
+- MCPサーバー再起動による設定反映
 
 ### 3. **設定不整合リスク**
 **対策:**
 - 設定ファイルの一括更新
 - パス参照の網羅的確認
 - ドキュメントとの整合性確認
+- 異常検知システムの動作確認
+
+### 4. **MCPツール特有のリスク**
+**対策:**
+- TypeScriptコンパイルエラーの事前確認
+- パス定数の一元管理による整合性確保
+- ツール個別の動作テスト実施
 
 ## 移行後の利点
 
