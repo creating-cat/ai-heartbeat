@@ -198,8 +198,8 @@ rm -rf stats/lock/*
 - `draft.XXX_title.md`: 編集中（AIは無視）
 
 ### 緊急フィードバック機能
-- `emergency.XXX_title.md`: 緊急フィードバック（即座処理中断）
-- `processed.emergency.XXX_title.md`: 処理済み緊急フィードバック
+- `interrupt.XXX_title.md`: 割り込みフィードバック（即座処理中断）
+- `processed.interrupt.XXX_title.md`: 処理済み割り込みフィードバック
 - heartbeat.shによる自動検知・即座中断処理
 
 ### feedbackbox監視機能
