@@ -6,7 +6,6 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { z } from 'zod';
 import { glob } from 'glob';
-import { checkTimeDeviation } from '../lib/timeUtils';
 import { resolveThemePath } from '../lib/themeUtils';
 
 // Zod schema for theme log input (サブテーマ対応版)
@@ -211,9 +210,6 @@ ${achievementList}
 `;
       }
 
-      // 時刻乖離チェック
-      const timeWarning = await checkTimeDeviation(logFileId!);
-
       // ファイル書き込み
       await fs.ensureDir(path.dirname(logFilePath));
       await fs.writeFile(logFilePath, markdownContent, 'utf-8');
@@ -231,10 +227,6 @@ ${achievementList}
         if (isSubtheme) {
           responseText += `\n親テーマに戻ります: ${parentThemeStartId}_${sanitizedParentDirectoryPart}`;
         }
-      }
-      
-      if (timeWarning) {
-        responseText += `\n${timeWarning}`;
       }
       
       // サニタイズ警告

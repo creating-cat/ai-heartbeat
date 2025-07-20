@@ -6,14 +6,13 @@ import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
-import { checkTimeDeviation, convertTimestampToSeconds } from '../lib/timeUtils';
+import { convertTimestampToSeconds } from '../lib/timeUtils';
 import { resolveThemePath } from '../lib/themeUtils';
 
-// 処理時間制御の設定（MCPツール独立設定）
+// 処理時間制御の設定（heartbeat.shと統一）
 const PROCESSING_TIME_CONFIG = {
   infoThreshold: 300,    // 5分で情報通知
-  warningThreshold: 600, // 10分で警告
-  errorThreshold: 900    // 15分でエラー
+  warningThreshold: 600, // 10分で警告（heartbeat.shのエラーレベルと統一）
 };
 
 // Zod schema for activity log input (サブテーマ対応版)
@@ -52,20 +51,26 @@ export const activityLogInputSchema = z.object({
 
 /**
  * ハートビート開始からの経過時間をチェックして警告メッセージを生成
+ * 長時間処理宣言がある場合は抑制される
  */
-function checkProcessingTime(heartbeatId: string): string | null {
+async function checkProcessingTime(heartbeatId: string): Promise<string | null> {
   try {
+    // 長時間処理宣言の確認
+    const declarationFile = 'stats/extended_processing/current.conf';
+    if (await fs.pathExists(declarationFile)) {
+      // 宣言ファイルが存在する場合は時間チェックを抑制
+      return null;
+    }
+
     const heartbeatTime = convertTimestampToSeconds(heartbeatId);
     const currentTime = Math.floor(Date.now() / 1000);
     const elapsedSeconds = currentTime - heartbeatTime;
     const elapsedMinutes = Math.floor(elapsedSeconds / 60);
     
-    if (elapsedSeconds >= PROCESSING_TIME_CONFIG.errorThreshold) { // 15分
-      return `処理時間エラー: ハートビート開始から${elapsedMinutes}分が経過しています。即座に処理を完了してください。`;
-    } else if (elapsedSeconds >= PROCESSING_TIME_CONFIG.warningThreshold) { // 10分
-      return `長時間処理警告: ハートビート開始から${elapsedMinutes}分が経過しています。処理を区切ることを推奨します。`;
+    if (elapsedSeconds >= PROCESSING_TIME_CONFIG.warningThreshold) { // 10分
+      return `活動分割推奨: ハートビート開始から${elapsedMinutes}分が経過しています。「小さな一歩」の原則に従い、活動を区切ることを推奨します。`;
     } else if (elapsedSeconds >= PROCESSING_TIME_CONFIG.infoThreshold) { // 5分
-      return `処理時間通知: ハートビート開始から${elapsedMinutes}分が経過しています。`;
+      return `経過時間通知: ハートビート開始から${elapsedMinutes}分が経過しています。`;
     }
     
     return null;
@@ -202,7 +207,7 @@ async function findAvailableSequence(
 
 export const activityLogTool = {
   name: 'create_activity_log',
-  description: 'AIハートビートシステム用の、標準形式の活動ログを作成します。サブテーマにも対応しており、parentThemeStartIdを指定することでサブテーマの活動ログとして作成されます。時間ベース制御により、適切な時間内で自然な思考フロー（観測→思考→創造）に基づく連続活動を支援します。論理的に連続した処理や効率的な活動フローの場合、同一ハートビート内での複数活動が許可されており、その際は自動で連番ファイルが作成されます。処理時間が5分を超えると通知、10分を超えると警告、15分を超えるとエラーメッセージが表示されます。長時間処理が必要な場合は事前にdeclare_extended_processingツールで宣言してください。',
+  description: 'AIハートビートシステム用の、標準形式の活動ログを作成します。サブテーマにも対応しており、parentThemeStartIdを指定することでサブテーマの活動ログとして作成されます。時間ベース制御により、適切な時間内で自然な思考フロー（観測→思考→創造）に基づく連続活動を支援します。論理的に連続した処理や効率的な活動フローの場合、同一ハートビート内での複数活動が許可されており、その際は自動で連番ファイルが作成されます。ハートビート開始から5分経過で経過時間通知、10分経過で活動分割推奨が表示されます。長時間処理が必要な場合は事前にdeclare_extended_processingツールで宣言してください。',
   input_schema: activityLogInputSchema,
   execute: async (args: z.infer<typeof activityLogInputSchema>) => {
     try {
@@ -255,11 +260,8 @@ export const activityLogTool = {
         sanitizedParentDirectoryPart
       );
       
-      // Check time deviation (既存の時間チェック)
-      const timeWarning = await checkTimeDeviation(args.heartbeatId);
-      
-      // Check processing time (新しい時間ベース警告)
-      const processingTimeWarning = checkProcessingTime(args.heartbeatId);
+      // Check processing time (統一された時間ベース制御)
+      const processingTimeWarning = await checkProcessingTime(args.heartbeatId);
       
       // Ensure directory exists
       await fs.ensureDir(path.dirname(filePath));
@@ -304,11 +306,7 @@ export const activityLogTool = {
         responseText += `\n警告: 親ディレクトリ名を「${args.parentThemeDirectoryPart}」から「${sanitizedParentDirectoryPart}」に修正しました`;
       }
       
-      if (timeWarning) {
-        responseText += `\n${timeWarning}`;
-      }
-      
-      // 新しい時間ベース警告を追加
+      // 統一された時間ベース制御の警告を追加
       if (processingTimeWarning) {
         responseText += `\n${processingTimeWarning}`;
       }
