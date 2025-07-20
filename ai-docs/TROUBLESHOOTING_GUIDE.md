@@ -51,55 +51,8 @@ AI心臓システムには、異常な動作パターンを自動検知し、回
 
 **対策**:
 
-1. **バックグラウンド実行の活用**:
-   ```bash
-   # 開発サーバーをバックグラウンドで起動
-   npm run dev &
-   
-   # プロセスIDを記録
-   echo $! > artifacts/current_theme/dev_server_pid.txt
-   
-   # 起動確認のための待機
-   sleep 5
-   ```
+**推奨方法: timeoutコマンドによる時限実行**
 
-2. **動作確認の実装**:
-   ```bash
-   # サーバーの動作確認
-   curl -s http://localhost:3000 > artifacts/current_theme/server_response.html
-   
-   # または
-   wget -q -O artifacts/current_theme/server_check.html http://localhost:3000
-   
-   # 確認結果をログに記録
-   if [ $? -eq 0 ]; then
-       echo "サーバー正常動作確認: $(date)" >> artifacts/current_theme/server_status.log
-   else
-       echo "サーバー接続失敗: $(date)" >> artifacts/current_theme/server_status.log
-   fi
-   ```
-
-3. **定期的な状態確認**:
-   ```bash
-   # サーバープロセスの生存確認
-   if ps -p $(cat artifacts/current_theme/dev_server_pid.txt) > /dev/null; then
-       echo "開発サーバー稼働中: $(date)" >> artifacts/current_theme/server_status.log
-   else
-       echo "開発サーバー停止検知: $(date)" >> artifacts/current_theme/server_status.log
-   fi
-   ```
-
-4. **適切な終了処理**:
-   ```bash
-   # 作業完了時のサーバー停止
-   if [ -f artifacts/current_theme/dev_server_pid.txt ]; then
-       kill $(cat artifacts/current_theme/dev_server_pid.txt)
-       echo "開発サーバー停止: $(date)" >> artifacts/current_theme/server_status.log
-       rm artifacts/current_theme/dev_server_pid.txt
-   fi
-   ```
-
-**推奨パターン**:
 ```bash
 # 基本的な使用方法（30秒間実行）
 timeout 30s npm run dev
@@ -399,7 +352,7 @@ AI心臓システムのハートビートモードでは、ユーザーからの
 
 *   **危険性の認識:** `run_shell_command`は強力なツールであり、ファイルシステムの変更やシステム状態への影響を及ぼす可能性があります。実行前にコマンドの目的と潜在的な影響を十分に理解してください。
 *   **説明の付与:** ユーザーへの説明を促す`description`引数を活用し、実行するコマンドの意図を明確に伝えてください。
-*   **バックグラウンド実行:** サーバー起動など、継続的に実行されるコマンドは、`&`を付けてバックグラウンドで実行してください。
+*   **時限実行:** サーバー起動など、継続的に実行されるコマンドは、`timeout`コマンドを使用して時限実行してください（例: `timeout 30s npm run dev`）。
 
 ### 1.3. Web検索・フェッチツール (`google_web_search`, `web_fetch`)
 
