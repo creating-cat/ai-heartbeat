@@ -20,7 +20,7 @@ const PROCESSING_TIME_CONFIG = {
 export const activityLogInputSchema = z.object({
   heartbeatId: z.string()
     .regex(/^\d{14}$/, 'ハートビートIDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります。')
-    .describe('YYYYMMDDHHMMSS形式のハートビートID。注意: 同じIDのログが既に存在する場合、自動で連番が付与されます（例: _01）。これは活動ログ作成後に処理を継続してしまったことを示唆するため、通常は避けるべきです。'),
+    .describe('YYYYMMDDHHMMSS形式のハートビートID。同じIDのログが既に存在する場合、自動で連番が付与されます（例: _01）。これは自然な思考フロー（観測→思考→創造）による連続活動や、論理的に連続した処理を行った場合に発生します。'),
   activityType: z.enum(['観測', '思考', '創造', '内省', 'テーマ開始', 'テーマ終了', '回復', 'その他'])
     .describe("実行した活動の種別。'観測', '思考', '創造', '内省', 'テーマ開始', 'テーマ終了', '回復', 'その他' のいずれかである必要があります。"),
   activityContent: z.array(z.string()).describe('活動内容の簡潔な説明のリスト。'),
@@ -202,7 +202,7 @@ async function findAvailableSequence(
 
 export const activityLogTool = {
   name: 'create_activity_log',
-  description: 'AIハートビートシステム用の、標準形式の活動ログを作成します。サブテーマにも対応しており、parentThemeStartIdを指定することでサブテーマの活動ログとして作成されます。時間ベース制御により、適切な時間内で自然な思考フロー（観測→思考→創造）に基づく複数の活動を行い、各活動でログを記録できます。処理時間が5分を超えると通知、10分を超えると警告、15分を超えるとエラーメッセージが表示されます。長時間処理が必要な場合は事前にdeclare_extended_processingツールで宣言してください。',
+  description: 'AIハートビートシステム用の、標準形式の活動ログを作成します。サブテーマにも対応しており、parentThemeStartIdを指定することでサブテーマの活動ログとして作成されます。時間ベース制御により、適切な時間内で自然な思考フロー（観測→思考→創造）に基づく連続活動を支援します。論理的に連続した処理や効率的な活動フローの場合、同一ハートビート内での複数活動が許可されており、その際は自動で連番ファイルが作成されます。処理時間が5分を超えると通知、10分を超えると警告、15分を超えるとエラーメッセージが表示されます。長時間処理が必要な場合は事前にdeclare_extended_processingツールで宣言してください。',
   input_schema: activityLogInputSchema,
   execute: async (args: z.infer<typeof activityLogInputSchema>) => {
     try {
