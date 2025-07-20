@@ -9,6 +9,8 @@ import * as path from 'path';
 import { convertTimestampToSeconds } from '../lib/timeUtils';
 import { resolveThemePath } from '../lib/themeUtils';
 
+// 未来ハートビートID検証（未来は即エラー）
+
 // 処理時間制御の設定（heartbeat.shと統一）
 const PROCESSING_TIME_CONFIG = {
   infoThreshold: 300,    // 5分で情報通知
@@ -48,6 +50,41 @@ export const activityLogInputSchema = z.object({
 
 
 // Helper functions
+
+/**
+ * 未来ハートビートIDの検証
+ * @param heartbeatId YYYYMMDDHHMMSS形式のハートビートID
+ * @throws Error 未来のハートビートIDが許容範囲を超えている場合
+ */
+function validateHeartbeatIdTiming(heartbeatId: string): void {
+  try {
+    const heartbeatTime = convertTimestampToSeconds(heartbeatId);
+    const currentTime = Math.floor(Date.now() / 1000);
+    const timeDiff = heartbeatTime - currentTime;
+    
+    // 未来のタイムスタンプは即座にエラー
+    if (timeDiff > 0) {
+      const futureMinutes = Math.floor(timeDiff / 60);
+      const futureSeconds = timeDiff % 60;
+      const timeDescription = futureMinutes > 0 
+        ? `${futureMinutes}分${futureSeconds}秒`
+        : `${futureSeconds}秒`;
+      
+      throw new Error(
+        `未来のハートビートIDは使用できません。\n` +
+        `指定されたID（${heartbeatId}）は現在時刻より${timeDescription}未来です。\n` +
+        `ハートビートIDは現在時刻またはそれ以前の時刻を使用してください。`
+      );
+    }
+  } catch (error) {
+    // convertTimestampToSecondsでエラーが発生した場合は、そのエラーを再スロー
+    if (error instanceof Error && error.message.includes('Invalid timestamp format')) {
+      throw error;
+    }
+    // 未来時刻検証エラーの場合もそのまま再スロー
+    throw error;
+  }
+}
 
 /**
  * ハートビート開始からの経過時間をチェックして警告メッセージを生成
@@ -211,6 +248,9 @@ export const activityLogTool = {
   input_schema: activityLogInputSchema,
   execute: async (args: z.infer<typeof activityLogInputSchema>) => {
     try {
+      // 未来ハートビートID検証（最優先で実行）
+      validateHeartbeatIdTiming(args.heartbeatId);
+
       // バリデーション
       if (args.parentThemeStartId && !args.parentThemeDirectoryPart) {
         throw new Error('parentThemeStartIdが指定された場合、parentThemeDirectoryPartも必須です');

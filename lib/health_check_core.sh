@@ -493,10 +493,11 @@ check_activity_log_timestamp_anomaly() {
     fi
     debug_log "ACTIVITY_LOG_TIMESTAMP: Time difference = ${timestamp_diff}s"
 
-    # 未来のタイムスタンプは異常としない
+    # 未来のタイムスタンプは即座にエラー
     if [ $timestamp_diff -lt 0 ]; then
-        debug_log "ACTIVITY_LOG_TIMESTAMP: Future timestamp detected, skipping"
-        echo "0:$timestamp_diff"
+        local future_seconds=$((-timestamp_diff))
+        debug_warning "ACTIVITY_LOG_TIMESTAMP: Future timestamp detected (${future_seconds}s future) - immediate error"
+        echo "2:$timestamp_diff"
         return 0
     fi
 
