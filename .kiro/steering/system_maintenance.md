@@ -75,8 +75,8 @@ MAX_RECOVERY_WAIT_CYCLES=5             # 最大回復待機サイクル数
 
 ### ログファイルの種類
 - `logs/heartbeat_YYYYMMDDHHMMSS.log`: ハートビートログ（自動命名・クリーンアップ）
-- `stats/cooldown/`: ツールクールダウン状態管理
-- `stats/lock/`: ツールロック状態管理
+- `ai-works/stats/cooldown/`: ツールクールダウン状態管理
+- `ai-works/stats/lock/`: ツールロック状態管理
 
 ### 自動クリーンアップ機能
 ```bash
@@ -126,14 +126,10 @@ npm run dev          # 開発モード実行（テスト用）
 
 ### .gitignoreの管理
 ```gitignore
-ai-works/artifacts/          # AI生成物（除外）
-stats/             # システム状態（除外）
+ai-works/           # AI活動領域全体（除外）
 logs/              # ログファイル（除外）
 *.local            # ローカル設定ファイル（除外）
-projects/          # 開発プロジェクト（除外）
 results/           # テスト結果（除外）
-feedbackbox/       # フィードバック（除外）
-themebox/*         # テーマファイル（除外）
 tmp_*              # 一時ファイル（除外）
 ```
 
@@ -170,10 +166,10 @@ cat .gemini/settings.json
 ls -la logs/
 
 # ツール制限状態の確認・クリア
-ls -la stats/cooldown/
-ls -la stats/lock/
-rm -rf stats/cooldown/*
-rm -rf stats/lock/*
+ls -la ai-works/stats/cooldown/
+ls -la ai-works/stats/lock/
+rm -rf ai-works/stats/cooldown/*
+rm -rf ai-works/stats/lock/*
 ```
 
 ## 性能監視・最適化
