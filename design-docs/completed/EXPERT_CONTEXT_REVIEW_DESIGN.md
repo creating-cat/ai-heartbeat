@@ -127,7 +127,7 @@ export const getLatestThemeContextInputSchema = z.object({
 
 #### ディレクトリ構造
 ```
-artifacts/20250115143000_boardgame_project/
+ai-works/artifacts/20250115143000_boardgame_project/
 ├── contexts/                     # 専門家コンテキスト履歴
 │   ├── 20250115143000.md         # 初期設定
 │   └── 20250115160000.md         # 見直し後
@@ -184,7 +184,7 @@ artifacts/20250115143000_boardgame_project/
 - context.mdを履歴保持形式で更新完了
 
 ## 成果物、関連ファイル
-- artifacts/20250115143000_boardgame_project/contexts/20250115160000.md
+- ai-works/artifacts/20250115143000_boardgame_project/contexts/20250115160000.md
 
 ## 自己評価、備考
 専門家コンテキストの見直しにより、今後はプロジェクト全体の効率化と品質向上に焦点を当てた活動が可能になる。必要性レベル4と評価し、大幅な改善を期待。

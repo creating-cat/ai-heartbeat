@@ -256,9 +256,9 @@ export const progressReportingTool = {
 #### パターンの一貫性
 ```bash
 # 統一されたファイル命名規則
-artifacts/theme_histories/20250119143000_theme_start.md
-artifacts/theme_histories/20250119143500_analysis_result.md
-artifacts/theme_histories/20250119144000_conclusion.md
+ai-works/artifacts/theme_histories/20250119143000_theme_start.md
+ai-works/artifacts/theme_histories/20250119143500_analysis_result.md
+ai-works/artifacts/theme_histories/20250119144000_conclusion.md
 
 # 統一されたログ形式
 [INFO] 2025-01-19 14:30:00 - Task started: analysis

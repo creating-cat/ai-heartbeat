@@ -28,7 +28,7 @@
 ## 3. 使用方法
 
 ### コンテキストファイルの確認
-- **場所**: `artifacts/{THEME_START_ID_テーマ名}/contexts/{ハートビートID}.md`
+- **場所**: `ai-works/artifacts/{THEME_START_ID_テーマ名}/contexts/{ハートビートID}.md`
 - **履歴管理**: contexts/フォルダ内にハートビートID順で複数のコンテキストファイルを保存
 - **最新取得**: `get_latest_theme_context` MCPツールで最新のコンテキストを取得
 - **確認タイミング**: テーマ開始時またはハートビート開始時
@@ -52,14 +52,14 @@
 ```
 
 ### テーマ開始時のコンテキスト設定
-テーマ開始活動時に、そのテーマに最適な専門家役割を決定し、`artifacts/{THEME_START_ID_テーマ名}/contexts/{ハートビートID}.md` に記録することができます（任意）。
+テーマ開始活動時に、そのテーマに最適な専門家役割を決定し、`ai-works/artifacts/{THEME_START_ID_テーマ名}/contexts/{ハートビートID}.md` に記録することができます（任意）。
 
 **詳細な手順**: `ai-docs/THEME_MANAGEMENT_GUIDE.md` の「3. テーマ開始手順」を参照してください。
 
 #### 作成方法
 
 **基本手順**:
-1. `artifacts/{THEME_START_ID_テーマ名}/contexts/` フォルダを作成
+1. `ai-works/artifacts/{THEME_START_ID_テーマ名}/contexts/` フォルダを作成
 2. `{ハートビートID}.md` ファイルを作成
 3. 以下の形式でコンテキスト内容を記述：
 

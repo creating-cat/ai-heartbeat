@@ -160,7 +160,7 @@ AI心臓システム用MCP（Model Context Protocol）ツールが出力する�
 
 **エラーメッセージ例:**
 ```
-テーマ履歴ファイルは既に存在します: artifacts/theme_histories/20250115143000_start_ai_research.md。ハートビートIDが重複していないか確認してください。
+テーマ履歴ファイルは既に存在します: ai-works/artifacts/theme_histories/20250115143000_start_ai_research.md。ハートビートIDが重複していないか確認してください。
 ```
 
 **直接的な原因:**

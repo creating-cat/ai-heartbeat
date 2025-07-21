@@ -126,7 +126,7 @@ npm run dev          # 開発モード実行（テスト用）
 
 ### .gitignoreの管理
 ```gitignore
-artifacts/          # AI生成物（除外）
+ai-works/artifacts/          # AI生成物（除外）
 stats/             # システム状態（除外）
 logs/              # ログファイル（除外）
 *.local            # ローカル設定ファイル（除外）

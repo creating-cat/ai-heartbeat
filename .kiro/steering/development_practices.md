@@ -109,11 +109,11 @@ log_heartbeat() # ハートビート（専用フォーマット）
 ## ファイル操作の安全性
 
 ### 許可されるディレクトリ
-- `artifacts/`: AI生成物・活動ログ・テーマ履歴
-- `projects/`: 開発プロジェクト（独立git管理）
-- `stats/`: システム状態・ツール制限管理
-- `themebox/`: テーマ管理（リネームのみ・processed.プレフィックス）
-- `feedbackbox/`: フィードバック管理（リネームのみ・緊急フィードバック対応）
+- `ai-works/artifacts/`: AI生成物・活動ログ・テーマ履歴
+- `ai-works/projects/`: 開発プロジェクト（独立git管理）
+- `ai-works/stats/`: システム状態・ツール制限管理
+- `ai-works/themebox/`: テーマ管理（リネームのみ・processed.プレフィックス）
+- `ai-works/feedbackbox/`: フィードバック管理（リネームのみ・緊急フィードバック対応）
 
 ### 禁止されるファイル
 - システムスクリプト（`*.sh`・`lib/`配下）
@@ -166,7 +166,7 @@ fi
 timeout 30s npm run dev
 
 # 出力も保存したい場合（オプション）
-timeout 30s npm run dev 2>&1 | tee artifacts/current_theme/server_output.log
+timeout 30s npm run dev 2>&1 | tee ai-works/artifacts/current_theme/server_output.log
 ```
 
 **利点**:

@@ -26,7 +26,7 @@ AI心臓システム用のModel Context Protocol (MCP) ツール群です。AI�
 - `evaluation`: 自己評価・備考 (オプション)
 - `auxiliaryOperations`: 使用した補助操作 (オプション)
 
-**出力先:** `artifacts/{theme}/histories/{heartbeatId}.md`
+**出力先:** `ai-works/artifacts/{theme}/histories/{heartbeatId}.md`
 
 ### 2. `create_theme_log`
 テーマの開始・終了履歴を記録します。
@@ -42,8 +42,8 @@ AI心臓システム用のModel Context Protocol (MCP) ツール群です。AI�
 - `activityContent`: 活動計画 (開始時、オプション)
 
 **出力先:** 
-- テーマディレクトリ: `artifacts/{themeStartId}_{themeDirectoryPart}/`
-- 履歴ファイル: `artifacts/theme_histories/{themeStartId|themeEndId}_{action}_{themeDirectoryPart}.md`
+- テーマディレクトリ: `ai-works/artifacts/{themeStartId}_{themeDirectoryPart}/`
+- 履歴ファイル: `ai-works/artifacts/theme_histories/{themeStartId|themeEndId}_{action}_{themeDirectoryPart}.md`
 
 ### 3. `create_theme_expert_context`
 テーマ専門家コンテキストファイルを作成します。
@@ -57,7 +57,7 @@ AI心臓システム用のModel Context Protocol (MCP) ツール群です。AI�
 - `constraints`: 重要な制約・注意事項（配列）
 - `expectedOutcome`: 期待される成果（配列）
 
-**出力先:** `artifacts/{themeStartId}_{themeDirectoryPart}/context.md`
+**出力先:** `ai-works/artifacts/{themeStartId}_{themeDirectoryPart}/context.md`
 
 ### 4. `check_and_process_item`
 themebox または feedbackbox の最初のアイテムを処理します。

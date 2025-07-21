@@ -38,13 +38,13 @@ AI心臓システムは、AIの自律的思考・創造・成長を支援する�
 ### システム管理
 - `heartbeat.conf`: ハートビート設定
 - `logs/`: ハートビートログ（自動クリーンアップ）
-- `stats/`: システム状態管理
+- `ai-works/stats/`: システム状態管理
 
 ### AI活動領域
-- `artifacts/`: AI生成物・活動ログ（テーマ別・履歴管理）
-- `themebox/`: テーマ事前準備（draft/processed管理）
-- `feedbackbox/`: ユーザーフィードバック（緊急フィードバック対応）
-- `projects/`: 開発プロジェクト作業領域（独立git管理）
+- `ai-works/artifacts/`: AI生成物・活動ログ（テーマ別・履歴管理）
+- `ai-works/themebox/`: テーマ事前準備（draft/processed管理）
+- `ai-works/feedbackbox/`: ユーザーフィードバック（緊急フィードバック対応）
+- `ai-works/projects/`: 開発プロジェクト作業領域（独立git管理）
 
 ### ドキュメント
 - `ai-docs/`: AI向け詳細運用ドキュメント
