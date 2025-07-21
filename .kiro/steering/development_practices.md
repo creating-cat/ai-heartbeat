@@ -108,14 +108,12 @@ log_heartbeat() # ハートビート（専用フォーマット）
 
 ## ファイル操作の安全性
 
-### 許可されるディレクトリ
-- `ai-works/artifacts/`: AI生成物・活動ログ・テーマ履歴
-- `ai-works/projects/`: 開発プロジェクト（独立git管理）
-- `ai-works/stats/`: システム状態・ツール制限管理
-- `ai-works/themebox/`: テーマ管理（リネームのみ・processed.プレフィックス）
-- `ai-works/feedbackbox/`: フィードバック管理（リネームのみ・緊急フィードバック対応）
+### ファイル操作の安全性
 
-### 禁止されるファイル
+**許可領域**: `ai-works/` ディレクトリ配下のみ
+**禁止領域**: `ai-works/` 以外の全てのファイル・ディレクトリ
+
+**主な禁止対象**:
 - システムスクリプト（`*.sh`・`lib/`配下）
 - 設定ファイル（`heartbeat.conf`・`.gemini/settings.json`）
 - AIドキュメント（`ai-docs/`・`GEMINI.md`）
