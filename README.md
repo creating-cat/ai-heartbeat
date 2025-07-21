@@ -36,11 +36,11 @@ graph TD
 end
 
 subgraph "ユーザー連携"
-    Feedbackbox["📝 feedbackbox/<br>(フィードバック)"]
+    Feedbackbox["📝 ai-works/feedbackbox/<br>(フィードバック)"]
 end
 
 subgraph "生成物"
-    Artifacts["📁 artifacts/ <br>(成果物・活動ログ)"]
+    Artifacts["📁 ai-works/artifacts/ <br>(成果物・活動ログ)"]
 end
 
 User -- "実行" --> Start
@@ -149,10 +149,10 @@ npm run dev
 
 ```bash
 # 1. チュートリアルテーマをコピー
-cp theme_sample/000_ai_heartbeat_tutorial.md themebox/000_ai_heartbeat_tutorial.md
+cp theme_sample/000_ai_heartbeat_tutorial.md ai-works/themebox/000_ai_heartbeat_tutorial.md
 
 # 2. 本テーマを事前準備
-echo "テーマ: あなたの探求したいテーマ" > themebox/001_your_main_theme.md
+echo "テーマ: あなたの探求したいテーマ" > ai-works/themebox/001_your_main_theme.md
 
 # 3. themeboxのテーマで起動
 ./setup.sh -t

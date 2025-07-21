@@ -89,7 +89,7 @@ THEME_START_ID = 現在のハートビートID
 ##### 2.2.2 新規テーマ開始の選択優先順位
 
 ###### 第1優先: themeboxからの自動選択
-`themebox/` ディレクトリに未処理のテーマファイルがある場合は、それを優先的に使用する
+`ai-works/themebox/` ディレクトリに未処理のテーマファイルがある場合は、それを優先的に使用する
 
 **MCPツールによる自動処理（推奨）:**
 `check_and_process_item` ツール（`type: 'themebox'`）による自動処理が利用可能
@@ -108,7 +108,7 @@ check_and_process_item(type: 'themebox')
 **手動での確認手順（代替）:**
 MCPツールが利用できない場合の代替手順：
 
-1. `themebox/` ディレクトリの存在確認
+1. `ai-works/themebox/` ディレクトリの存在確認
 2. 処理対象ファイルの検索（除外ルール適用）
 3. ソート順で最初の有効ファイルを選択
 4. ファイル内容の読み込み
@@ -119,7 +119,7 @@ MCPツールが利用できない場合の代替手順：
 - `processed.` で始まるファイル名は無視（処理済み）
 
 **ファイル確認時の注意事項:**
-- themebox/は.gitignoreで除外ディレクトリとして登録されているため、ツール使用時に`respect_git_ignore=False`等のオプションの使用を検討する
+- ai-works/themebox/は.gitignoreで除外ディレクトリとして登録されているため、ツール使用時に`respect_git_ignore=False`等のオプションの使用を検討する
 
 **MCPツール vs 手動実行の判断基準:**
 
@@ -162,7 +162,7 @@ themeboxが空の場合は、従来通り自律的に新テーマを決定する
 
 #### ステップ3: テーマディレクトリの作成
 ```
-ディレクトリ: artifacts/{THEME_START_ID}_{themeDirectoryPart}/
+ディレクトリ: ai-works/artifacts/{THEME_START_ID}_{themeDirectoryPart}/
 サブディレクトリ: histories/
 ```
 
@@ -262,7 +262,7 @@ themeboxが空の場合は、従来通り自律的に新テーマを決定する
 - サブテーマ統合時に統括専門家の視点で評価・調整を実施
 
 **基本手順:**
-1. `artifacts/{THEME_START_ID}_{themeDirectoryPart}/contexts/` フォルダを作成
+1. `ai-works/artifacts/{THEME_START_ID}_{themeDirectoryPart}/contexts/` フォルダを作成
 2. `{ハートビートID}.md` ファイルを作成
 3. テーマ専門家コンテキストの内容を記述
 
@@ -392,7 +392,7 @@ PARENT_THEME_START_ID = 親テーマのTHEME_START_ID
 
 ##### ステップ5: サブテーマディレクトリの作成
 ```
-ディレクトリ: artifacts/{PARENT_THEME_START_ID}_{親テーマディレクトリ}/subthemes/{THEME_START_ID}_{サブテーマディレクトリ}/
+ディレクトリ: ai-works/artifacts/{PARENT_THEME_START_ID}_{親テーマディレクトリ}/subthemes/{THEME_START_ID}_{サブテーマディレクトリ}/
 サブディレクトリ: histories/, contexts/
 ```
 
@@ -402,7 +402,7 @@ PARENT_THEME_START_ID = 親テーマのTHEME_START_ID
 - `contexts/` サブディレクトリ（専門家コンテキスト用）
 
 ##### ステップ6: サブテーマ開始履歴の記録
-`artifacts/theme_histories/` にサブテーマ開始履歴を記録
+`ai-works/artifacts/theme_histories/` にサブテーマ開始履歴を記録
 
 ##### ステップ7: サブテーマ専門家コンテキストの設定（任意）
 サブテーマに特化した専門家コンテキストを設定
@@ -420,7 +420,7 @@ PARENT_THEME_START_ID = 親テーマのTHEME_START_ID
 - **メインテーマと同じ体験**: 専門家コンテキスト、活動ログ、成果物管理
 
 #### サブテーマ中の活動
-- **活動ログ**: `artifacts/{PARENT_THEME_START_ID}_{親テーマディレクトリ}/subthemes/{THEME_START_ID}_{サブテーマディレクトリ}/histories/`
+- **活動ログ**: `ai-works/artifacts/{PARENT_THEME_START_ID}_{親テーマディレクトリ}/subthemes/{THEME_START_ID}_{サブテーマディレクトリ}/histories/`
 - **成果物**: サブテーマディレクトリ直下に作成
 - **専門家コンテキスト**: サブテーマ専用のコンテキストを使用
 
@@ -519,14 +519,14 @@ THEME_END_ID = 現在のハートビートID
 ### 4.2 成果物の管理
 
 #### ファイル作成ルール
-- **場所**: `artifacts/{THEME_START_ID}_{themeDirectoryPart}/`
+- **場所**: `ai-works/artifacts/{THEME_START_ID}_{themeDirectoryPart}/`
 - **命名**: `{ハートビートID}_filename.md`
 - **例外**: 
   - `contexts/{ハートビートID}.md`: テーマ専門家コンテキスト（履歴管理）
   - `histories/`: 活動ログディレクトリ
 
 #### 活動ログの記録
-- **場所**: `artifacts/{THEME_START_ID}_{themeDirectoryPart}/histories/{ハートビートID}.md`
+- **場所**: `ai-works/artifacts/{THEME_START_ID}_{themeDirectoryPart}/histories/{ハートビートID}.md`
 - **内容**: 標準フォーマットに従った活動記録
 
 ### 4.3 テーマの発展と深化
@@ -639,7 +639,7 @@ THEME_END_ID = 現在のハートビートID
 - **テーマ終了時**: 現在のテーマから別のテーマに移行する際、またはシステム停止時
 
 ### 6.2 保存場所
-- **ディレクトリ**: `artifacts/theme_histories/`
+- **ディレクトリ**: `ai-works/artifacts/theme_histories/`
 - **自動作成**: このディレクトリが存在しない場合は自動作成する
 
 ### 6.3 ファイル命名規則
@@ -660,7 +660,7 @@ THEME_END_ID = 現在のハートビートID
 # テーマ開始: [テーマ名]
 
 **THEME_START_ID**: [テーマ開始時のハートビートID]
-**テーマディレクトリ**: `artifacts/[THEME_START_ID_themeDirectoryPart]/`
+**テーマディレクトリ**: `ai-works/artifacts/[THEME_START_ID_themeDirectoryPart]/`
 
 **開始理由**: 
 [初期テーマ/前テーマ「XXX」から移行/など]
@@ -677,7 +677,7 @@ THEME_END_ID = 現在のハートビートID
 **PARENT_THEME_START_ID**: [親テーマのTHEME_START_ID]
 **PARENT_THEME_NAME**: [親テーマ名]
 **THEME_START_ID**: [サブテーマ開始時のハートビートID]
-**テーマディレクトリ**: `artifacts/[PARENT_THEME_START_ID_親テーマディレクトリ]/subthemes/[THEME_START_ID_サブテーマディレクトリ]/`
+**テーマディレクトリ**: `ai-works/artifacts/[PARENT_THEME_START_ID_親テーマディレクトリ]/subthemes/[THEME_START_ID_サブテーマディレクトリ]/`
 
 **開始理由**: 
 親テーマ「[親テーマ名]」の一部として、[サブテーマの具体的な探求目的]
@@ -693,7 +693,7 @@ THEME_END_ID = 現在のハートビートID
 
 **THEME_START_ID**: [テーマ開始時のハートビートID]
 **THEME_END_ID**: [テーマ終了時のハートビートID]
-**テーマディレクトリ**: `artifacts/[THEME_START_ID_themeDirectoryPart]/`
+**テーマディレクトリ**: `ai-works/artifacts/[THEME_START_ID_themeDirectoryPart]/`
 
 **終了理由**: 
 [完了/新テーマ「XXX」へ移行/など]
@@ -711,7 +711,7 @@ THEME_END_ID = 現在のハートビートID
 **PARENT_THEME_NAME**: [親テーマ名]
 **THEME_START_ID**: [サブテーマ開始時のハートビートID]
 **THEME_END_ID**: [サブテーマ終了時のハートビートID]
-**テーマディレクトリ**: `artifacts/[PARENT_THEME_START_ID_親テーマディレクトリ]/subthemes/[THEME_START_ID_サブテーマディレクトリ]/`
+**テーマディレクトリ**: `ai-works/artifacts/[PARENT_THEME_START_ID_親テーマディレクトリ]/subthemes/[THEME_START_ID_サブテーマディレクトリ]/`
 
 **終了理由**: 
 [サブテーマ完了/次のサブテーマ「XXX」へ移行/親テーマに戻る/など]

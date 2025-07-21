@@ -7,7 +7,7 @@
 ### 1.1 ファイル名形式
 * **形式**: `YYYYMMDDHHMMSS.md` (例: `20250702140000.md`)
 * **ハートビートID**: 受け取ったハートビートメッセージにあるハートビートID（タイムスタンプ形式）を使用
-* **保存場所**: `artifacts/{THEME_START_ID_テーマ名}/histories/` ディレクトリ内
+* **保存場所**: `ai-works/artifacts/{THEME_START_ID_テーマ名}/histories/` ディレクトリ内
 
 ### 1.2 記録内容のフォーマット
 
@@ -35,7 +35,7 @@
 * **連番ファイル**: `YYYYMMDDHHMMSS_01.md`等は、活動ログ作成後に修正が必要になった場合のみ使用可能(ただし一回のみ許可)
 
 ### 1.4 サブテーマでの活動ログ管理
-* **保存場所**: `artifacts/{PARENT_THEME_START_ID_親テーマ名}/subthemes/{THEME_START_ID_サブテーマ名}/histories/`
+* **保存場所**: `ai-works/artifacts/{PARENT_THEME_START_ID_親テーマ名}/subthemes/{THEME_START_ID_サブテーマ名}/histories/`
 * **ファイル名**: 通常のテーマと同様に `{ハートビートID}.md` 形式
 * **親テーマ情報**: サブテーマの活動ログでは親テーマ情報を意識せず、サブテーマに完全集中した内容を記録
 * **統合時の参照**: サブテーマ終了時に親テーマへの統合で活用
@@ -92,8 +92,8 @@ AI心臓システムは時間ベース制御により、適切な活動時間を
 長時間処理を宣言するには、以下の手順で宣言ファイルを作成します。
 
 **手順**:
-1. ディレクトリ作成: `mkdir -p stats/extended_processing`
-2. 宣言ファイル作成: `stats/extended_processing/current.conf`
+1. ディレクトリ作成: `mkdir -p ai-works/stats/extended_processing`
+2. 宣言ファイル作成: `ai-works/stats/extended_processing/current.conf`
 
 **ファイル内容**:
 ```
@@ -135,18 +135,18 @@ MCPツールが利用できない場合や、基本的なファイル操作と�
 *   **成功 (`success`) の場合:**
     ツールが正常に完了したことを示すため、クールダウン用のファイルを作成します。
     ```bash
-    touch stats/cooldown/{toolId}
+    touch ai-works/stats/cooldown/{toolId}
     ```
     **例:** `gemini.google.search` が成功した場合
-    `touch stats/cooldown/gemini.google.search`
+    `touch ai-works/stats/cooldown/gemini.google.search`
 
 *   **クォータ超過 (`quota_exceeded`) の場合:**
     ツールのAPIクォータ制限に達したことを示すため、ロック用のファイルを作成します。
     ```bash
-    touch stats/lock/{toolId}
+    touch ai-works/stats/lock/{toolId}
     ```
     **例:** `gemini.google.search` でクォータエラーが発生した場合
-    `touch stats/lock/gemini.google.search`
+    `touch ai-works/stats/lock/gemini.google.search`
 
 #### 3.2.2 MCPツールによる報告支援（推奨手段）
 
@@ -161,26 +161,26 @@ MCPツールが利用できない場合や、基本的なファイル操作と�
 ## 3. ファイル操作制限の詳細
 
 ### 3.1 許可されるファイル操作
-* `artifacts/{THEME_START_ID_テーマ名}/` 配下にマークダウンファイル等を作成・修正
+* `ai-works/artifacts/{THEME_START_ID_テーマ名}/` 配下にマークダウンファイル等を作成・修正
   * ファイル名は `{ハートビートID}_filename.md` 形式で作成（例外: `contexts/` 配下のファイル、`histories/` 配下のファイル）
-* `artifacts/theme_histories/` 配下にテーマ履歴ファイルを作成
-* `projects/` 配下のプロジェクトファイルの作成・修正・削除
-* `stats/` 配下にシステム状態ファイルを作成
-* `themebox/` 配下の既存ファイルのリネーム（`processed.` プレフィックス付与）
-* `feedbackbox/` 配下の既存ファイルのリネーム（`processed.` プレフィックス付与）
+* `ai-works/artifacts/theme_histories/` 配下にテーマ履歴ファイルを作成
+* `ai-works/projects/` 配下のプロジェクトファイルの作成・修正・削除
+* `ai-works/stats/` 配下にシステム状態ファイルを作成
+* `ai-works/themebox/` 配下の既存ファイルのリネーム（`processed.` プレフィックス付与）
+* `ai-works/feedbackbox/` 配下の既存ファイルのリネーム（`processed.` プレフィックス付与）
 
 ### 3.2 ファイル確認時の注意事項
-* **.gitignore除外ディレクトリ**: themebox/, stats/, logs/の確認時は、.gitignore除外ディレクトリであることを考慮し、ツール使用時に必要に応じて除外を無視するようなオプションの使用を検討する
+* **.gitignore除外ディレクトリ**: ai-works/themebox/, ai-works/stats/, logs/の確認時は、.gitignore除外ディレクトリであることを考慮し、ツール使用時に必要に応じて除外を無視するようなオプションの使用を検討する
 
 ### 3.3 ファイル作成ルール
 * **ファイル名**: 英語で作成
 * **ファイル内容**: 日本語で記述（ユーザーリーダブル）
 * **作成範囲**: 一回のハートビートで行う適切な範囲でファイルを作成・修正
 
-### 3.4 projects/ 運用ルール
+### 3.4 ai-works/projects/ 運用ルール
 * **用途**: 新規開発・既存改善・技術実験・学習等のプロジェクト作業
 * **プロジェクト管理**: 各プロジェクトは独立したgitリポジトリとして管理
-* **配置ルール**: projects/ 直下にプロジェクト名でディレクトリ作成
+* **配置ルール**: ai-works/projects/ 直下にプロジェクト名でディレクトリ作成
 * **命名規則**: プロジェクト名はユニークに設定
 * **ファイル操作**: プロジェクト内のすべてのファイルの作成・修正・削除が許可
 * **言語制限**: プロジェクトの性質に応じて適切な言語を使用（日本語・英語問わず）
@@ -192,7 +192,7 @@ MCPツールが利用できない場合や、基本的なファイル操作と�
 #### 禁止対象
 * **プロジェクトルート直下のファイル**: GEMINI.md, README.md, setup.sh, heartbeat.sh, stop.sh, restart.sh等
 * **ai-docs/ ディレクトリ配下**: 全てのファイル
-* **themebox/ 配下への新規ファイル作成**: リネームのみ許可
+* **ai-works/themebox/ 配下への新規ファイル作成**: リネームのみ許可
 * **システムファイル・設定ファイル**: .gitignore, LICENSE等
 * **その他**: 上記許可範囲外の全てのファイル・ディレクトリ
 
