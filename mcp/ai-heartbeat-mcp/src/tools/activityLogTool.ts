@@ -28,10 +28,6 @@ export const activityLogInputSchema = z.object({
   activityContent: z.array(z.string()).describe('活動内容の簡潔な説明のリスト。'),
   artifacts: z.array(z.string()).optional().default([]).describe('作成または修正したファイルのパスのリスト。'),
   evaluation: z.string().optional().default('').describe('自己評価や備考。'),
-  auxiliaryOperations: z.array(z.enum(['ファイル読み込み', '軽微な検索', '軽微な置換', 'Web検索', 'その他']))
-    .optional()
-    .default([])
-    .describe("活動中に使用した補助的な操作。'ファイル読み込み', '軽微な検索', '軽微な置換', 'Web検索', 'その他' の要素を含む配列です。"),
   themeStartId: z.string()
     .regex(/^\d{14}$/, 'THEME_START_IDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
     .describe('テーマ開始時のハートビートID'),
@@ -133,14 +129,9 @@ function generateActivityLogMarkdown(args: z.infer<typeof activityLogInputSchema
     lines.push('');
   }
   
-  // Activity type with auxiliary operations
+  // Activity type
   lines.push('## 活動種別');
-  let activityTypeText = args.activityType;
-  if (args.auxiliaryOperations && args.auxiliaryOperations.length > 0) {
-    const operationsText = args.auxiliaryOperations.join('、');
-    activityTypeText += ` (${operationsText}使用)`;
-  }
-  lines.push(activityTypeText);
+  lines.push(args.activityType);
   lines.push('');
   
   // Activity content

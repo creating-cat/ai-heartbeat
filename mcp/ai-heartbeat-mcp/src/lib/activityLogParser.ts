@@ -10,7 +10,6 @@ import * as path from 'path';
 export interface ActivityLogInfo {
   heartbeatId: string;
   activityType: string;
-  auxiliaryOperations: string[];
   activityContent: string[];
   artifacts: string[];
   evaluation: string;
@@ -28,7 +27,6 @@ export interface FileNameInfo {
 
 export interface ParsedActivityType {
   baseType: string;
-  auxiliaryOperations: string[];
   rawText: string;
 }
 
@@ -126,40 +124,22 @@ export function extractListItems(lines: string[], sectionHeader: string): string
 }
 
 /**
- * Parse activity type with auxiliary operations
+ * Parse activity type
  */
 export function parseActivityType(activityTypeText: string): ParsedActivityType {
   if (!activityTypeText) {
     return {
       baseType: 'その他',
-      auxiliaryOperations: [],
       rawText: activityTypeText
     };
   }
   
-  // Extract base type (everything before parentheses)
+  // Extract base type (everything before parentheses, or the whole text if no parentheses)
   const baseTypeMatch = activityTypeText.match(/^([^(]+)/);
-  const baseType = baseTypeMatch?.[1]?.trim() || 'その他';
-  
-  // Extract auxiliary operations from parentheses
-  const auxiliaryMatch = activityTypeText.match(/\(([^)]+)\)/);
-  const auxiliaryOperations: string[] = [];
-  
-  if (auxiliaryMatch) {
-    const auxiliaryText = auxiliaryMatch[1];
-    // "ファイル読み込み、Web検索使用" -> ["ファイル読み込み", "Web検索"]
-    const operations = auxiliaryText
-      .replace(/使用$/, '')  // Remove trailing "使用"
-      .split(/[、,]/)        // Split by comma or Japanese comma
-      .map(op => op.trim())
-      .filter(op => op.length > 0);
-    
-    auxiliaryOperations.push(...operations);
-  }
+  const baseType = baseTypeMatch?.[1]?.trim() || activityTypeText.trim() || 'その他';
   
   return {
     baseType,
-    auxiliaryOperations,
     rawText: activityTypeText
   };
 }
@@ -241,7 +221,7 @@ export async function parseActivityLogFile(filePath: string): Promise<ActivityLo
   
   // Extract activity type
   const activityTypeSection = extractSection(lines, '## 活動種別');
-  const { baseType: activityType, auxiliaryOperations } = parseActivityType(activityTypeSection);
+  const { baseType: activityType } = parseActivityType(activityTypeSection);
   
   // Extract activity content
   const activityContent = extractListItems(lines, '## 活動内容');
@@ -255,7 +235,6 @@ export async function parseActivityLogFile(filePath: string): Promise<ActivityLo
   return {
     heartbeatId: fileInfo.heartbeatId,
     activityType,
-    auxiliaryOperations,
     activityContent,
     artifacts,
     evaluation,
