@@ -102,11 +102,24 @@ async function getSubthemeInfo(subthemeDir: string, parentPath: string): Promise
   const themeHistoriesPath = THEME_HISTORIES_DIR;
   if (await fs.pathExists(themeHistoriesPath)) {
     const historyFiles = await fs.readdir(themeHistoriesPath);
+    
+    // 改良された検索ロジック: themeDirectoryPartでの正確なマッチング
     const endFile = historyFiles.find(file => 
-      file.startsWith(`${subthemeStartId}_end_`) && file.endsWith('.md')
+      file.includes(`_end_${subthemeDirectoryPart}.md`) && file.endsWith('.md')
     );
+    
     if (endFile) {
-      status = 'completed';
+      // THEME_START_IDとの関連性を確認（開始ファイルの存在確認）
+      const startFile = historyFiles.find(file => 
+        file.startsWith(`${subthemeStartId}_start_${subthemeDirectoryPart}.md`)
+      );
+      
+      if (startFile) {
+        status = 'completed';
+      } else {
+        // 開始ファイルが見つからない場合の警告（デバッグ用）
+        console.warn(`サブテーマ終了ファイルは存在するが開始ファイルが見つかりません: ${endFile}`);
+      }
     }
   }
   
@@ -232,11 +245,24 @@ async function getThemeStatus(
   const themeHistoriesPath = THEME_HISTORIES_DIR;
   if (await fs.pathExists(themeHistoriesPath)) {
     const historyFiles = await fs.readdir(themeHistoriesPath);
+    
+    // 改良された検索ロジック: themeDirectoryPartでの正確なマッチング
     const endFile = historyFiles.find(file => 
-      file.startsWith(`${themeStartId}_end_`) && file.endsWith('.md')
+      file.includes(`_end_${themeDirectoryPart}.md`) && file.endsWith('.md')
     );
+    
     if (endFile) {
-      status = 'completed';
+      // THEME_START_IDとの関連性を確認（開始ファイルの存在確認）
+      const startFile = historyFiles.find(file => 
+        file.startsWith(`${themeStartId}_start_${themeDirectoryPart}.md`)
+      );
+      
+      if (startFile) {
+        status = 'completed';
+      } else {
+        // 開始ファイルが見つからない場合の警告（デバッグ用）
+        console.warn(`テーマ終了ファイルは存在するが開始ファイルが見つかりません: ${endFile}`);
+      }
     }
   }
   
