@@ -1,5 +1,18 @@
 {
   "mcpServers": {
+    "creative-ideation-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@creating-cat/creative-ideation-mcp"
+      ],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}"
+      },
+      "disabled": false,
+      "timeout": 300000,
+      "trust": true
+    },
     "gemini-image-mcp-server": {
       "command": "npx",
       "args": [
