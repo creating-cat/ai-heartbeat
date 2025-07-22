@@ -27,3 +27,8 @@
   - mult-fetch-mcp-serverのfetch関連ツール。クォータ制限なし。
   - **サイクル制限**: 連続使用時は`sleep 1`等を使用して一秒以上間隔を空けること
   - **時間制限**: なし
+
+- ツールID: `creative-ideation-mcp.generate_categories`
+  - mult-fetch-mcp-serverのgenerate_categoriesツール。クォータ制限ありだが実質ほぼなし。
+  - **サイクル制限**: 1ハートビートで1回まで
+  - **時間制限**: なし
