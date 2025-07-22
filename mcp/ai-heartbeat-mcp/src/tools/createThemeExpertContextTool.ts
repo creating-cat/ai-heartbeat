@@ -76,7 +76,7 @@ export const createThemeExpertContextTool = {
   name: 'create_theme_expert_context',
   description: `テーマの成果物ディレクトリのcontexts/フォルダに、テーマ専門家コンテキストファイル（{heartbeat_id}.md）を作成します。
 
-⚠️ 重要: 新規メインテーマの場合、このツールを使用する前に「1人の専門家 vs 複数の専門家」の比較検討を実施し、その結果を活動ログに記録してください。サブテーマの場合は比較検討不要です。
+重要: 新規メインテーマの場合、このツールを使用する前に「1人の専門家 vs 複数の専門家」の比較検討を実施し、その結果を活動ログに記録してください。サブテーマの場合は比較検討不要です。
 
 注意: サブテーマでは親テーマのコンテキストを継承せず、サブテーマに最適化された独立したコンテキストを設定してください。`,
   input_schema: createThemeExpertContextInputSchema,
