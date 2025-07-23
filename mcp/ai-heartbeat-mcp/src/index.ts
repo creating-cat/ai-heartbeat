@@ -14,6 +14,7 @@ import { checkThemeStatusTool } from './tools/checkThemeStatusTool';
 import { listThemeArtifactsTool } from './tools/listThemeArtifactsTool';
 import { getLatestThemeContextTool } from './tools/getLatestThemeContextTool';
 import { declareExtendedProcessingTool } from './tools/declareExtendedProcessingTool';
+import { getHeartbeatElapsedTimeTool } from './tools/getHeartbeatElapsedTimeTool';
 
 // Create MCP server
 const server = new McpServer({
@@ -100,6 +101,14 @@ server.tool(
   declareExtendedProcessingTool.description,
   declareExtendedProcessingTool.input_schema.shape,
   declareExtendedProcessingTool.execute
+);
+
+// Register get heartbeat elapsed time tool
+server.tool(
+  getHeartbeatElapsedTimeTool.name,
+  getHeartbeatElapsedTimeTool.description,
+  getHeartbeatElapsedTimeTool.input_schema.shape,
+  getHeartbeatElapsedTimeTool.execute
 );
 
 // Start server with stdio transport
