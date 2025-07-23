@@ -53,6 +53,7 @@ AI心臓システムには、異常な動作パターンを自動検知し、回
 
 **推奨方法: timeoutコマンドによる時限実行**
 
+**方法1: timeout実行（基本・推奨）**
 ```bash
 # 基本的な使用方法（30秒間実行）
 timeout 30s npm run dev
@@ -61,10 +62,27 @@ timeout 30s npm run dev
 timeout 30s npm run dev 2>&1 | tee ai-works/artifacts/current_theme/server_output.log
 ```
 
+**方法2: バックグラウンド実行（並行作業が必要な場合）**
+```bash
+# サーバーをバックグラウンドで起動
+npm run dev &
+SERVER_PID=$!
+echo $SERVER_PID > /tmp/dev_server_$$.pid
+
+# 並行して確認作業を実行
+curl http://localhost:3000/api/health
+curl http://localhost:3000/api/status
+cat logs/application.log
+
+# 作業完了後、確実に終了
+kill $SERVER_PID 2>/dev/null || true
+rm -f /tmp/dev_server_$$.pid
+```
+
 **重要なポイント**:
-- timeoutコマンドにより確実に終了し、プロセス残存を防ぐ
+- **timeout実行**: 確実に終了し、プロセス残存を防ぐ。シンプルな動作確認に最適
+- **バックグラウンド実行**: 並行作業が可能だが、プロセス管理が必要。必ず終了処理を実行
 - 全ての出力がファイルに記録され、後から確認可能
-- 30秒という短時間で動作確認とログ取得が完了
 - 次のハートビートで継続的に監視・再実行が可能
 
 **問題の影響**:

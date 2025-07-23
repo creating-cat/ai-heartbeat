@@ -159,6 +159,8 @@ fi
 - **エラーハンドリング**: 想定外の状況への対応
 
 ### 開発サーバー実行時
+
+#### 基本方法: timeout実行（推奨）
 ```bash
 # 基本的な使用方法（30秒間実行）
 timeout 30s npm run dev
@@ -173,6 +175,64 @@ timeout 30s npm run dev 2>&1 | tee ai-works/artifacts/current_theme/server_outpu
 - **無活動回避**: 長時間プロセスによる異常検知を防ぐ
 - **継続監視**: 次のハートビートで再実行・監視が可能
 - **シンプル**: 複雑なファイル操作が不要
+
+#### 並行作業が必要な場合: バックグラウンド実行
+```bash
+# サーバーをバックグラウンドで起動（プロセスIDを記録）
+npm run dev &
+SERVER_PID=$!
+echo $SERVER_PID > /tmp/dev_server_$$.pid
+
+# 並行作業の例
+curl http://localhost:3000/api/test
+cat logs/server.log
+# その他の確認作業...
+
+# 作業完了後、確実にサーバーを終了
+kill $SERVER_PID 2>/dev/null || true
+rm -f /tmp/dev_server_$$.pid
+```
+
+**バックグラウンド実行時の注意点**:
+- **プロセス管理**: 必ずプロセスIDを記録し、作業完了後に終了する
+- **時間制限**: 長時間の並行作業は避け、適度な間隔でハートビートを受信できるようにする
+- **リソース管理**: プロセスの残存を防ぐため、確実な終了処理を実行する
+- **用途限定**: 並行して確認作業が必要な場合のみ使用し、基本はtimeout実行を優先する
+
+**使い分けの判断基準**:
+- **シンプルな動作確認**: timeout実行
+- **APIテスト + ログ確認**: バックグラウンド実行
+- **設定変更 + 動作確認**: バックグラウンド実行
+- **複数エンドポイントのテスト**: バックグラウンド実行
+
+**実践例**:
+```bash
+# 例1: MCPサーバーの動作確認とテスト
+npm run dev &
+SERVER_PID=$!
+echo $SERVER_PID > /tmp/mcp_server_$$.pid
+
+# MCPツールのテスト実行
+echo "Testing MCP tools..."
+# 実際のテストコマンドを実行
+
+# サーバー終了
+kill $SERVER_PID 2>/dev/null || true
+rm -f /tmp/mcp_server_$$.pid
+
+# 例2: Webサーバーの起動とAPIテスト
+python -m http.server 8000 &
+WEB_PID=$!
+echo $WEB_PID > /tmp/web_server_$$.pid
+
+# APIエンドポイントのテスト
+curl http://localhost:8000/api/status
+curl http://localhost:8000/api/health
+
+# サーバー終了
+kill $WEB_PID 2>/dev/null || true
+rm -f /tmp/web_server_$$.pid
+```
 
 ### MCPツール開発時
 - **型安全性**: TypeScript + Zodによる厳密な型チェック
