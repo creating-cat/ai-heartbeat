@@ -16,6 +16,67 @@ check_command "gemini"
 # AIエージェント起動コマンド
 AGENT_COMMAND="gemini -y --model gemini-2.5-flash"
 
+# 色付きログ関数
+log_info() {
+    echo -e "\033[1;32m[INFO]\033[0m $1"
+}
+
+log_success() {
+    echo -e "\033[1;34m[SUCCESS]\033[0m $1"
+}
+
+# AI作業環境初期化関数
+initialize_ai_workspace() {
+    local force_recreate="$1"
+    
+    # 既存環境の確認
+    if [ -d "ai-works" ]; then
+        if [ "$force_recreate" = true ]; then
+            log_info "🔧 AI作業環境を再作成中..."
+            
+            # バックアップ作成
+            local backup_dir="ai-works.$(date +%Y%m%d_%H%M%S).backup"
+            log_info "📦 既存環境をバックアップ中: $backup_dir"
+            cp -r "ai-works" "$backup_dir"
+            log_success "✅ バックアップ完了: $backup_dir"
+            
+            # 既存環境削除
+            log_info "🗑️ 既存環境を削除中..."
+            rm -rf "ai-works"
+            log_success "✅ 既存環境削除完了"
+        else
+            log_info "ℹ️ 既存のai-works/環境が検出されました。そのまま使用します。"
+            log_info "ℹ️ 環境を再作成したい場合は -d オプションを使用してください。"
+            return 0
+        fi
+    else
+        log_info "🔧 AI作業環境を新規作成中..."
+    fi
+    
+    # ai-works/ディレクトリの作成
+    log_info "📁 ai-works/ディレクトリを作成中..."
+    mkdir -p "ai-works"
+    
+    # テンプレートファイルのコピー
+    log_info "📋 テンプレートファイルをコピー中..."
+    cp "ai-works-lib/GEMINI.md" "ai-works/"
+    cp -r "ai-works-lib/ai-docs" "ai-works/"
+    cp -r "ai-works-lib/.gemini" "ai-works/"
+    
+    # 必要な空ディレクトリの動的作成
+    log_info "📂 必要なディレクトリ構造を作成中..."
+    mkdir -p "ai-works/artifacts/theme_histories"
+    mkdir -p "ai-works/themebox"
+    mkdir -p "ai-works/feedbackbox"
+    mkdir -p "ai-works/projects"
+    mkdir -p "ai-works/stats/cooldown"
+    mkdir -p "ai-works/stats/lock"
+    mkdir -p "ai-works/stats/extended_processing"
+    
+    
+    log_success "✅ AI作業環境初期化完了"
+}
+
 # 使用方法表示
 usage() {
     echo "使用方法: $0 [オプション] <テーマ文字列>"
@@ -24,10 +85,17 @@ usage() {
     echo "    -f, --file <ファイル>   指定したファイルから初期テーマを読み込んで起動します。"
     echo "    -t, --use-themebox      themeboxに準備済みのテーマで起動します（テーマ指定は不要）。"
     echo "  その他のオプション:"
-    echo "    -d, --dirs-only         必要なディレクトリのみを作成して終了します。"
+    echo "    -d, --dirs-only         ai-works環境を再作成してディレクトリのみ作成し終了します。"
     echo "    -s, --sessions-only     tmuxセッションのみを起動します。"
     echo "    -h, --help              このヘルプメッセージを表示します。"
     echo ""
+    echo "  注意:"
+    echo "    既存のai-works/がある場合、デフォルトではそのまま使用されます。"
+    echo "    環境を再作成したい場合は -d オプションを使用してください。"
+    echo ""
+    echo "例:"
+    echo "  $0 \"新しいテーマ\"        指定テーマで起動"
+    echo "  $0 -t                   themeboxのテーマで起動"
     exit 1
 }
 
@@ -103,32 +171,31 @@ if [ -n "$FILE_INPUT" ]; then
     echo "ファイル '$FILE_INPUT' からテーマを読み込みました"
 fi
 
-mkdir -p ai-works/artifacts/theme_histories
-mkdir -p ai-works/themebox
-mkdir -p ai-works/feedbackbox
-mkdir -p ai-works/projects
-mkdir -p ai-works/stats
+# AI作業環境の初期化
+initialize_ai_workspace "$DIRS_ONLY"
 
 # ディレクトリ作成のみのオプションが指定された場合はここで終了
 if [ "$DIRS_ONLY" = true ]; then
-    echo -e "\033[1;32m[INFO]\033[0m 必要なディレクトリを作成しました:"
-    echo "  - ai-works/artifacts/"
+    echo ""
+    log_success "✅ AI作業環境の初期化が完了しました"
+    echo ""
+    echo "📁 作成されたディレクトリ構造:"
+    echo "  - ai-works/artifacts/theme_histories/"
     echo "  - ai-works/themebox/"
     echo "  - ai-works/feedbackbox/"
     echo "  - ai-works/projects/"
-    echo "  - ai-works/stats/"
-    echo "セットアップを終了します。"
+    echo "  - ai-works/stats/cooldown/"
+    echo "  - ai-works/stats/lock/"
+    echo "  - ai-works/stats/extended_processing/"
+    echo ""
+    echo "📋 コピーされたファイル:"
+    echo "  - ai-works/GEMINI.md"
+    echo "  - ai-works/ai-docs/"
+    echo "  - ai-works/.gemini/settings.json"
+    echo ""
+    log_info "ℹ️ システム起動をスキップしました。手動でシステムを起動してください。"
     exit 0
 fi
-
-# 色付きログ関数
-log_info() {
-    echo -e "\033[1;32m[INFO]\033[0m $1"
-}
-
-log_success() {
-    echo -e "\033[1;34m[SUCCESS]\033[0m $1"
-}
 
 # STEP 1: 既存セッションクリーンアップ
 log_info "🧹 既存セッションクリーンアップ開始..."
