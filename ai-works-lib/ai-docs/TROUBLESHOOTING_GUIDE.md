@@ -355,9 +355,9 @@ AI心臓システムのハートビートモードでは、ユーザーからの
 
 *   **絶対パスの使用:** 全てのファイル操作ツールは、`file_path`や`path`引数に**絶対パス**を要求します。相対パスはサポートされていません。
     *   例: `/Users/your_user/project/file.txt`
-*   **`.gitignore`の影響と`respect_git_ignore`:**
-    *   `list_directory`, `glob`, `read_many_files`などのファイル検索・読み込みツールは、デフォルトで`.gitignore`の設定を尊重します (`respect_git_ignore=True`)。これにより、`.gitignore`に記載されたパターンに一致するファイルやディレクトリは、検索結果に含まれない、または読み込み対象から除外されます。
-    *   **重要:** 意図したファイルが取得できない場合や、`.gitignore`の影響を無視して全てのファイルを対象にしたい場合は、**`respect_git_ignore=False`** を明示的に指定してください。これにより、`.gitignore`が原因かどうかを切り分けることができます。
+*   **ファイル検索・読み込みツールの基本動作:**
+    *   `list_directory`, `glob`, `read_many_files`などのツールは、作業ディレクトリ内のファイルにアクセスできます。
+    *   必要に応じて`respect_git_ignore=False`オプションを使用できます。
 *   **`glob`ツールの`path`引数:**
     *   `glob`ツールを使用する際は、`path`引数で検索対象のディレクトリの**絶対パス**を明示的に指定することを強く推奨します。指定しない場合、予期せぬ挙動を示す可能性があります。
     *   例: `default_api.glob(path="/Users/your_user/project/src", pattern="*.py")`
@@ -387,7 +387,7 @@ AI心臓システムのハートビートモードでは、ユーザーからの
 1.  **エラー内容の確認:** ツールからのエラーメッセージを注意深く読み、何が問題なのかを把握します。
 2.  **原因の推定:**
     *   **`Invalid parameters provided. Reason: Path must be absolute`:** パスが絶対パスで指定されているか確認してください。
-    *   **`No files found matching pattern... (X files were git-ignored)`:** `.gitignore`の影響を受けている可能性が高いです。`respect_git_ignore=False`を試してください。
+    *   **`No files found matching pattern...`:** パターンが正しいか確認してください。必要に応じて`respect_git_ignore=False`を試すこともできます。
     *   **`No exact match found for old_string` (replaceツール):** `old_string`がファイル内の内容と完全に一致しているか、空白や改行、インデントを含めて再確認してください。
     *   **シェルコマンドのエラー:** `Stderr`の内容を確認し、コマンドの構文や実行環境の問題を特定します。
 3.  **代替手段の検討・実行:**
