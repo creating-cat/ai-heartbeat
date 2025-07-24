@@ -184,13 +184,21 @@ ai-heart-system/
   - [x] **修正不要**（heartbeat.shから呼び出されるため、ルート基準で正常動作）
 
 ### Phase 5: ドキュメント参照の確認・更新
-- [ ] **ai-works-lib内ドキュメント** の動作確認
+- [ ] **ai-works-lib内ドキュメント** のパス参照修正
+  - [ ] `ai-works-lib/GEMINI.md`: `ai-docs/` → `./ai-docs/` (14箇所), `heartbeat.sh` → `../heartbeat.sh` (1箇所), `./stop.sh` → `../stop.sh` (1箇所)
+  - [ ] `ai-works-lib/ai-docs/` 配下のドキュメント修正（6ファイル、計20箇所）
+    - [ ] `THEME_CONTEXT_IMPLEMENTATION.md`: `ai-docs/` → `./` (2箇所)
+    - [x] `TROUBLESHOOTING_GUIDE.md`: `GEMINI.md` → `../GEMINI.md`, `ai-docs/` → `./` (4箇所)
+    - [x] `THEME_MANAGEMENT_GUIDE.md`: `GEMINI.md` → `../GEMINI.md`, `ai-docs/` → `./` (7箇所)
+    - [x] `GUIDELINES.md`: `ai-docs/` → `./` (1箇所)
+    - [ ] `OPERATION_DETAILS.md`: `ai-docs/` → `./`, `heartbeat.sh` → `../heartbeat.sh` (4箇所)
+    - [x] `THEME_CONCEPT_GUIDE.md`: `ai-docs/` → `./`, `GEMINI.md` → `../GEMINI.md` (6箇所)
+- [ ] **修正後の動作確認**
   - [ ] コピー後のパス参照が正しく動作することを確認
-  - [ ] 必要に応じて相対パス調整
-- [ ] **ルート版ドキュメント** の更新
-  - [ ] `SYSTEM_OVERVIEW.md`: 新しい構造の説明に更新
-  - [ ] 必要に応じて他のドキュメントの構造説明を更新
-  - [ ] `.kiro/steering/project_overview.md`: パス参照修正不要（ルート基準のまま）
+- [x] **ルート版ドキュメント** の更新
+  - [x] `SYSTEM_OVERVIEW.md`: 新しい構造の説明に更新
+  - [x] ディレクトリ構造図の更新とテンプレートベース構造の説明追加
+  - [x] `.kiro/steering/project_overview.md`: パス参照修正不要（ルート基準のまま）
 - [ ] テンプレート更新機能の実装
   - [ ] システム更新時の通知機能
   - [ ] 差分確認機能
