@@ -169,12 +169,12 @@ ai-heart-system/
   - [ ] `--backup`: 既存環境のバックアップ作成
 
 ### Phase 3: 作業ディレクトリ変更
-- [ ] `setup.sh` の修正
-  - [ ] L228: tmux起動時に `-c "ai-works"` オプション追加
-  - [ ] エージェント起動前の `cd ai-works` 削除（tmuxオプションで代替）
-- [ ] Gemini CLI設定ファイル検索の動作確認
-  - [ ] `ai-works/.gemini/settings.json` が正しく読み込まれることを確認
-  - [ ] MCPサーバーの相対パス解決の確認
+- [x] `setup.sh` の修正
+  - [x] L209: tmux起動時に `-c "ai-works"` オプション追加
+  - [x] エージェント起動前の `cd ai-works` 削除（tmuxオプションで代替）※現在のコードには存在せず
+- [x] Gemini CLI設定ファイル検索の動作確認
+  - [x] `ai-works/.gemini/settings.json` が正しく読み込まれることを確認
+  - [x] MCPサーバーの相対パス解決の確認（`../mcp/ai-heartbeat-mcp/dist/index.js`が正常にアクセス可能）
 
 ### Phase 4: システムスクリプトのパス修正（Phase 3完了後）
 - [ ] `heartbeat.sh` の修正

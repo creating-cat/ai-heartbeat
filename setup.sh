@@ -207,7 +207,7 @@ tmux kill-session -t heartbeat 2>/dev/null && log_info "heartbeatセッション
 log_info "📺 agentセッション作成開始..."
 
 # agentセッション作成
-tmux new-session -d -s agent
+tmux new-session -d -s agent -c "ai-works"
 
 log_success "✅ agentセッション作成完了"
 echo ""
