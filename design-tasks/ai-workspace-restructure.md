@@ -29,26 +29,25 @@ ai-heart-system/
 │   ├── heartbeat.conf
 │   ├── .gemini/ (システム開発用設定)
 │   │   └── settings.json
-│   └── ai-works-template/ ← 新設
+│   └── ai-works-lib/ ← 新設（空ディレクトリは除外）
 │       ├── .gemini/ (AI活動用設定)
 │       │   └── settings.json
 │       ├── GEMINI.md
-│       ├── ai-docs/ (AI向けドキュメント)
-│       ├── artifacts/ (空ディレクトリ)
-│       ├── themebox/ (空ディレクトリ)
-│       ├── feedbackbox/ (空ディレクトリ)
-│       ├── projects/ (空ディレクトリ)
-│       └── stats/ (空ディレクトリ)
-└── ai-works/ ← AI活動領域（git除外、テンプレートからコピー生成）
-    ├── .gemini/ (コピー)
+│       └── ai-docs/ (AI向けドキュメント)
+└── ai-works/ ← AI活動領域（git除外、ai-works-libからコピー生成）
+    ├── .gemini/ (ai-works-libからコピー)
     │   └── settings.json
-    ├── GEMINI.md (コピー)
-    ├── ai-docs/ (コピー)
-    ├── artifacts/
-    ├── themebox/
-    ├── feedbackbox/
-    ├── projects/
-    └── stats/
+    ├── GEMINI.md (ai-works-libからコピー)
+    ├── ai-docs/ (ai-works-libからコピー)
+    ├── artifacts/ (setup.shで作成)
+    │   └── theme_histories/ (setup.shで作成)
+    ├── themebox/ (setup.shで作成)
+    ├── feedbackbox/ (setup.shで作成)
+    ├── projects/ (setup.shで作成)
+    └── stats/ (setup.shで作成)
+        ├── cooldown/ (setup.shで作成)
+        ├── lock/ (setup.shで作成)
+        └── extended_processing/ (setup.shで作成)
 ```
 
 ### 設計の利点
@@ -100,8 +99,8 @@ ai-heart-system/
 
 #### 4. ドキュメント（テンプレート移動対象）
 **移動対象ファイル**
-- `GEMINI.md` → `ai-works-template/GEMINI.md`
-- `ai-docs/` → `ai-works-template/ai-docs/`
+- `GEMINI.md` → `ai-works-lib/GEMINI.md`
+- `ai-docs/` → `ai-works-lib/ai-docs/`
 
 **参照更新が必要なドキュメント**
 - `.kiro/steering/system_maintenance.md`: L78-79, L129, L169-172
@@ -133,29 +132,37 @@ ai-heart-system/
 ## 実装タスク（詳細版）
 
 ### Phase 1: テンプレート環境の構築
-- [ ] `ai-works-template/` ディレクトリの作成
-- [ ] `GEMINI.md` を `ai-works-template/GEMINI.md` に移動
-- [ ] `ai-docs/` を `ai-works-template/ai-docs/` に移動
-- [ ] `.gemini/settings.json` を `ai-works-template/.gemini/settings.json` に移動・調整
-  - [ ] MCPサーバーパスを `../mcp/ai-heartbeat-mcp/dist/index.js` に修正
-  - [ ] AI活動用の設定として最適化
-- [ ] テンプレート内に必要な空ディレクトリ構造を作成
-  - [ ] `artifacts/theme_histories/`
-  - [ ] `themebox/`
-  - [ ] `feedbackbox/`
-  - [ ] `projects/`
-  - [ ] `stats/cooldown/`
-  - [ ] `stats/lock/`
-  - [ ] `stats/extended_processing/`
-- [ ] `.gitignore` の更新
-  - [ ] `ai-works-template/` を追跡対象に追加
-  - [ ] `ai-works/` の除外は維持
+- [x] `ai-works-lib/` ディレクトリの作成（空ディレクトリは除外）
+- [x] `GEMINI.md` を `ai-works-lib/GEMINI.md` に移動
+- [x] `ai-docs/` を `ai-works-lib/ai-docs/` に移動
+- [x] `.gemini/settings.json` を `ai-works-lib/.gemini/settings.json` に移動・調整
+  - [x] MCPサーバーパスを `../mcp/ai-heartbeat-mcp/dist/index.js` に修正
+  - [x] AI活動用の設定として最適化
+- [x] 必要な空ディレクトリ構造の設計（setup.shで動的作成）
+  - [x] `artifacts/theme_histories/`
+  - [x] `themebox/`
+  - [x] `feedbackbox/`
+  - [x] `projects/`
+  - [x] `stats/cooldown/`
+  - [x] `stats/lock/`
+  - [x] `stats/extended_processing/`
+- [x] `.gitignore` の更新
+  - [x] `ai-works-lib/` を追跡対象として自然に管理
+  - [x] `ai-works/` の除外は維持
 
 ### Phase 2: 初期化処理の実装
-- [ ] `setup.sh` にテンプレートコピー機能を追加
-  - [ ] `initialize_ai_workspace()` 関数の実装
+- [ ] `setup.sh` にライブラリコピー機能を追加
+  - [ ] `initialize_ai_workspace()` 関数の実装（ai-works-libからコピー）
   - [ ] 既存 `ai-works/` の検出とバックアップ機能
-  - [ ] コピー処理の実装
+  - [ ] ai-works-libからのファイルコピー処理
+  - [ ] 必要な空ディレクトリの動的作成
+    - [ ] `artifacts/theme_histories/`
+    - [ ] `themebox/`
+    - [ ] `feedbackbox/`
+    - [ ] `projects/`
+    - [ ] `stats/cooldown/`
+    - [ ] `stats/lock/`
+    - [ ] `stats/extended_processing/`
 - [ ] 初期化オプションの実装
   - [ ] `--fresh`: 既存環境を削除して再初期化
   - [ ] `--update-docs`: ドキュメントのみ更新
@@ -168,37 +175,22 @@ ai-heart-system/
 - [ ] Gemini CLI設定ファイル検索の動作確認
   - [ ] `ai-works/.gemini/settings.json` が正しく読み込まれることを確認
   - [ ] MCPサーバーの相対パス解決の確認
-- [ ] システム開発用設定の作成
-  - [ ] ルートに新しい `.gemini/settings.json` を作成（システム開発用）
-  - [ ] 必要に応じてMCPサーバー設定を調整
 
-### Phase 4: システムスクリプトのパス修正
+### Phase 4: システムスクリプトのパス修正（Phase 3完了後）
 - [ ] `heartbeat.sh` の修正
-  - [ ] 全ての `ai-works/` 参照を相対パス `.` に変更
+  - [ ] 作業ディレクトリが`ai-works/`になった場合の`ai-works/`参照を`.`に変更
   - [ ] ディレクトリ作成処理の調整
 - [ ] `lib/health_check_core.sh` の修正
-  - [ ] 全ての `ai-works/` 参照を相対パス `.` に変更
+  - [ ] 作業ディレクトリが`ai-works/`になった場合の`ai-works/`参照を`.`に変更
   - [ ] find コマンドのパス調整
 
-### Phase 5: ドキュメント内パス参照修正
-- [ ] **GEMINI.md** 内のパス参照修正（テンプレート版）
-  - [ ] `ai-docs/` → `./ai-docs/` (14箇所)
-  - [ ] `heartbeat.sh` → `../heartbeat.sh` (1箇所)
-  - [ ] `./stop.sh` → `../stop.sh` (1箇所)
-- [ ] **ai-docs/** 配下のドキュメント内パス参照修正（テンプレート版）
-  - [ ] `ai-docs/THEME_CONTEXT_IMPLEMENTATION.md`: `ai-docs/` → `./` (2箇所)
-  - [ ] `ai-docs/TROUBLESHOOTING_GUIDE.md`: `GEMINI.md` → `../GEMINI.md`, `ai-docs/` → `./` (3箇所)
-  - [ ] `ai-docs/THEME_MANAGEMENT_GUIDE.md`: `GEMINI.md` → `../GEMINI.md`, `ai-docs/` → `./` (6箇所)
-  - [ ] `ai-docs/GUIDELINES.md`: `ai-docs/` → `./` (1箇所)
-  - [ ] `ai-docs/OPERATION_DETAILS.md`: `ai-docs/` → `./`, `heartbeat.sh` → `../heartbeat.sh` (4箇所)
-  - [ ] `ai-docs/THEME_CONCEPT_GUIDE.md`: `ai-docs/` → `./`, `GEMINI.md` → `../GEMINI.md` (4箇所)
-- [ ] **ユーザー向けドキュメント** の参照パス修正（ルート版）
-  - [ ] `README.md`: `ai-works/` パス参照は修正不要（ユーザー視点では変更なし）
-  - [ ] `SYSTEM_OVERVIEW.md`: `ai-works/` パス参照は修正不要（ユーザー視点では変更なし）
-  - [ ] `.gemini/settings.json` → 新しい構造の説明に更新
-- [ ] **システム管理ドキュメント** の参照パス修正（ルート版）
-  - [ ] `.kiro/steering/system_maintenance.md`: パス参照修正不要（ルート基準のまま）
-  - [ ] `.kiro/steering/development_practices.md`: パス参照修正不要（ルート基準のまま）
+### Phase 5: ドキュメント参照の確認・更新
+- [ ] **ai-works-lib内ドキュメント** の動作確認
+  - [ ] コピー後のパス参照が正しく動作することを確認
+  - [ ] 必要に応じて相対パス調整
+- [ ] **ルート版ドキュメント** の更新
+  - [ ] `SYSTEM_OVERVIEW.md`: 新しい構造の説明に更新
+  - [ ] 必要に応じて他のドキュメントの構造説明を更新
   - [ ] `.kiro/steering/project_overview.md`: パス参照修正不要（ルート基準のまま）
 - [ ] テンプレート更新機能の実装
   - [ ] システム更新時の通知機能
@@ -251,7 +243,7 @@ node ../mcp/ai-heartbeat-mcp/dist/index.js  # パス解決テスト
 ## 完了基準
 
 1. **機能要件**
-   - `setup.sh`実行時に`ai-works-template/`から`ai-works/`が正しく生成される
+   - `setup.sh`実行時に`ai-works-lib/`から`ai-works/`が正しく生成される
    - Gemini CLIが`ai-works/.gemini/settings.json`を正しく読み込む
    - 全てのMCPツールが新しい環境で正常動作する
    - システムスクリプトが新しい構造で正常動作する
@@ -290,7 +282,7 @@ node ../mcp/ai-heartbeat-mcp/dist/index.js  # パス解決テスト
 
 **採用した解決策**: `.gemini/settings.json` をテンプレートに含める
 - **利点**: 設定の一元管理、環境の完全分離、カスタマイズの柔軟性
-- **実装**: `ai-works-template/.gemini/settings.json` として管理
+- **実装**: `ai-works-lib/.gemini/settings.json` として管理
 - **パス**: `../mcp/ai-heartbeat-mcp/dist/index.js` に調整済み
 
 ### 課題B: システムスクリプトの大幅修正 ✅ 回避済み
