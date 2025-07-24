@@ -4,7 +4,7 @@
 replaceツールの厳密なマッチング、`expected_replacements`、および安全な使用方法を深く理解する。
 
 ## ステップ0: テストファイルの作成
-* `ai-works/projects/tutorial_theme/replace_test/`ディレクトリを作成し、その中に`target.txt`ファイルを作成する。
+* `projects/tutorial_theme/replace_test/`ディレクトリを作成し、その中に`target.txt`ファイルを作成する。
   * `target.txt`: 
   ```
   Line 1: Apple is red.
@@ -15,14 +15,14 @@ replaceツールの厳密なマッチング、`expected_replacements`、およ�
 
 ## ステップ1: 正確な置換のデモンストレーション
 * `read_file`で`target.txt`の内容を確認後、`old_string`と`new_string`を完全に一致させて単一置換を成功させる。
-  * `file_path`: `ai-works/projects/tutorial_theme/replace_test/target.txt`の絶対パス
+  * `file_path`: `projects/tutorial_theme/replace_test/target.txt`の絶対パス
   * `old_string`: `Line 1: Apple is red.`
   * `new_string`: `Line 1: Orange is orange.`
 * **考察**: `replace`ツールが`old_string`の厳密な一致を要求することの重要性を強調し、空白や改行、インデントの重要性を説明する。
 
 ## ステップ2: 複数置換と安全な運用
 * `expected_replacements`を指定した複数置換をデモする。
-  * `file_path`: `ai-works/projects/tutorial_theme/replace_test/target.txt`の絶対パス
+  * `file_path`: `projects/tutorial_theme/replace_test/target.txt`の絶対パス
   * `old_string`: `Apple`
   * `new_string`: `Orange`
   * `expected_replacements`: `2`

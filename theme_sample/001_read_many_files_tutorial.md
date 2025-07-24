@@ -4,12 +4,12 @@
 read_many_filesツールの機能と、特に`respect_git_ignore`オプションの挙動を深く理解する。
 
 ## ステップ1: 基本的なファイル読み込みと`.gitignore`の影響
-* `read_many_files`ツールを使用して、`ai-works/artifacts/`ディレクトリ配下の全ての`.md`ファイルを`respect_git_ignore=False`で読み込む。
+* `read_many_files`ツールを使用して、`artifacts/`ディレクトリ配下の全ての`.md`ファイルを`respect_git_ignore=False`で読み込む。
   * **考察**: なぜ`respect_git_ignore=True`では読み込めないのか、`.gitignore`がAIのファイル操作に与える影響について、より詳細な説明と考察を促す。一般的なプロジェクトにおける`.gitignore`の役割と、AIがそれを意識すべき理由を強調する。
 * **パス指定のベストプラクティス**: 絶対パスでの読み込みを推奨し、その理由（安定性、明確性）を簡潔に説明する。相対パスでの実行は省略し、必要に応じて補足説明に留める。
 
 ## ステップ2: 内省活動
 * `read_many_files`ツールの`respect_git_ignore`オプションが、どのようなシナリオで有効かを考察する（例: ソースコード分析 vs. AIの作業成果物読み込み）。
-* `ai-works/`配下のファイルを読み込む際に、なぜ`respect_git_ignore=False`が必須となるのかを再確認する。
+* 作業ディレクトリ配下のファイルを読み込む際に、なぜ`respect_git_ignore=False`が必須となるのかを再確認する。
 
 一連の活動が終わったら、このテーマを終了してください。

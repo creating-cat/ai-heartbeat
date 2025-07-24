@@ -3,7 +3,7 @@
  * Centralized path management for the ai-works migration
  */
 
-export const AI_WORKS_DIR = 'ai-works';
+export const AI_WORKS_DIR = '.';
 export const ARTIFACTS_DIR = `${AI_WORKS_DIR}/artifacts`;
 export const STATS_DIR = `${AI_WORKS_DIR}/stats`;
 export const THEMEBOX_DIR = `${AI_WORKS_DIR}/themebox`;
