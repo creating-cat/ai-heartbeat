@@ -176,13 +176,12 @@ ai-heart-system/
   - [x] `ai-works/.gemini/settings.json` が正しく読み込まれることを確認
   - [x] MCPサーバーの相対パス解決の確認（`../mcp/ai-heartbeat-mcp/dist/index.js`が正常にアクセス可能）
 
-### Phase 4: システムスクリプトのパス修正（Phase 3完了後）
-- [ ] `heartbeat.sh` の修正
-  - [ ] 作業ディレクトリが`ai-works/`になった場合の`ai-works/`参照を`.`に変更
-  - [ ] ディレクトリ作成処理の調整
-- [ ] `lib/health_check_core.sh` の修正
-  - [ ] 作業ディレクトリが`ai-works/`になった場合の`ai-works/`参照を`.`に変更
-  - [ ] find コマンドのパス調整
+### Phase 4: AIメッセージ内パス修正（軽微な修正のみ）
+- [x] `heartbeat.sh` の修正
+  - [x] L452: AIメッセージ内の `ai-works/artifacts/theme_histories` → `artifacts/theme_histories`
+  - [x] システム処理部分（ディレクトリ作成等）は修正不要（ルート基準のまま）
+- [x] `lib/health_check_core.sh` の修正
+  - [x] **修正不要**（heartbeat.shから呼び出されるため、ルート基準で正常動作）
 
 ### Phase 5: ドキュメント参照の確認・更新
 - [ ] **ai-works-lib内ドキュメント** の動作確認
