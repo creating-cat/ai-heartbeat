@@ -3,6 +3,12 @@
 # AIエージェントIOライブラリ
 # tmux経由でのエージェントへのコマンド送信をカプセル化する
 
+# インクルードガード
+if [ -n "$_AGENT_IO_SH_INCLUDED" ]; then
+    return 0
+fi
+_AGENT_IO_SH_INCLUDED=1
+
 # エージェントにメッセージを送信し、Enterキーを押す
 # 引数1: 送信するメッセージ
 send_message_to_agent() {

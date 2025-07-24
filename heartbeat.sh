@@ -54,6 +54,29 @@ declare -A TOOL_LOCKS
 # 終了フラグ
 SHUTDOWN_REQUESTED=false
 
+# ハートビートIDファイル書き込み関数
+write_heartbeat_id() {
+    local heartbeat_id="$1"
+    local output_file="ai-works/stats/current_heartbeat_id.txt"
+    
+    # 入力検証
+    if [ -z "$heartbeat_id" ]; then
+        log_error "write_heartbeat_id: heartbeat_id is required"
+        return 1
+    fi
+    
+    # 原子的書き込み実行
+    if write_file_atomic "$heartbeat_id" "$output_file"; then
+        if [ "$DEBUG_MODE" = "true" ]; then
+            log_info "Heartbeat ID written to file: $heartbeat_id"
+        fi
+        return 0
+    else
+        log_warning "Failed to write heartbeat ID to file: $heartbeat_id"
+        return 1
+    fi
+}
+
 # 割り込み可能なスリープ関数
 # 引数1: 待機する秒数
 # 引数2: (オプション) カウントダウン中に表示するメッセージフォーマット（例: "Next check in %2d seconds..."）
@@ -518,6 +541,13 @@ ai-docs/THEME_MANAGEMENT_GUIDE.md の「2. テーマ開始手順」を参照し
 fi
 
 send_message_to_agent "$initial_heartbeat_msg"
+
+# 初回ハートビートID書き込み（エラーが発生してもシステム継続）
+initial_heartbeat_id=$(echo "$initial_heartbeat_msg" | grep "^Heartbeat:" | cut -d' ' -f2)
+if [ ! -z "$initial_heartbeat_id" ]; then
+    write_heartbeat_id "$initial_heartbeat_id"
+fi
+
 log_heartbeat "Initial heartbeat sent to agent session"
 log_heartbeat "Heartbeat sent to agent session"
 
@@ -661,6 +691,12 @@ $RECOVERY_MESSAGE"
     fi
     
     send_message_to_agent "$heartbeat_msg"
+
+    # ハートビートID書き込み（エラーが発生してもシステム継続）
+    heartbeat_id=$(echo "$heartbeat_msg" | grep "^Heartbeat:" | cut -d' ' -f2)
+    if [ ! -z "$heartbeat_id" ]; then
+        write_heartbeat_id "$heartbeat_id"
+    fi
 
     log_heartbeat "Heartbeat sent to agent session"
 done

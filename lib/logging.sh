@@ -3,6 +3,12 @@
 # ログ管理ライブラリ
 # heartbeat.shから分離されたログ機能
 
+# インクルードガード
+if [ -n "$_LOGGING_SH_INCLUDED" ]; then
+    return 0
+fi
+_LOGGING_SH_INCLUDED=1
+
 # ログ設定変数（外部から設定）
 LOG_FILE=""
 LOG_DIR=""

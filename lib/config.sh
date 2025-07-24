@@ -3,6 +3,12 @@
 # 設定管理ライブラリ
 # heartbeat.shから分離された設定読み込みと定数定義
 
+# インクルードガード
+if [ -n "$_CONFIG_SH_INCLUDED" ]; then
+    return 0
+fi
+_CONFIG_SH_INCLUDED=1
+
 # 設定ファイル読み込み関数
 load_config() {
     local config_file="$1"

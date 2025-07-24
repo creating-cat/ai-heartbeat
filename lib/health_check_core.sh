@@ -5,6 +5,12 @@
 # 戻り値統一: 0=正常, 1=警告レベル, 2=エラーレベル
 # 出力形式: "LEVEL:ANOMALY_TYPE:detail"
 
+# インクルードガード
+if [ -n "$_HEALTH_CHECK_CORE_SH_INCLUDED" ]; then
+    return 0
+fi
+_HEALTH_CHECK_CORE_SH_INCLUDED=1
+
 # DEBUG_MODE="true"
 
 # デバッグログ関数（標準エラー出力専用、依存関係なし）

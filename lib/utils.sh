@@ -3,6 +3,17 @@
 # ユーティリティライブラリ
 # heartbeat.shから分離されたユーティリティ関数とシステム処理
 
+# インクルードガード
+if [ -n "$_UTILS_SH_INCLUDED" ]; then
+    return 0
+fi
+_UTILS_SH_INCLUDED=1
+
+# 依存関係の読み込み（条件付き）
+if [ -z "$_LOGGING_SH_INCLUDED" ]; then
+    source "$(dirname "${BASH_SOURCE[0]}")/logging.sh"
+fi
+
 # 監視対象ディレクトリから最新ファイルの情報を取得する関数
 _get_latest_file_info() {
     local latest_info
@@ -77,6 +88,51 @@ get_file_modification_time() {
     else
         # Linux
         stat -c %Y "$file_path" 2>/dev/null
+    fi
+}
+
+# 原子的ファイル書き込み関数
+# 引数1: 書き込み内容
+# 引数2: 出力ファイルパス
+# 引数3: (オプション) ディレクトリ作成フラグ (true/false, デフォルト: true)
+write_file_atomic() {
+    local content="$1"
+    local output_file="$2"
+    local create_dir="${3:-true}"
+    
+    # 入力検証
+    if [ -z "$output_file" ]; then
+        log_error "write_file_atomic: output_file is required"
+        return 1
+    fi
+    
+    # ディレクトリ作成（オプション）
+    if [ "$create_dir" = "true" ]; then
+        local dir_path=$(dirname "$output_file")
+        if [ ! -d "$dir_path" ]; then
+            if ! mkdir -p "$dir_path" 2>/dev/null; then
+                log_error "write_file_atomic: Failed to create directory: $dir_path"
+                return 1
+            fi
+        fi
+    fi
+    
+    # 一時ファイル作成（同じディレクトリ内）
+    local temp_file="${output_file}.tmp.$$"
+    
+    # 原子的書き込み実行
+    if echo "$content" > "$temp_file" 2>/dev/null; then
+        if mv "$temp_file" "$output_file" 2>/dev/null; then
+            return 0
+        else
+            log_error "write_file_atomic: Failed to move temp file to final location: $output_file"
+            rm -f "$temp_file" 2>/dev/null
+            return 1
+        fi
+    else
+        log_error "write_file_atomic: Failed to write to temp file: $temp_file"
+        rm -f "$temp_file" 2>/dev/null
+        return 1
     fi
 }
 
