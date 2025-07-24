@@ -59,7 +59,7 @@ AI心臓システムには、異常な動作パターンを自動検知し、回
 timeout 30s npm run dev
 
 # 出力も保存したい場合（オプション）
-timeout 30s npm run dev 2>&1 | tee ai-works/artifacts/current_theme/server_output.log
+timeout 30s npm run dev 2>&1 | tee artifacts/current_theme/server_output.log
 ```
 
 **方法2: バックグラウンド実行（並行作業が必要な場合）**

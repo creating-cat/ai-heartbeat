@@ -88,14 +88,14 @@ ai-heart-system/
 - L261: `find ai-works/artifacts/theme_histories` での同一タイムスタンプファイル検索
 - L366, L369: `find ai-works/artifacts` での内省ログ検索
 
-#### 3. MCPツール（修正不要 - 既に対応済み）
+#### 3. MCPツール（修正必要 - 重要な問題発見）
 **mcp/ai-heartbeat-mcp/src/lib/pathConstants.ts**
-- 既に `ai-works/` 基準でパス定数を定義済み
-- 作業ディレクトリが `ai-works/` になれば相対パスとして正常動作
+- `AI_WORKS_DIR = 'ai-works'` → `AI_WORKS_DIR = '.'` に修正が必要
+- 作業ディレクトリが `ai-works/` になるため、相対パス参照に変更
 
 **mcp/ai-heartbeat-mcp/src/tools/createThemeExpertContextTool.ts**
-- L131: `ai-works/artifacts/**` でのglob検索
-- 作業ディレクトリ変更により相対パスとして動作
+- L131: `path.join('ai-works', 'artifacts', ...)` → `path.join('.', 'artifacts', ...)` に修正が必要
+- L135: `replace('ai-works/artifacts/', '')` → `replace('artifacts/', '')` に修正が必要
 
 #### 4. ドキュメント（テンプレート移動対象）
 **移動対象ファイル**
@@ -183,18 +183,18 @@ ai-heart-system/
 - [x] `lib/health_check_core.sh` の修正
   - [x] **修正不要**（heartbeat.shから呼び出されるため、ルート基準で正常動作）
 
-### Phase 5: ドキュメント参照の確認・更新
-- [ ] **ai-works-lib内ドキュメント** のパス参照修正
-  - [ ] `ai-works-lib/GEMINI.md`: `ai-docs/` → `./ai-docs/` (14箇所), `heartbeat.sh` → `../heartbeat.sh` (1箇所), `./stop.sh` → `../stop.sh` (1箇所)
-  - [ ] `ai-works-lib/ai-docs/` 配下のドキュメント修正（6ファイル、計20箇所）
-    - [ ] `THEME_CONTEXT_IMPLEMENTATION.md`: `ai-docs/` → `./` (2箇所)
-    - [x] `TROUBLESHOOTING_GUIDE.md`: `GEMINI.md` → `../GEMINI.md`, `ai-docs/` → `./` (4箇所)
-    - [x] `THEME_MANAGEMENT_GUIDE.md`: `GEMINI.md` → `../GEMINI.md`, `ai-docs/` → `./` (7箇所)
-    - [x] `GUIDELINES.md`: `ai-docs/` → `./` (1箇所)
-    - [ ] `OPERATION_DETAILS.md`: `ai-docs/` → `./`, `heartbeat.sh` → `../heartbeat.sh` (4箇所)
-    - [x] `THEME_CONCEPT_GUIDE.md`: `ai-docs/` → `./`, `GEMINI.md` → `../GEMINI.md` (6箇所)
-- [ ] **修正後の動作確認**
-  - [ ] コピー後のパス参照が正しく動作することを確認
+### Phase 5: ドキュメント参照の確認・更新（AIファースト設計）
+- [x] **ai-works-lib内ドキュメント** のパス参照修正（完了）
+  - [x] `ai-works-lib/GEMINI.md`: `ai-docs/` → `./ai-docs/`, `ai-works/` → 相対パス に修正済み
+  - [x] `ai-works-lib/ai-docs/` 配下のドキュメント修正（AIの認知負荷を考慮）
+    - [x] **修正方針**: AIの作業ディレクトリから見て直感的なパス参照に統一
+    - [x] 同じディレクトリ参照: `./filename.md` → `ai-docs/filename.md`
+    - [x] 親ディレクトリ参照: `../GEMINI.md` → `GEMINI.md`
+    - [x] AI向けパス参照: `ai-works/artifacts/` → `artifacts/` など
+    - [x] **理由**: AIが混乱せず、ファイルの場所が明確に分かる
+- [x] **修正後の動作確認**
+  - [x] AIにとって分かりやすいパス参照になっていることを確認
+  - [x] 全ての `ai-works/` 参照が適切な相対パスに修正済み
 - [x] **ルート版ドキュメント** の更新
   - [x] `SYSTEM_OVERVIEW.md`: 新しい構造の説明に更新
   - [x] ディレクトリ構造図の更新とテンプレートベース構造の説明追加
@@ -204,7 +204,29 @@ ai-heart-system/
   - [ ] 差分確認機能
   - [ ] 選択的更新機能
 
-### Phase 6: テスト・検証
+### Phase 6: 残存AI参照ドキュメント・MCPツールの修正
+- [ ] **MCPツールの重要な修正**（作業ディレクトリ変更に対応）
+  - [ ] `mcp/ai-heartbeat-mcp/src/lib/pathConstants.ts`: `AI_WORKS_DIR = 'ai-works'` → `AI_WORKS_DIR = '.'`
+  - [ ] `mcp/ai-heartbeat-mcp/src/tools/createThemeExpertContextTool.ts`: `path.join('ai-works', ...)` → `path.join('.', ...)`
+  - [ ] `mcp/ai-heartbeat-mcp/src/tools/createThemeExpertContextTool.ts`: `replace('ai-works/artifacts/', '')` → `replace('artifacts/', '')`
+  - [ ] MCPツールのビルド: `npm run build`
+- [ ] **theme_sample/ 配下の修正**（AIが参照するチュートリアル）
+  - [ ] `theme_sample/001_read_many_files_tutorial.md`: `ai-works/artifacts/` → `artifacts/`
+  - [ ] `theme_sample/001_read_many_files_tutorial.md`: `ai-works/` → 作業ディレクトリ
+  - [ ] `theme_sample/002_replace_tutorial.md`: `ai-works/projects/` → `projects/`
+- [ ] **ステアリングファイルの修正**（AIが参照する）
+  - [ ] `.kiro/steering/development_practices.md`: `ai-works/artifacts/current_theme/` → `artifacts/current_theme/`
+- [ ] **システム説明ドキュメントの修正**（AIも参照する可能性）
+  - [ ] `SYSTEM_OVERVIEW.md`: AI向け記述の `ai-works/GEMINI.md` → `GEMINI.md`
+  - [ ] `SYSTEM_OVERVIEW.md`: AI向け記述の `ai-works/ai-docs/` → `ai-docs/`
+- [ ] **MCPツールドキュメントの修正**（開発者向けだが、AIも参照する可能性）
+  - [ ] `mcp/ai-heartbeat-mcp/README.md`: `ai-works/artifacts/` → `artifacts/`
+- [ ] **最終確認**
+  - [ ] `git --no-pager grep "ai-works"` でAI参照ドキュメント内の残存確認
+  - [ ] MCPツールの動作確認
+  - [ ] AIが混乱する可能性のある参照が全て修正されていることを確認
+
+### Phase 7: テスト・検証
 - [ ] 新規環境での動作確認
   - [ ] `setup.sh` での初期化テスト
   - [ ] Gemini CLI の作業ディレクトリ確認
@@ -302,15 +324,16 @@ node ../mcp/ai-heartbeat-mcp/dist/index.js  # パス解決テスト
 
 **利点**: 既存システムの安定性維持、回帰バグリスクの大幅削減
 
-### 課題C: ドキュメント内パス参照の大量修正
-**詳細**: GEMINI.mdとai-docs配下のドキュメント内で多数のパス参照修正が必要
+### 課題C: ドキュメント内パス参照の修正（AIファースト設計） ✅ 解決済み
+**詳細**: GEMINI.mdとai-docs配下のドキュメント内でAIの認知負荷を考慮したパス参照修正
 
-**修正箇所の詳細**:
-- **GEMINI.md**: `ai-docs/` → `./ai-docs/` (14箇所), `heartbeat.sh` → `../heartbeat.sh` (1箇所), `./stop.sh` → `../stop.sh` (1箇所)
-- **ai-docs配下**: 6ファイルで計20箇所の修正が必要
-- **相対パス変更**: テンプレート内では相対パスに統一
+**採用した修正方針**:
+- **GEMINI.md**: `ai-docs/` → `./ai-docs/` (AIの作業ディレクトリから直感的)
+- **ai-docs配下**: AIの作業ディレクトリ(`ai-works/`)から見て分かりやすいパス参照に統一
+  - 同じディレクトリ参照: `./filename.md` → `ai-docs/filename.md`
+  - 親ディレクトリ参照: `../GEMINI.md` → `GEMINI.md`
 
-**重要性**: AIが参照するドキュメント内のパスが正しくないと、システム動作に支障をきたす
+**重要性**: AIが混乱せず、ファイルの場所が明確に分かることでシステム動作が安定
 
 ### 課題D: 既存環境との互換性
 **詳細**: 現在稼働中の環境から新しい構造への移行時のデータ保全
@@ -349,13 +372,20 @@ node ../mcp/ai-heartbeat-mcp/dist/index.js  # パス解決テスト
 - システム管理ドキュメント修正: 0.5時間
 - 更新管理機能: 1時間
 
-### Phase 6: 総合テスト・検証 (3-4時間) ← 削減
+### Phase 6: 残存AI参照ドキュメント・MCPツール修正 (2-3時間) ← 新規追加・拡張
+- MCPツール修正・ビルド: 1時間
+- theme_sample修正: 0.5時間
+- ステアリングファイル修正: 0.5時間
+- システム説明ドキュメント修正: 0.5時間
+- MCPツールドキュメント修正: 0.5時間
+
+### Phase 7: 総合テスト・検証 (3-4時間) ← 番号変更
 - 新規環境テスト: 1時間
 - 移行テスト: 1時間
 - 機能回帰テスト: 1時間
 - 問題修正: 0.5時間
 
-**合計**: 15-19時間程度（ドキュメント内パス修正追加により約1時間増加）
+**合計**: 17-22時間程度（MCPツール修正追加により約1時間増加）
 
 ## 実装優先度の提案
 
@@ -366,8 +396,9 @@ node ../mcp/ai-heartbeat-mcp/dist/index.js  # パス解決テスト
 
 ### 中優先度（重要）
 - Phase 3: 作業ディレクトリ変更
-- Phase 6: 基本的なテスト・検証
+- Phase 6: 残存AI参照ドキュメント修正
+- Phase 7: 基本的なテスト・検証
 
 ### 低優先度（改善）
 - Phase 5: 高度なドキュメント更新管理
-- Phase 6: 詳細な回帰テスト
+- Phase 7: 詳細な回帰テスト

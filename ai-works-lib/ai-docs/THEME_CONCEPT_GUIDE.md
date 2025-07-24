@@ -150,7 +150,7 @@
 ### 4.3 成果物とテーマ
 
 #### **体系的蓄積**
-- `ai-works/artifacts/{THEME_START_ID_テーマ名}/` での構造化保存
+- `artifacts/{THEME_START_ID_テーマ名}/` での構造化保存
 - 関連する全ての成果物の一元管理
 - テーマ内での成果物間の関連性維持
 
@@ -420,7 +420,7 @@
 
 **基本構造**:
 ```
-ai-works/artifacts/{PARENT_THEME_START_ID}_{親テーマ名}/
+artifacts/{PARENT_THEME_START_ID}_{親テーマ名}/
 ├── subthemes/
 │   ├── {THEME_START_ID}_{サブテーマ1名}/
 │   └── {THEME_START_ID}_{サブテーマ2名}/

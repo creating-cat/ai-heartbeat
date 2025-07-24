@@ -17,7 +17,7 @@ AI心臓システムは、定期的な「ハートビート」によりAIの継�
 ### 基本的な動作フロー
 1. **起動**: `setup.sh`でシステム初期化・AIエージェント起動
 2. **ハートビート送信**: `heartbeat.sh`が60秒ごとにAIに成長の機会を提供
-3. **自律処理**: AIが`GEMINI.md`のルールに従って思考・観測・創造・内省を実行
+3. **自律処理**: AIが`ai-works/GEMINI.md`のルールに従って思考・観測・創造・内省を実行
 4. **成果物生成**: `ai-works/artifacts/`配下に思考の軌跡と創造の結果を蓄積
 5. **テーマ進化**: 自動的なテーマ移行により探求領域を拡張
 6. **自己回復**: 異常検知・回復体験により問題解決能力を向上
@@ -25,7 +25,7 @@ AI心臓システムは、定期的な「ハートビート」によりAIの継�
 ### 主要コンポーネント
 - **AIエージェント**: Gemini CLIによる進化する思考主体
 - **ハートビート**: 継続的な成長機会の提供システム
-- **ルールエンジン**: GEMINI.mdとai-docs/による進化的動作制御
+- **ルールエンジン**: ai-works/GEMINI.mdとai-works/ai-docs/による進化的動作制御
 - **テーマ管理**: ai-works/themebox/とテーマ履歴による探求領域の拡張
 - **成長記録**: ai-works/artifacts/による学習履歴と進化の軌跡管理
 - **フィードバック管理**: ai-works/feedbackbox/によるユーザーとAIの非同期コミュニケーション
@@ -33,23 +33,40 @@ AI心臓システムは、定期的な「ハートビート」によりAIの継�
 
 ## ディレクトリ構造
 
+### テンプレートベースの作業環境分離
+
+AI心臓システムは、システム管理領域とAI活動領域を分離したテンプレートベースの構造を採用しています：
+
+- **システム管理領域**: Git管理下でシステムコードとライブラリを管理
+- **AI活動環境テンプレート** (`ai-works-lib/`): AI用の設定とドキュメントのテンプレート
+- **AI活動領域** (`ai-works/`): 実際のAI作業環境（テンプレートから自動生成）
+
+この構造により、AIは自分の活動履歴と成果物に完全にアクセスでき、システム更新時もAIの作業環境を保護できます。
+
 ```
 AI心臓システム/
-├── GEMINI.md                    # AI動作の基本ルール
 ├── setup.sh                    # システム起動スクリプト
 ├── heartbeat.sh                 # ハートビート送信スクリプト
 ├── stop.sh                     # システム停止スクリプト
 ├── restart.sh                  # ハートビート再起動スクリプト
 ├── README.md                   # プロジェクト概要
+├── SYSTEM_OVERVIEW.md           # このドキュメント
 ├── mcp/                         # Model Context Protocol ツール群
 │   └── ai-heartbeat-mcp/        # AI心臓システム専用MCPサーバー
-├── SYSTEM_OVERVIEW.md           # このドキュメント
-├── ai-docs/                    # AI向け詳細ドキュメント
-│   ├── OPERATION_DETAILS.md    # 運用詳細ガイド
-│   ├── GUIDELINES.md           # 運用ガイドライン
-│   ├── THEME_MANAGEMENT_GUIDE.md  # テーマ管理ガイド
-│   └── TROUBLESHOOTING_GUIDE.md # トラブルシューティング
-├── ai-works/                   # AI活動領域
+├── ai-works-lib/               # AI活動環境テンプレート
+│   ├── GEMINI.md               # AI動作の基本ルール
+│   ├── .gemini/                # AI用Gemini CLI設定
+│   │   └── settings.json       # MCP設定等
+│   └── ai-docs/                # AI向け詳細ドキュメント
+│       ├── OPERATION_DETAILS.md    # 運用詳細ガイド
+│       ├── GUIDELINES.md           # 運用ガイドライン
+│       ├── THEME_MANAGEMENT_GUIDE.md  # テーマ管理ガイド
+│       ├── THEME_CONCEPT_GUIDE.md   # テーマ概念ガイド
+│       ├── THEME_CONTEXT_IMPLEMENTATION.md # テーマコンテキスト実装
+│       ├── MCP_WARNING_GUIDE.md    # MCPツール警告ガイド
+│       ├── TOOL_RESTRICTIONS.md    # ツール制限ガイド
+│       └── TROUBLESHOOTING_GUIDE.md # トラブルシューティング
+├── ai-works/                   # AI活動領域（setup.shで自動生成）
 │   ├── themebox/               # テーマ事前準備ディレクトリ
 │   │   ├── 001_example_theme.md    # 準備されたテーマ
 │   │   ├── draft.002_editing.md    # 編集中（無視される）
