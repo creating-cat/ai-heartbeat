@@ -13,7 +13,7 @@ import { getLatestActivityLogTool } from './tools/getLatestActivityLogTool';
 import { checkThemeStatusTool } from './tools/checkThemeStatusTool';
 import { listThemeArtifactsTool } from './tools/listThemeArtifactsTool';
 import { getLatestThemeContextTool } from './tools/getLatestThemeContextTool';
-import { declareExtendedProcessingTool } from './tools/declareExtendedProcessingTool';
+import { startDeepWorkTool } from './tools/startDeepWorkTool';
 import { getHeartbeatElapsedTimeTool } from './tools/getHeartbeatElapsedTimeTool';
 import { checkpointTool } from './tools/checkpointTool';
 
@@ -96,12 +96,12 @@ server.tool(
   getLatestThemeContextTool.execute
 );
 
-// Register declare extended processing tool
+// Register start deep work tool
 server.tool(
-  declareExtendedProcessingTool.name,
-  declareExtendedProcessingTool.description,
-  declareExtendedProcessingTool.input_schema.shape,
-  declareExtendedProcessingTool.execute
+  startDeepWorkTool.name,
+  startDeepWorkTool.description,
+  startDeepWorkTool.input_schema.shape,
+  startDeepWorkTool.execute
 );
 
 // Register get heartbeat elapsed time tool

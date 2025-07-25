@@ -256,6 +256,19 @@ check_agent_health() {
         return 22 # 内省義務違反（新しいエラーコード）
     fi
     
+    # flexibleモードでのチェックポイント必須チェック（新機能）
+    local flexible_checkpoint_result=$(check_flexible_mode_checkpoint_requirement "$current_time")
+    local flexible_checkpoint_code=$(echo "$flexible_checkpoint_result" | cut -d':' -f1)
+    local flexible_checkpoint_detail=$(echo "$flexible_checkpoint_result" | cut -d':' -f2)
+    
+    if [ "$flexible_checkpoint_code" != "0" ]; then
+        HEALTH_CHECK_DETAIL="flexibleモードチェックポイント不足: $flexible_checkpoint_detail 分経過"
+        if [ "$flexible_checkpoint_code" = "1" ]; then
+            log_warning "[CHECK] Flexible mode checkpoint requirement warning: $flexible_checkpoint_detail minutes elapsed"
+            return 23 # flexibleモードチェックポイント不足警告（新しいエラーコード）
+        fi
+    fi
+    
     # 8. 活動ログ頻度異常検知（新機能 - v2）
     local activity_freq_result=$(check_activity_log_frequency_anomaly "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
     local activity_freq_code=$(echo "$activity_freq_result" | cut -d':' -f1)
@@ -397,6 +410,13 @@ $ADVICE_INTROSPECTION"
             return 0 ;;
         22) # 内省義務違反（新機能）
             handle_failure "Introspection obligation violation: Deep work completed but next activity log is not introspection (ハートビートID: $detail)." "内省義務違反" ;;
+        23) # flexibleモードチェックポイント不足警告（新機能）
+            log_warning "Flexible mode checkpoint requirement warning: No checkpoints for $detail minutes."
+            INACTIVITY_WARNING_MESSAGE="flexibleモード警告: $detail 分間チェックポイントログが作成されていません。
+
+flexibleモードでは定期的なチェックポイントログの作成が推奨されます。
+checkpointツールを使用して現在の活動状況を記録してください。"
+            return 0 ;;
         *) # 未知のエラー
             log_error "Unknown health check status: $status" ;;
     esac
@@ -456,6 +476,9 @@ attempt_recovery() {
         "内省義務違反")
             advice_message="$ADVICE_INTROSPECTION_OBLIGATION"
             ;;
+        "flexibleモードチェックポイント不足")
+            advice_message="$ADVICE_FLEXIBLE_MODE_CHECKPOINT"
+            ;;
         *)
             advice_message=""
             ;;
@@ -472,6 +495,9 @@ attempt_recovery() {
             ;;
         "内省義務違反")
             specific_docs="3. ai-docs/GUIDELINES.md - 内省活動の詳細ガイド"
+            ;;
+        "flexibleモードチェックポイント不足")
+            specific_docs="3. ai-docs/OPERATION_DETAILS.md - チェックポイントログの詳細手順"
             ;;
         *)
             specific_docs="3. ai-docs/OPERATION_DETAILS.md - 運用詳細ガイド"

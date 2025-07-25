@@ -754,3 +754,88 @@ check_introspection_obligation_violation() {
     echo "0:0"
     return 0
 }
+
+# flexibleモードでのチェックポイント必須チェック関数
+# 引数: current_time
+# 戻り値: 常に0（エラーコードはecho出力に含める）
+# 出力: "error_code:detail" 形式（0:0=正常, 1:elapsed_minutes=警告）
+check_flexible_mode_checkpoint_requirement() {
+    local current_time="$1"
+    
+    debug_log "FLEXIBLE_MODE_CHECKPOINT check started: current_time=$current_time"
+    
+    # アクティブなflexibleモードの深い作業宣言を検索
+    local active_files=$(find ai-works/stats/deep_work -name "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].txt" -type f 2>/dev/null)
+    
+    if [ -z "$active_files" ]; then
+        debug_log "FLEXIBLE_MODE_CHECKPOINT: No active deep work declarations"
+        echo "0:0"
+        return 0
+    fi
+    
+    # 最新の宣言ファイルを取得
+    local latest_declaration=$(echo "$active_files" | sort | tail -n 1)
+    local heartbeat_id=$(basename "$latest_declaration" .txt)
+    
+    # 制限タイプを確認
+    local restriction_type=$(grep "制限タイプ:" "$latest_declaration" 2>/dev/null | cut -d' ' -f2)
+    
+    if [ "$restriction_type" != "flexible" ]; then
+        debug_log "FLEXIBLE_MODE_CHECKPOINT: Not flexible mode, skipping check"
+        echo "0:0"
+        return 0
+    fi
+    
+    debug_log "FLEXIBLE_MODE_CHECKPOINT: Checking flexible mode declaration: $heartbeat_id"
+    
+    # 宣言開始時刻を取得
+    local declaration_time=$(convert_timestamp_to_seconds "$heartbeat_id")
+    if [ -z "$declaration_time" ]; then
+        debug_warning "FLEXIBLE_MODE_CHECKPOINT: Invalid heartbeat ID format: $heartbeat_id"
+        echo "0:0"
+        return 0
+    fi
+    
+    # 宣言以降のチェックポイントログを検索
+    local recent_checkpoints=""
+    while IFS= read -r file; do
+        if [ -f "$file" ]; then
+            local filename=$(basename "$file")
+            if [[ "$filename" =~ ^([0-9]{14})\.txt$ ]]; then
+                local file_timestamp="${BASH_REMATCH[1]}"
+                local file_time=$(convert_timestamp_to_seconds "$file_timestamp")
+                if [ -n "$file_time" ] && [ $file_time -gt $declaration_time ]; then
+                    if [ -z "$recent_checkpoints" ]; then
+                        recent_checkpoints="$file_time $file"
+                    else
+                        recent_checkpoints="$recent_checkpoints"$'\n'"$file_time $file"
+                    fi
+                fi
+            fi
+        fi
+    done < <(find ai-works/stats/checkpoints -name "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].txt" -type f 2>/dev/null)
+    
+    # 宣言からの経過時間を計算
+    local elapsed_seconds=$((current_time - declaration_time))
+    local elapsed_minutes=$((elapsed_seconds / 60))
+    
+    debug_log "FLEXIBLE_MODE_CHECKPOINT: Elapsed time since declaration: ${elapsed_minutes} minutes"
+    
+    # チェックポイントが作成されているかチェック
+    if [ -n "$recent_checkpoints" ]; then
+        debug_log "FLEXIBLE_MODE_CHECKPOINT: Checkpoints found after declaration"
+        echo "0:0"
+        return 0
+    fi
+    
+    # 10分経過してもチェックポイントがない場合は警告
+    if [ $elapsed_minutes -ge 10 ]; then
+        debug_warning "FLEXIBLE_MODE_CHECKPOINT: No checkpoints for ${elapsed_minutes} minutes in flexible mode"
+        echo "1:$elapsed_minutes"
+        return 0
+    fi
+    
+    debug_log "FLEXIBLE_MODE_CHECKPOINT: Normal operation (${elapsed_minutes} minutes elapsed)"
+    echo "0:$elapsed_minutes"
+    return 0
+}
