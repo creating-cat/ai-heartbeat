@@ -15,6 +15,7 @@ import { listThemeArtifactsTool } from './tools/listThemeArtifactsTool';
 import { getLatestThemeContextTool } from './tools/getLatestThemeContextTool';
 import { declareExtendedProcessingTool } from './tools/declareExtendedProcessingTool';
 import { getHeartbeatElapsedTimeTool } from './tools/getHeartbeatElapsedTimeTool';
+import { checkpointTool } from './tools/checkpointTool';
 
 // Create MCP server
 const server = new McpServer({
@@ -109,6 +110,14 @@ server.tool(
   getHeartbeatElapsedTimeTool.description,
   getHeartbeatElapsedTimeTool.input_schema.shape,
   getHeartbeatElapsedTimeTool.execute
+);
+
+// Register checkpoint tool
+server.tool(
+  checkpointTool.name,
+  checkpointTool.description,
+  checkpointTool.input_schema.shape,
+  checkpointTool.execute
 );
 
 // Start server with stdio transport

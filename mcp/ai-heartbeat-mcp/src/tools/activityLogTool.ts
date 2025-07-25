@@ -8,7 +8,7 @@ import * as path from 'path';
 
 import { convertTimestampToSeconds } from '../lib/timeUtils';
 import { resolveThemePath } from '../lib/themeUtils';
-import { EXTENDED_PROCESSING_DIR } from '../lib/pathConstants';
+import { EXTENDED_PROCESSING_DIR, STATS_DIR } from '../lib/pathConstants';
 
 // 未来ハートビートID検証（未来は即エラー）
 
@@ -20,9 +20,6 @@ const PROCESSING_TIME_CONFIG = {
 
 // Zod schema for activity log input (サブテーマ対応版)
 export const activityLogInputSchema = z.object({
-  heartbeatId: z.string()
-    .regex(/^\d{14}$/, 'ハートビートIDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります。')
-    .describe('YYYYMMDDHHMMSS形式のハートビートID。同じIDのログが既に存在する場合、自動で連番が付与されます（例: _01）。これは自然な思考フロー（観測→思考→創造）による連続活動や、論理的に連続した処理を行った場合に発生します。'),
   activityType: z.enum(['観測', '思考', '創造', '内省', 'テーマ開始', 'テーマ終了', '回復', 'その他'])
     .describe("実行した活動の種別。'観測', '思考', '創造', '内省', 'テーマ開始', 'テーマ終了', '回復', 'その他' のいずれかである必要があります。"),
   activityContent: z.array(z.string()).describe('活動内容の簡潔な説明のリスト。'),
@@ -53,35 +50,6 @@ export const activityLogInputSchema = z.object({
  * @param heartbeatId YYYYMMDDHHMMSS形式のハートビートID
  * @throws Error 未来のハートビートIDが許容範囲を超えている場合
  */
-function validateHeartbeatIdTiming(heartbeatId: string): void {
-  try {
-    const heartbeatTime = convertTimestampToSeconds(heartbeatId);
-    const currentTime = Math.floor(Date.now() / 1000);
-    const timeDiff = heartbeatTime - currentTime;
-    
-    // 未来のタイムスタンプは即座にエラー
-    if (timeDiff > 0) {
-      const futureMinutes = Math.floor(timeDiff / 60);
-      const futureSeconds = timeDiff % 60;
-      const timeDescription = futureMinutes > 0 
-        ? `${futureMinutes}分${futureSeconds}秒`
-        : `${futureSeconds}秒`;
-      
-      throw new Error(
-        `未来のハートビートIDは使用できません。\n` +
-        `指定されたID（${heartbeatId}）は現在時刻より${timeDescription}未来です。\n` +
-        `ハートビートIDは現在時刻またはそれ以前の時刻を使用してください。`
-      );
-    }
-  } catch (error) {
-    // convertTimestampToSecondsでエラーが発生した場合は、そのエラーを再スロー
-    if (error instanceof Error && error.message.includes('Invalid timestamp format')) {
-      throw error;
-    }
-    // 未来時刻検証エラーの場合もそのまま再スロー
-    throw error;
-  }
-}
 
 /**
  * ハートビート開始からの経過時間をチェックして警告メッセージを生成
@@ -89,9 +57,10 @@ function validateHeartbeatIdTiming(heartbeatId: string): void {
  */
 async function checkProcessingTime(heartbeatId: string): Promise<string | null> {
   try {
-    // 長時間処理宣言の確認
-    const declarationFile = path.join(EXTENDED_PROCESSING_DIR, 'current.conf');
-    if (await fs.pathExists(declarationFile)) {
+    // 深い作業宣言の確認
+    const deepWorkDir = path.join(STATS_DIR, 'deep_work');
+    const deepWorkFile = path.join(deepWorkDir, `${heartbeatId}.txt`);
+    if (await fs.pathExists(deepWorkFile)) {
       // 宣言ファイルが存在する場合は時間チェックを抑制
       return null;
     }
@@ -118,7 +87,7 @@ function generateActivityLogMarkdown(args: z.infer<typeof activityLogInputSchema
   const lines: string[] = [];
   
   // Title
-  lines.push(`# ハートビートログ：${args.heartbeatId}`);
+  lines.push(`# ハートビートログ`);
   lines.push('');
   
   // サブテーマ情報（サブテーマの場合のみ）
@@ -236,12 +205,19 @@ async function findAvailableSequence(
 
 export const activityLogTool = {
   name: 'create_activity_log',
-  description: 'AIハートビートシステム用の、標準形式の活動ログを作成します。サブテーマにも対応しており、parentThemeStartIdを指定することでサブテーマの活動ログとして作成されます。時間ベース制御により、適切な時間内で自然な思考フロー（観測→思考→創造）に基づく連続活動を支援します。論理的に連続した処理や効率的な活動フローの場合、同一ハートビート内での複数活動が許可されており、その際は自動で連番ファイルが作成されます。ハートビート開始から5分経過で経過時間通知、10分経過で活動分割推奨が表示されます。長時間処理が必要な場合は事前にdeclare_extended_processingツールで宣言してください。',
+  description: 'AIハートビートシステム用の、標準形式の活動ログを作成します。ハートビートIDはシステムから自動取得されます。サブテーマにも対応しており、parentThemeStartIdを指定することでサブテーマの活動ログとして作成されます。時間ベース制御により、適切な時間内で自然な思考フロー（観測→思考→創造）に基づく連続活動を支援します。論理的に連続した処理や効率的な活動フローの場合、同一ハートビート内での複数活動が許可されており、その際は自動で連番ファイルが作成されます。ハートビート開始から5分経過で経過時間通知、10分経過で活動分割推奨が表示されます。長時間処理が必要な場合は事前にstart_deep_workツールで宣言してください。',
   input_schema: activityLogInputSchema,
   execute: async (args: z.infer<typeof activityLogInputSchema>) => {
     try {
-      // 未来ハートビートID検証（最優先で実行）
-      validateHeartbeatIdTiming(args.heartbeatId);
+      // ハートビートIDをシステムから取得
+      const heartbeatIdPath = path.join(STATS_DIR, 'current_heartbeat_id.txt');
+      if (!await fs.pathExists(heartbeatIdPath)) {
+        throw new Error('ハートビートIDファイルが見つかりません: ' + heartbeatIdPath);
+      }
+      const heartbeatId = (await fs.readFile(heartbeatIdPath, 'utf-8')).trim();
+      if (!/^\d{14}$/.test(heartbeatId)) {
+        throw new Error('無効なハートビートID形式です: ' + heartbeatId);
+      }
 
       // バリデーション
       if (args.parentThemeStartId && !args.parentThemeDirectoryPart) {
@@ -253,7 +229,8 @@ export const activityLogTool = {
       }
 
       // Generate markdown content
-      const markdownContent = generateActivityLogMarkdown(args);
+      let markdownContent = generateActivityLogMarkdown(args);
+      markdownContent = markdownContent.replace('# ハートビートログ', `# ハートビートログ：${heartbeatId}`);
       
       // Sanitize directory part to prevent directory traversal
       const sanitizedDirectoryPart = path.basename(args.themeDirectoryPart);
@@ -275,25 +252,19 @@ export const activityLogTool = {
       }
       
       // Check for duplicates and find available sequence
-      const { sequence, warning } = await findAvailableSequence(
-        args.themeStartId, 
-        sanitizedDirectoryPart, 
-        args.heartbeatId,
-        args.parentThemeStartId,
-        sanitizedParentDirectoryPart
-      );
+      const { sequence, warning } = await findAvailableSequence(args.themeStartId, sanitizedDirectoryPart, heartbeatId, args.parentThemeStartId, sanitizedParentDirectoryPart);
       
       const filePath = getActivityLogFilePath(
         args.themeStartId, 
         sanitizedDirectoryPart, 
-        args.heartbeatId, 
+        heartbeatId, 
         sequence ?? undefined,
         args.parentThemeStartId,
         sanitizedParentDirectoryPart
       );
       
       // Check processing time (統一された時間ベース制御)
-      const processingTimeWarning = await checkProcessingTime(args.heartbeatId);
+      const processingTimeWarning = await checkProcessingTime(heartbeatId);
       
       // Ensure directory exists
       await fs.ensureDir(path.dirname(filePath));
@@ -301,21 +272,30 @@ export const activityLogTool = {
       // Write file
       await fs.writeFile(filePath, markdownContent, 'utf-8');
       
-      // 長時間処理宣言ファイルの自動削除
-      const declarationFile = path.join(EXTENDED_PROCESSING_DIR, 'current.conf');
+      // 深い作業宣言ファイルの完了処理
+      const deepWorkDir = path.join(STATS_DIR, 'deep_work');
       let extendedProcessingMessage = '';
-      if (await fs.pathExists(declarationFile)) {
-        try {
-          await fs.remove(declarationFile);
-          extendedProcessingMessage = '\n長時間処理宣言を完了しました（宣言ファイルを削除）。';
-        } catch (deleteError) {
-          extendedProcessingMessage = '\n警告: 宣言ファイルの削除に失敗しましたが、活動ログは正常に作成されました。';
+      if (await fs.pathExists(deepWorkDir)) {
+        const files = await fs.readdir(deepWorkDir);
+        // Find ALL active (not completed or expired) deep work declarations
+        const activeDeepWorkFiles = files.filter(f => f.endsWith('.txt') && !f.endsWith('.completed.txt') && !f.endsWith('.expired.txt'));
+
+        if (activeDeepWorkFiles.length > 0) {
+          const completedFiles = [];
+          for (const activeFile of activeDeepWorkFiles) {
+            const originalPath = path.join(deepWorkDir, activeFile);
+            const completedPath = originalPath.replace(/\.txt$/, '.completed.txt');
+            await fs.rename(originalPath, completedPath);
+            completedFiles.push(activeFile);
+          }
+          extendedProcessingMessage = `\n深い作業宣言（${completedFiles.join(', ')}）を完了しました。`;
         }
       }
       
       // Prepare response message
       const themeType = args.parentThemeStartId ? 'サブテーマ' : 'テーマ';
       let responseText = `活動ログを作成しました: ${filePath}`;
+      responseText += `\nハートビートID: ${heartbeatId}`;
       
       if (args.parentThemeStartId) {
         responseText += `\n${themeType}: ${sanitizedDirectoryPart} (${args.themeStartId})`;
