@@ -47,97 +47,140 @@ convert_timestamp_to_seconds() {
     fi
 }
 
-# 長時間処理宣言の期限チェック関数
+# 深い作業宣言の期限チェック関数
 # 引数: なし
 # 戻り値: 0=期限内, 1=期限切れまたは宣言なし（ファイル削除済み）
 check_extended_processing_deadline() {
-    local declaration_file="ai-works/stats/extended_processing/current.conf"
+    # アクティブな深い作業宣言ファイルを検索（.completed.txt と .expired.txt は除外）
+    local active_files=$(find ai-works/stats/deep_work -name "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].txt" -type f 2>/dev/null)
     
-    # 宣言ファイルが存在しない場合は期限チェック不要
-    if [ ! -f "$declaration_file" ]; then
-        debug_log "EXTENDED_PROCESSING: No declaration file found"
+    if [ -z "$active_files" ]; then
+        debug_log "DEEP_WORK: No active declaration files found"
         return 1  # 宣言なし
     fi
     
-    # 宣言ファイルからハートビートIDと計画時間を取得（1回だけ）
-    local heartbeat_id=$(grep "ハートビートID:" "$declaration_file" 2>/dev/null | cut -d' ' -f2)
-    local planned_minutes=$(grep "計画処理時間:" "$declaration_file" 2>/dev/null | sed 's/.*: \([0-9]*\)分.*/\1/')
-    local reason=$(grep "理由:" "$declaration_file" 2>/dev/null | cut -d' ' -f2-)
+    # 最新の宣言ファイルを取得（ハートビートID順でソート）
+    local latest_declaration=$(echo "$active_files" | sort | tail -n 1)
+    local heartbeat_id=$(basename "$latest_declaration" .txt)
     
-    if [ -z "$heartbeat_id" ] || [ -z "$planned_minutes" ]; then
-        debug_warning "EXTENDED_PROCESSING: Invalid declaration file format, removing"
-        rm "$declaration_file" 2>/dev/null
+    debug_log "DEEP_WORK: Checking declaration file: $latest_declaration"
+    
+    # 宣言ファイルから制限タイプを取得
+    local restriction_type=$(grep "制限タイプ:" "$latest_declaration" 2>/dev/null | cut -d' ' -f2)
+    
+    if [ -z "$restriction_type" ]; then
+        debug_warning "DEEP_WORK: Invalid declaration file format, removing"
+        rm "$latest_declaration" 2>/dev/null
         return 1
     fi
     
-    # ハートビートIDから開始時刻を算出
-    local heartbeat_time=$(convert_timestamp_to_seconds "$heartbeat_id")
-    if [ -z "$heartbeat_time" ]; then
-        debug_warning "EXTENDED_PROCESSING: Invalid heartbeat ID format, removing declaration"
-        rm "$declaration_file" 2>/dev/null
-        return 1
-    fi
+    debug_log "DEEP_WORK: Restriction type: $restriction_type"
     
-    # 期限時刻を算出（1回だけ）
-    local planned_duration_seconds=$((planned_minutes * 60))
-    local deadline_time=$((heartbeat_time + planned_duration_seconds))
-    local current_time=$(date +%s)
-    
-    debug_log "EXTENDED_PROCESSING: heartbeat_time=$heartbeat_time, planned_minutes=$planned_minutes, deadline_time=$deadline_time, current_time=$current_time"
-    
-    # 期限チェック
-    if [ $current_time -gt $deadline_time ]; then
-        local elapsed_minutes=$(((current_time - deadline_time) / 60))
-        debug_warning "EXTENDED_PROCESSING: Declaration expired ${elapsed_minutes} minutes ago, removing file"
-        rm "$declaration_file" 2>/dev/null
-        return 1  # 期限切れ
+    if [ "$restriction_type" = "flexible" ]; then
+        # flexible モードの場合は次の活動ログまで有効（時間制限なし）
+        debug_log "DEEP_WORK: Flexible mode - valid until next activity log"
+        return 0  # 有効
+    elif [ "$restriction_type" = "strict" ]; then
+        # strict モードの場合は時間制限をチェック
+        local planned_minutes=$(grep "予定時間:" "$latest_declaration" 2>/dev/null | sed 's/.*: \([0-9]*\)分.*/\1/')
+        
+        if [ -z "$planned_minutes" ]; then
+            debug_warning "DEEP_WORK: Strict mode but no planned time found, removing declaration"
+            rm "$latest_declaration" 2>/dev/null
+            return 1
+        fi
+        
+        # ハートビートIDから開始時刻を算出
+        local heartbeat_time=$(convert_timestamp_to_seconds "$heartbeat_id")
+        if [ -z "$heartbeat_time" ]; then
+            debug_warning "DEEP_WORK: Invalid heartbeat ID format, removing declaration"
+            rm "$latest_declaration" 2>/dev/null
+            return 1
+        fi
+        
+        # 期限時刻を算出
+        local planned_duration_seconds=$((planned_minutes * 60))
+        local deadline_time=$((heartbeat_time + planned_duration_seconds))
+        local current_time=$(date +%s)
+        
+        debug_log "DEEP_WORK: heartbeat_time=$heartbeat_time, planned_minutes=$planned_minutes, deadline_time=$deadline_time, current_time=$current_time"
+        
+        # 期限チェック
+        if [ $current_time -gt $deadline_time ]; then
+            local elapsed_minutes=$(((current_time - deadline_time) / 60))
+            debug_warning "DEEP_WORK: Strict mode declaration expired ${elapsed_minutes} minutes ago, renaming to expired"
+            mv "$latest_declaration" "${latest_declaration%.txt}.expired.txt" 2>/dev/null
+            return 1  # 期限切れ
+        else
+            local remaining_minutes=$(((deadline_time - current_time) / 60))
+            debug_log "DEEP_WORK: Strict mode declaration valid, ${remaining_minutes} minutes remaining"
+            return 0  # 期限内
+        fi
     else
-        local remaining_minutes=$(((deadline_time - current_time) / 60))
-        debug_log "EXTENDED_PROCESSING: Declaration valid, ${remaining_minutes} minutes remaining"
-        return 0  # 期限内
+        debug_warning "DEEP_WORK: Unknown restriction type: $restriction_type, removing declaration"
+        rm "$latest_declaration" 2>/dev/null
+        return 1
     fi
 }
 
-# 長時間処理宣言の詳細情報を取得する関数
+# 深い作業宣言の詳細情報を取得する関数
 # 戻り値: 0=情報取得成功, 1=宣言ファイルなしまたは無効
-# 出力: "heartbeat_id:planned_minutes:remaining_minutes:reason" 形式
+# 出力: "heartbeat_id:planned_minutes:remaining_minutes:reason" 形式（flexibleモードの場合はplanned_minutes=0, remaining_minutes=0）
 get_extended_processing_info() {
-    local declaration_file="ai-works/stats/extended_processing/current.conf"
+    # アクティブな深い作業宣言ファイルを検索
+    local active_files=$(find ai-works/stats/deep_work -name "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].txt" -type f 2>/dev/null)
     
-    # 宣言ファイルが存在しない場合
-    if [ ! -f "$declaration_file" ]; then
+    if [ -z "$active_files" ]; then
         return 1
     fi
+    
+    # 最新の宣言ファイルを取得
+    local latest_declaration=$(echo "$active_files" | sort | tail -n 1)
+    local heartbeat_id=$(basename "$latest_declaration" .txt)
     
     # 宣言ファイルから情報を取得
-    local heartbeat_id=$(grep "ハートビートID:" "$declaration_file" 2>/dev/null | cut -d' ' -f2)
-    local planned_minutes=$(grep "計画処理時間:" "$declaration_file" 2>/dev/null | sed 's/.*: \([0-9]*\)分.*/\1/')
-    local reason=$(grep "理由:" "$declaration_file" 2>/dev/null | cut -d' ' -f2-)
+    local restriction_type=$(grep "制限タイプ:" "$latest_declaration" 2>/dev/null | cut -d' ' -f2)
+    local reason=$(grep "活動予定内容:" "$latest_declaration" 2>/dev/null | cut -d' ' -f2-)
     
     # バリデーション
-    if [ -z "$heartbeat_id" ] || [ -z "$planned_minutes" ]; then
+    if [ -z "$restriction_type" ]; then
         return 1
     fi
     
-    # 残り時間を計算
-    local heartbeat_time=$(convert_timestamp_to_seconds "$heartbeat_id")
-    if [ -z "$heartbeat_time" ]; then
+    if [ "$restriction_type" = "flexible" ]; then
+        # flexible モードの場合は時間制限なし
+        echo "${heartbeat_id}:0:0:${reason}"
+        return 0
+    elif [ "$restriction_type" = "strict" ]; then
+        # strict モードの場合は時間制限あり
+        local planned_minutes=$(grep "予定時間:" "$latest_declaration" 2>/dev/null | sed 's/.*: \([0-9]*\)分.*/\1/')
+        
+        if [ -z "$planned_minutes" ]; then
+            return 1
+        fi
+        
+        # 残り時間を計算
+        local heartbeat_time=$(convert_timestamp_to_seconds "$heartbeat_id")
+        if [ -z "$heartbeat_time" ]; then
+            return 1
+        fi
+        
+        local planned_duration_seconds=$((planned_minutes * 60))
+        local deadline_time=$((heartbeat_time + planned_duration_seconds))
+        local current_time=$(date +%s)
+        local remaining_minutes=$(((deadline_time - current_time) / 60))
+        
+        # 期限切れの場合
+        if [ $current_time -gt $deadline_time ]; then
+            return 1
+        fi
+        
+        # 情報を出力
+        echo "${heartbeat_id}:${planned_minutes}:${remaining_minutes}:${reason}"
+        return 0
+    else
         return 1
     fi
-    
-    local planned_duration_seconds=$((planned_minutes * 60))
-    local deadline_time=$((heartbeat_time + planned_duration_seconds))
-    local current_time=$(date +%s)
-    local remaining_minutes=$(((deadline_time - current_time) / 60))
-    
-    # 期限切れの場合
-    if [ $current_time -gt $deadline_time ]; then
-        return 1
-    fi
-    
-    # 情報を出力（reasonが空の場合は空文字列）
-    echo "${heartbeat_id}:${planned_minutes}:${remaining_minutes}:${reason}"
-    return 0
 }
 
 # 最新活動ログファイル情報を取得するヘルパー関数
@@ -148,6 +191,48 @@ _get_latest_activity_log_info() {
     else
         # Linux
         find ai-works/artifacts -path "*/histories/*.md" -name "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]*.md" -type f -exec stat -c "%Y %n" {} + 2>/dev/null | sort -nr | head -n 1
+    fi
+}
+
+# 最新チェックポイントログファイル情報を取得するヘルパー関数
+_get_latest_checkpoint_info() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        find ai-works/stats/checkpoints -name "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].txt" -type f -exec stat -f "%m %N" {} + 2>/dev/null | sort -nr | head -n 1
+    else
+        # Linux
+        find ai-works/stats/checkpoints -name "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].txt" -type f -exec stat -c "%Y %n" {} + 2>/dev/null | sort -nr | head -n 1
+    fi
+}
+
+# 活動ログとチェックポイントログの最新タイムスタンプを比較して新しい方を返すヘルパー関数
+_get_latest_activity_or_checkpoint_info() {
+    local latest_activity_info=$(_get_latest_activity_log_info)
+    local latest_checkpoint_info=$(_get_latest_checkpoint_info)
+    
+    local latest_activity_time=0
+    local latest_checkpoint_time=0
+    
+    if [ -n "$latest_activity_info" ]; then
+        latest_activity_time=$(echo "$latest_activity_info" | cut -d' ' -f1)
+    fi
+    
+    if [ -n "$latest_checkpoint_info" ]; then
+        latest_checkpoint_time=$(echo "$latest_checkpoint_info" | cut -d' ' -f1)
+    fi
+    
+    debug_log "ACTIVITY_OR_CHECKPOINT: activity_time=$latest_activity_time, checkpoint_time=$latest_checkpoint_time"
+    
+    # より新しい方を返す
+    if [ $latest_activity_time -gt $latest_checkpoint_time ]; then
+        debug_log "ACTIVITY_OR_CHECKPOINT: Using activity log (newer)"
+        echo "$latest_activity_info"
+    elif [ $latest_checkpoint_time -gt 0 ]; then
+        debug_log "ACTIVITY_OR_CHECKPOINT: Using checkpoint log (newer)"
+        echo "$latest_checkpoint_info"
+    else
+        debug_log "ACTIVITY_OR_CHECKPOINT: Using activity log (fallback)"
+        echo "$latest_activity_info"
     fi
 }
 
@@ -172,30 +257,30 @@ check_activity_log_frequency_anomaly() {
     fi
     debug_log "ACTIVITY_LOG_FREQUENCY thresholds: warning=${warning_threshold}s, stop=${stop_threshold}s"
 
-    # 最新活動ログファイル情報を取得
-    local latest_activity_log_info=$(_get_latest_activity_log_info)
+    # 最新活動ログまたはチェックポイントログファイル情報を取得
+    local latest_info=$(_get_latest_activity_or_checkpoint_info)
     
     # check_inactivity_anomalyと同じスコープでdiff変数を宣言
     local diff
     
-    # 活動ログファイルが存在しない場合の処理
-    if [ -z "$latest_activity_log_info" ]; then
-        debug_log "ACTIVITY_LOG_FREQUENCY: No activity log files found, using heartbeat start time"
+    # 活動ログもチェックポイントログも存在しない場合の処理
+    if [ -z "$latest_info" ]; then
+        debug_log "ACTIVITY_LOG_FREQUENCY: No activity or checkpoint log files found, using heartbeat start time"
         diff=$((current_time - heartbeat_start_time))
     else
-        # 最新活動ログの時刻とファイル名を取得
-        local latest_activity_log_time=$(echo "$latest_activity_log_info" | cut -d' ' -f1)
-        local latest_activity_log_file=$(echo "$latest_activity_log_info" | cut -d' ' -f2-)
+        # 最新ログの時刻とファイル名を取得
+        local latest_time=$(echo "$latest_info" | cut -d' ' -f1)
+        local latest_file=$(echo "$latest_info" | cut -d' ' -f2-)
         
-        debug_log "ACTIVITY_LOG_FREQUENCY: Latest activity log: $(basename "$latest_activity_log_file") at $latest_activity_log_time"
+        debug_log "ACTIVITY_LOG_FREQUENCY: Latest log: $(basename "$latest_file") at $latest_time"
         
         # 既存のcheck_inactivity_anomalyと同じロジックを適用
-        if [ $latest_activity_log_time -lt $heartbeat_start_time ]; then
+        if [ $latest_time -lt $heartbeat_start_time ]; then
             diff=$((current_time - heartbeat_start_time))
-            debug_log "ACTIVITY_LOG_FREQUENCY: Using heartbeat start time as baseline (activity log older than heartbeat start)"
+            debug_log "ACTIVITY_LOG_FREQUENCY: Using heartbeat start time as baseline (log older than heartbeat start)"
         else
-            diff=$((current_time - latest_activity_log_time))
-            debug_log "ACTIVITY_LOG_FREQUENCY: Using activity log time as baseline"
+            diff=$((current_time - latest_time))
+            debug_log "ACTIVITY_LOG_FREQUENCY: Using log time as baseline"
         fi
     fi
 
@@ -455,18 +540,18 @@ check_activity_log_timestamp_anomaly() {
         return 0
     fi
 
-    # 最新活動ログファイル情報を取得
-    local latest_activity_log_info=$(_get_latest_activity_log_info)
+    # 最新活動ログまたはチェックポイントログファイル情報を取得
+    local latest_info=$(_get_latest_activity_or_checkpoint_info)
 
-    if [ -z "$latest_activity_log_info" ]; then
-        debug_log "ACTIVITY_LOG_TIMESTAMP: No activity log files found"
+    if [ -z "$latest_info" ]; then
+        debug_log "ACTIVITY_LOG_TIMESTAMP: No activity or checkpoint log files found"
         echo "0:0"
         return 0
     fi
 
-    # 最新活動ログのファイル名を取得
-    local latest_activity_log_file=$(echo "$latest_activity_log_info" | cut -d' ' -f2-)
-    local latest_filename=$(basename "$latest_activity_log_file")
+    # 最新ログのファイル名を取得
+    local latest_file=$(echo "$latest_info" | cut -d' ' -f2-)
+    local latest_filename=$(basename "$latest_file")
 
     # ファイル名からタイムスタンプ部分を抽出（YYYYMMDDHHMMSS）
     local timestamp_pattern=""
