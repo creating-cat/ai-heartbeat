@@ -33,12 +33,19 @@ Gemini CLIの主要な組み込みツール（`read_many_files`、`replace`、`r
   Line 4: Grape is purple.
   ```
 
-### ステップ2.2: 正確な置換のデモンストレーション
-* `read_file`で`target.txt`の内容を確認後、`old_string`と`new_string`を完全に一致させて単一置換を成功させる。
+### ステップ2.2: 正確な置換のデモンストレーションと`old_string`の厳密性
+* `read_file`で`target.txt`の内容を確認後、`old_string`を完全に一致させて単一置換を成功させる。
   * `file_path`: `projects/tutorial_theme/replace_test/target.txt`の絶対パス
   * `old_string`: `Line 1: Apple is red.`
   * `new_string`: `Line 1: Orange is orange.`
-* **考察**: `replace`ツールが`old_string`の厳密な一致を要求することの重要性を強調し、空白や改行、インデントの重要性を説明する。
+* `read_file`で`target.txt`の内容を確認後、`old_string`にわざと空白を追加して元の文字列と不一致させることで単一置換を失敗させる。
+  * `file_path`: `projects/tutorial_theme/replace_test/target.txt`の絶対パス
+  * `old_string`: `Line 2: Banana is yellow. `
+  * `new_string`: `Line 2: Muscat is green.`
+* **考察**: `replace`ツールが`old_string`の厳密な一致を要求することの重要性を強調する。**特に、改行コード、空白、インデントのわずかな違いでもマッチしない**ことを説明し、以下の点に注意を促す。
+    *   `old_string`は、置換対象のテキストを**完全にコピー＆ペースト**して使用することを強く推奨する。
+    *   目に見えない文字（スペース、タブ、改行）が一致しているか、テキストエディタの機能などで確認する。
+    *   `read_file`でファイルの内容を読み込み、その結果を直接`old_string`として使用することで、最も正確な文字列を取得できる。
 
 ### ステップ2.3: 複数置換と安全な運用
 * `expected_replacements`を指定した複数置換をデモする。
@@ -46,7 +53,7 @@ Gemini CLIの主要な組み込みツール（`read_many_files`、`replace`、`r
   * `old_string`: `Apple`
   * `new_string`: `Orange`
   * `expected_replacements`: `2`
-* **考察**: `replace`ツール使用前の`read_file`による内容確認の習慣化を強く推奨する。意図しない置換を防ぐための具体的なチェックポイントを提示する。
+* **考察**: `replace`ツール使用前の`read_file`による内容確認の習慣化を強く推奨する。意図しない置換を防ぐための具体的なチェックポイントを提示する。**複数置換の場合も、`old_string`の厳密性は変わらない**ことを強調する。
 
 ## セクション3: run_shell_commandツール - システム操作とプロセス管理
 
@@ -73,6 +80,7 @@ Gemini CLIの主要な組み込みツール（`read_many_files`、`replace`、`r
 
 ### ステップ4.2: エラーハンドリングとトラブルシューティング
 * 各ツールで発生しうる典型的なエラーケースを意図的に発生させ、適切な対処方法を学ぶ。
+* **`replace`ツールのエラー**: `old_string`が一致しない場合のエラーメッセージを理解し、`read_file`で正確な文字列を取得して再試行する方法を具体的に説明する。
 * ツール間の連携時に注意すべきポイントを整理する。
 
 ## セクション5: 総合内省活動
