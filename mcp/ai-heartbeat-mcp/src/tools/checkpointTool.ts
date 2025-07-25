@@ -56,7 +56,10 @@ export const checkpointTool = {
       const elapsedTimeMessage = await getElapsedTimeMessage(heartbeatId);
 
       return {
-        content: [{ type: 'text' as const, text: `チェックポイントを作成しました: ${checkpointFile}${elapsedTimeMessage}` }],
+        content: [{ 
+          type: 'text' as const, 
+          text: `チェックポイントを作成しました\nハートビートID: ${heartbeatId}\nファイル: ${checkpointFile}${elapsedTimeMessage}` 
+        }],
       };
     } catch (error) {
       return {
