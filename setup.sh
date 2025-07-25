@@ -71,8 +71,8 @@ initialize_ai_workspace() {
     mkdir -p "ai-works/projects"
     mkdir -p "ai-works/stats/cooldown"
     mkdir -p "ai-works/stats/lock"
-    mkdir -p "ai-works/stats/extended_processing"
-    
+    mkdir -p "ai-works/stats/deep_work"
+    mkdir -p "ai-works/stats/checkpoints"    
     
     log_success "✅ AI作業環境初期化完了"
 }
@@ -186,7 +186,8 @@ if [ "$DIRS_ONLY" = true ]; then
     echo "  - ai-works/projects/"
     echo "  - ai-works/stats/cooldown/"
     echo "  - ai-works/stats/lock/"
-    echo "  - ai-works/stats/extended_processing/"
+    echo "  - ai-works/stats/deep_work/"
+    echo "  - ai-works/stats/checkpoints/"
     echo ""
     echo "📋 コピーされたファイル:"
     echo "  - ai-works/GEMINI.md"

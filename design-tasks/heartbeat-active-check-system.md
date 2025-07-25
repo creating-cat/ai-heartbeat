@@ -239,6 +239,7 @@ replaceツールのエラー原因の調査中
 ### Phase 1: 基盤機能の実装
 1. **新規ディレクトリ構造の準備**
    - `ai-works/stats/checkpoints/` ディレクトリの作成
+   - setup.shの修正
 
 2. **MCPツール: checkpoint の実装**
    - 新しいcheckpointツールの作成

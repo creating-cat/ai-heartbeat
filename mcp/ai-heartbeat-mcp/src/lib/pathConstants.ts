@@ -14,4 +14,5 @@ export const PROJECTS_DIR = `${AI_WORKS_DIR}/projects`;
 export const THEME_HISTORIES_DIR = `${ARTIFACTS_DIR}/theme_histories`;
 export const COOLDOWN_DIR = `${STATS_DIR}/cooldown`;
 export const LOCK_DIR = `${STATS_DIR}/lock`;
-export const EXTENDED_PROCESSING_DIR = `${STATS_DIR}/extended_processing`;
+export const EXTENDED_PROCESSING_DIR = `${STATS_DIR}/deep_work`;
+export const CHECKPOINTS_DIR = `${STATS_DIR}/checkpoints`;
