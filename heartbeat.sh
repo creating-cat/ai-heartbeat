@@ -242,6 +242,20 @@ check_tool_restrictions() {
 check_agent_health() {
     local current_time=$(date +%s)
     
+    # 深い作業完了の検知（内省義務化のため）
+    detect_deep_work_completion
+    
+    # 内省義務違反チェック（新機能）
+    local introspection_obligation_result=$(check_introspection_obligation_violation "$current_time")
+    local introspection_obligation_code=$(echo "$introspection_obligation_result" | cut -d':' -f1)
+    local introspection_obligation_detail=$(echo "$introspection_obligation_result" | cut -d':' -f2)
+    
+    if [ "$introspection_obligation_code" != "0" ]; then
+        HEALTH_CHECK_DETAIL="内省義務違反: ハートビートID $introspection_obligation_detail"
+        log_warning "[CHECK] Introspection obligation violation detected: $introspection_obligation_detail"
+        return 22 # 内省義務違反（新しいエラーコード）
+    fi
+    
     # 8. 活動ログ頻度異常検知（新機能 - v2）
     local activity_freq_result=$(check_activity_log_frequency_anomaly "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
     local activity_freq_code=$(echo "$activity_freq_result" | cut -d':' -f1)
@@ -381,6 +395,8 @@ $ADVICE_INTROSPECTION"
 
 $ADVICE_INTROSPECTION"
             return 0 ;;
+        22) # 内省義務違反（新機能）
+            handle_failure "Introspection obligation violation: Deep work completed but next activity log is not introspection (ハートビートID: $detail)." "内省義務違反" ;;
         *) # 未知のエラー
             log_error "Unknown health check status: $status" ;;
     esac
@@ -437,6 +453,9 @@ attempt_recovery() {
         "活動ログタイムスタンプ異常")
             advice_message="$ADVICE_ACTIVITY_LOG_TIMESTAMP"
             ;;
+        "内省義務違反")
+            advice_message="$ADVICE_INTROSPECTION_OBLIGATION"
+            ;;
         *)
             advice_message=""
             ;;
@@ -450,6 +469,9 @@ attempt_recovery() {
             ;;
         "テーマログパターン異常")
             specific_docs="3. ai-docs/THEME_MANAGEMENT_GUIDE.md - テーマ管理の完全ガイド"
+            ;;
+        "内省義務違反")
+            specific_docs="3. ai-docs/GUIDELINES.md - 内省活動の詳細ガイド"
             ;;
         *)
             specific_docs="3. ai-docs/OPERATION_DETAILS.md - 運用詳細ガイド"
