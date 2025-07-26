@@ -25,7 +25,7 @@
 
 ### ファイル確認パターン
 **基本的な手順**:
-1. `ai-works/stats/current_heartbeat_id.txt`ファイルを直接確認
+1. `stats/current_heartbeat_id.txt`ファイルを直接確認
 2. 必要に応じてチェックポイントログを作成（後述）
 
 **特徴**: 処理を中断することなくハートビートIDを取得可能
@@ -100,7 +100,7 @@ checkpoint(current_activity="現在の活動内容を簡潔に記載")
 
 ### 作成方法
 **基本的な手順**:
-1. 現在のハートビートIDを取得（`ai-works/stats/current_heartbeat_id.txt`から）
+1. 現在のハートビートIDを取得（`stats/current_heartbeat_id.txt`から）
 2. ファイル作成: `stats/checkpoints/{ハートビートID}.txt`
 3. 内容記載: 簡潔な現在の活動内容を1行で記載
 

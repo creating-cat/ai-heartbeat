@@ -68,7 +68,7 @@
 
 **方法**:
 - プロンプト受信: メッセージからIDを取得し「ハートビートIDは[ID]です」と発言
-- ファイル確認: `ai-works/stats/current_heartbeat_id.txt`から取得（集中作業時）
+- ファイル確認: `stats/current_heartbeat_id.txt`から取得（集中作業時）
 
 **ハートビートID形式**: YYYYMMDDHHMMSS（例: 20250126094500）
 

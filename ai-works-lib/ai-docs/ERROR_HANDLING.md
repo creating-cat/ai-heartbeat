@@ -238,7 +238,7 @@ rm server.pid
 **原因**: システムファイルの不整合
 **対処方針**:
 - **checkpointツール使用**: ファイル確認と自動修復
-- **手動確認**: `ai-works/stats/current_heartbeat_id.txt`の存在確認
+- **手動確認**: `stats/current_heartbeat_id.txt`の存在確認
 
 #### 時刻乖離警告
 **症状**: 「ハートビートIDの時刻と現在時刻に乖離があります」
@@ -432,7 +432,7 @@ rm server.pid
 ```
 対処手順:
 1. checkpointツールでファイル確認
-2. 手動でai-works/stats/current_heartbeat_id.txtを確認
+2. 手動でstats/current_heartbeat_id.txtを確認
 3. ファイルが存在しない場合は、システム再起動を検討
 4. 一時的に手動でハートビートIDを確認して活動ログ作成
 ```
