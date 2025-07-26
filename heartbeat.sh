@@ -476,9 +476,6 @@ attempt_recovery() {
         "内省義務違反")
             advice_message="$ADVICE_INTROSPECTION_OBLIGATION"
             ;;
-        "flexibleモードチェックポイント不足")
-            advice_message="$ADVICE_FLEXIBLE_MODE_CHECKPOINT"
-            ;;
         *)
             advice_message=""
             ;;
@@ -487,20 +484,17 @@ attempt_recovery() {
     # 異常種別に応じた特定ドキュメントを決定
     local specific_docs=""
     case "$detection_type" in
-        "活動ログ内省不足"|"活動ログ頻度異常"|"活動ログループ異常"|"活動ログタイムスタンプ異常"|"flexibleモードチェックポイント不足")
-            specific_docs="3. ai-docs/BASIC_OPERATIONS.md - 基本操作の詳細手順"
+        "活動ログ内省不足"|"活動ログ頻度異常"|"活動ログループ異常"|"活動ログタイムスタンプ異常")
+            specific_docs="4. ai-docs/BASIC_OPERATIONS.md - 基本操作の詳細手順"
             ;;
         "テーマログパターン異常")
-            specific_docs="3. ai-docs/THEME_SYSTEM.md - テーマシステム詳細ガイド"
+            specific_docs="4. ai-docs/THEME_SYSTEM.md - テーマシステム詳細ガイド"
             ;;
         "内省義務違反")
-            specific_docs="3. ai-docs/ACTIVITY_DETAILS.md - 各活動種別の詳細ガイド"
-            ;;
-        "flexibleモードチェックポイント不足")
-            specific_docs="3. ai-docs/BASIC_OPERATIONS.md - 3. チェックポイントログの詳細"
+            specific_docs="4. ai-docs/ACTIVITY_DETAILS.md - 各活動種別の詳細ガイド"
             ;;
         *)
-            specific_docs="3. ai-docs/ERROR_HANDLING.md - エラー・例外処理完全版"
+            specific_docs="4. ai-docs/ERROR_HANDLING.md - エラー・例外処理完全版"
             ;;
     esac
 
@@ -515,9 +509,10 @@ attempt_recovery() {
 **回復手順:**
 以下のドキュメントを再ロードして、**あなた自身の動作ルールを再設定してください**
 
-1. **GEMINI.md** - 基本的な動作ルールを再確認してください。
-2. **ai-docs/TROUBLESHOOTING.md** - この異常状況への具体的対処法を確認してください。
-${specific_docs}
+1. **GEMINI.md**: 基本的な動作ルールを再確認してください。
+2. **ai-docs/SYSTEM_PHILOSOPHY.md**: なぜそのルールが存在するのか、システムの根本的な思想を再確認してください。
+3. **ai-docs/TROUBLESHOOTING.md**: この異常状況への具体的対処法を確認してください。
+4. ${specific_docs}
 
 **次のステップ:**
 1. 上記ドキュメントで動作ルールと対処法を再確認
