@@ -261,12 +261,25 @@ web_fetch({
 #### mult-fetch-mcp-server系ツール
 **制限**: 連続使用時は1秒以上の間隔が必要
 
+**対象ツール**:
+- `mult-fetch-mcp-server.fetch_html`
+- `mult-fetch-mcp-server.fetch_json`
+- `mult-fetch-mcp-server.fetch_txt`
+- `mult-fetch-mcp-server.fetch_markdown`
+- `mult-fetch-mcp-server.fetch_plaintext`
+
+**使用方法**:
 ```
 fetch_html({ url: "https://example.com" })
-// 連続使用時
+// 連続使用時は必ず1秒以上の間隔を空ける
 sleep 1
 fetch_json({ url: "https://api.example.com" })
 ```
+
+**注意事項**:
+- **サイクル制限**: 連続使用時は`sleep 1`等を使用して一秒以上間隔を空けること
+- **時間制限**: なし（report_tool_usage不要）
+- **クォータ制限**: なし
 
 ### 4.3 creative-ideation-mcp.generate_categories
 **制限**: 1ハートビートで1回まで
@@ -276,6 +289,37 @@ generate_categories({
   input: "カテゴリ生成の対象"
 })
 ```
+
+**詳細制限**:
+- **サイクル制限**: 1ハートビートで1回まで
+- **時間制限**: なし（report_tool_usage不要）
+- **クォータ制限**: ありだが実質ほぼなし
+
+### 4.4 ツール使用報告システム
+
+#### report_tool_usage の使用方法
+**時間ベース制限**を持つツールを使用した後は必須：
+
+**手動での状態報告**:
+```bash
+# 成功時
+echo "success" > "stats/tool_usage/gemini_cli.google_web_search.status"
+
+# クォータ超過時  
+echo "quota_exceeded" > "stats/tool_usage/gemini_cli.google_web_search.status"
+```
+
+**MCPツールによる報告**:
+```
+report_tool_usage({
+  toolId: "gemini_cli.google_web_search",
+  result: "success" // または "quota_exceeded"
+})
+```
+
+**報告が必要なツール**:
+- `gemini_cli.google_web_search`
+- `gemini_cli.web_fetch`
 
 ## 5. 使用時の注意事項とベストプラクティス
 
