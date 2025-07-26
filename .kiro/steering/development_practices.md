@@ -115,8 +115,8 @@ log_heartbeat() # ハートビート（専用フォーマット）
 
 **主な禁止対象**:
 - システムスクリプト（`*.sh`・`lib/`配下）
-- 設定ファイル（`heartbeat.conf`・`.gemini/settings.json`）
-- AIドキュメント（`ai-docs/`・`GEMINI.md`）
+- 設定ファイル（`heartbeat.conf`・`ai-works-lib/.gemini/settings.json`）
+- AIドキュメント（`ai-works-lib/ai-docs/`・`ai-works-lib/GEMINI.md`）
 - システムファイル（`.gitignore`, `LICENSE`, `README.md`等）
 
 ## OS互換性の実装
@@ -238,5 +238,5 @@ rm -f /tmp/web_server_$$.pid
 - **型安全性**: TypeScript + Zodによる厳密な型チェック
 - **エラーメッセージ**: ユーザーフレンドリーな警告・エラー
 - **後方互換性**: 既存機能への影響を最小化
-- **警告システム**: `ai-docs/MCP_WARNING_GUIDE.md`との連携
+- **警告システム**: `ai-works-lib/ai-docs/MCP_WARNING_GUIDE.md`との連携
 - **ツール制限**: クールダウン・ロック機能の実装

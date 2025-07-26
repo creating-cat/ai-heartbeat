@@ -4,27 +4,39 @@ inclusion: always
 
 # システム保守ガイド
 
+## システム構造の理解
+
+### テンプレートベースの作業環境分離
+
+AI心臓システムは、システム管理領域とAI活動領域を分離したテンプレートベースの構造を採用しています：
+
+- **システム管理領域**: Git管理下でシステムコードとライブラリを管理
+- **AI活動環境テンプレート** (`ai-works-lib/`): AI用の設定とドキュメントのテンプレート
+- **AI活動領域** (`ai-works/`): 実際のAI作業環境（テンプレートから自動生成）
+
+この構造により、AIは自分の活動履歴と成果物に完全にアクセスでき、システム更新時もAIの作業環境を保護できます。
+
 ## ドキュメント構造の理解
 
 ### ユーザー向けドキュメント
 - `README.md`: プロジェクト概要・クイックスタート
 - `SYSTEM_OVERVIEW.md`: 詳細なシステム説明
-- `IDEA_NOTES.md`: 将来の改善アイデア
-- `GEMINI.md`: AI向けシステム仕様（最重要）
 
-### AI向け詳細ドキュメント (`ai-docs/`)
-- `GUIDELINES.md`: 運用ガイドライン・内省活動詳細
-- `OPERATION_DETAILS.md`: 運用詳細手順・ツール制限管理
-- `THEME_MANAGEMENT_GUIDE.md`: テーマ管理完全ガイド・MCPツール活用
-- `TROUBLESHOOTING_GUIDE.md`: トラブルシューティング・異常検知対応
-- `MCP_WARNING_GUIDE.md`: MCPツール警告対応・エラーハンドリング
-- `THEME_CONCEPT_GUIDE.md`: テーマ概念説明・設計思想
-- `THEME_CONTEXT_IMPLEMENTATION.md`: テーマ専門家コンテキスト実装
-- `TOOL_RESTRICTIONS.md`: ツール使用制限・クールダウン管理
+### AI向けドキュメント
+- `ai-works-lib/GEMINI.md`: AI動作の基本ルール（最重要）
+- `ai-works-lib/ai-docs/GUIDELINES.md`: 運用ガイドライン・内省活動詳細
+- `ai-works-lib/ai-docs/OPERATION_DETAILS.md`: 運用詳細手順・ツール制限管理
+- `ai-works-lib/ai-docs/THEME_MANAGEMENT_GUIDE.md`: テーマ管理完全ガイド・MCPツール活用
+- `ai-works-lib/ai-docs/TROUBLESHOOTING_GUIDE.md`: トラブルシューティング・異常検知対応
+- `ai-works-lib/ai-docs/MCP_WARNING_GUIDE.md`: MCPツール警告対応・エラーハンドリング
+- `ai-works-lib/ai-docs/THEME_CONCEPT_GUIDE.md`: テーマ概念説明・設計思想
+- `ai-works-lib/ai-docs/THEME_CONTEXT_IMPLEMENTATION.md`: テーマ専門家コンテキスト実装
+- `ai-works-lib/ai-docs/TOOL_RESTRICTIONS.md`: ツール使用制限・クールダウン管理
 
-### サンプル・テンプレート
+### サンプル・テンプレート・開発ツール
 - `theme_sample/`: テーマファイルのサンプル
 - `mcp/ai-heartbeat-mcp/`: MCPツールのソースコード
+- `ai-works-lib/`: AI活動環境テンプレート（GEMINI.md、ai-docs/、.gemini/設定等）
 
 ## 設定ファイル管理
 
@@ -34,15 +46,17 @@ inclusion: always
 INTERVAL_SECONDS=60                    # ハートビート間隔
 INACTIVITY_WARNING_THRESHOLD=300       # 無活動警告閾値（5分）
 INACTIVITY_STOP_THRESHOLD=600          # 無活動停止閾値（10分）
-TIMESTAMP_ANOMALY_THRESHOLD=900        # タイムスタンプ異常検知閾値（15分）
 INTROSPECTION_THRESHOLD=1800           # 内省不足閾値（30分）
+MONITORED_DIRS=("artifacts")           # 監視対象ディレクトリ
+MAX_LOG_DAYS=30                        # ログファイル最大保持日数
 MAX_RECOVERY_ATTEMPTS=3                # 最大回復試行回数
 MAX_RECOVERY_WAIT_CYCLES=5             # 最大回復待機サイクル数
 ```
 
 ### Gemini CLI設定
 ```json
-// .gemini/settings.json - MCP設定
+// ai-works-lib/.gemini/settings.json - MCP設定（テンプレート）
+// 実際の設定は ai-works/.gemini/settings.json にコピーされる
 {
   "mcpServers": {
     "gemini-image-mcp-server": {
@@ -120,13 +134,15 @@ npm run dev          # 開発モード実行（テスト用）
 
 ### 重要なファイルの変更管理
 - **システムスクリプト**: 慎重なテストが必要
-- **GEMINI.md**: AI動作に直接影響するため特に注意
-- **ai-docs/**: AIの動作理解に影響
+- **ai-works-lib/GEMINI.md**: AI動作に直接影響するため特に注意
+- **ai-works-lib/ai-docs/**: AIの動作理解に影響
 - **MCPツール**: ビルド・テストが必要
 
 ### .gitignoreの管理
 ```gitignore
 ai-works/           # AI活動領域全体（除外）
+ai-works.local/     # ローカル活動領域（除外）
+ai-works.*.backup/  # バックアップ領域（除外）
 logs/              # ログファイル（除外）
 *.local            # ローカル設定ファイル（除外）
 results/           # テスト結果（除外）
