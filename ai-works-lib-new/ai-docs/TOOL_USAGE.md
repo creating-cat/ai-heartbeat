@@ -298,28 +298,40 @@ generate_categories({
 ### 4.4 ツール使用報告システム
 
 #### report_tool_usage の使用方法
-**時間ベース制限**を持つツールを使用した後は必須：
+時間ベース制限を持つツールを使用した後は、システムがクールダウンやロックを正しく管理できるよう、ツールの実行結果を報告する必要があります。
 
-**手動での状態報告**:
-```bash
-# 成功時
-echo "success" > "stats/tool_usage/gemini_cli.google_web_search.status"
-
-# クォータ超過時  
-echo "quota_exceeded" > "stats/tool_usage/gemini_cli.google_web_search.status"
-```
-
-**MCPツールによる報告**:
+**MCPツールによる報告（推奨）**:
 ```
 report_tool_usage({
   toolId: "gemini_cli.google_web_search",
-  result: "success" // または "quota_exceeded"
+  status: "success" // または "quota_exceeded"
 })
 ```
 
+**手動での状態報告（代替手段）**:
+MCPツールが利用できない場合や、基本的なファイル操作として、以下のコマンドを実行して状態ファイルを手動で作成してください。
+
+*   **成功 (`success`) の場合:**
+    ツールが正常に完了したことを示すため、クールダウン用のファイルを作成します。
+    ```bash
+    touch stats/cooldown/{toolId}
+    ```
+    **例:** `gemini.google.search` が成功した場合
+    `touch stats/cooldown/gemini.google.search`
+
+*   **クォータ超過 (`quota_exceeded`) の場合:**
+    ツールのAPIクォータ制限に達したことを示すため、ロック用のファイルを作成します。
+    ```bash
+    touch stats/lock/{toolId}
+    ```
+    **例:** `gemini.google.search` でクォータエラーが発生した場合
+    `touch stats/lock/gemini.google.search`
+
 **報告が必要なツール**:
-- `gemini_cli.google_web_search`
-- `gemini_cli.web_fetch`
+
+- gemini_cli.google_web_search
+- gemini_cli.web_fetch
+
 
 ## 5. 使用時の注意事項とベストプラクティス
 
