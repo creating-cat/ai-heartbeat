@@ -1,6 +1,6 @@
 /**
  * Path Constants for AI Works Directory Structure
- * Centralized path management for the ai-works migration
+ * Centralized path management for the migration
  */
 
 export const AI_WORKS_DIR = '.';

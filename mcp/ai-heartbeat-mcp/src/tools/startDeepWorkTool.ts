@@ -9,7 +9,7 @@ import * as path from 'path';
 import { convertTimestampToSeconds } from '../lib/timeUtils';
 
 // 深い作業ディレクトリのパス
-const DEEP_WORK_DIR = 'ai-works/stats/deep_work';
+const DEEP_WORK_DIR = 'stats/deep_work';
 
 // Base Zod schema for deep work declaration
 const startDeepWorkBaseSchema = z.object({
