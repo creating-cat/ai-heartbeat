@@ -1,0 +1,44 @@
+{
+  "mcpServers": {
+    "creative-ideation-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@creating-cat/creative-ideation-mcp"
+      ],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}"
+      },
+      "disabled": false,
+      "timeout": 300000,
+      "trust": true
+    },
+    "gemini-image-mcp-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@creating-cat/gemini-image-mcp-server"
+      ],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}"
+      },
+      "timeout": 300000,
+      "trust": true
+    },
+    "mult-fetch-mcp-server": {
+      "command": "npx",
+      "args": ["@lmcc-dev/mult-fetch-mcp-server"],
+      "env": {
+        "MCP_LANG": "en"
+      },
+      "trust": true
+    },
+    "ai-heartbeat-mcp": {
+      "command": "node",
+      "args": [
+        "../mcp/ai-heartbeat-mcp/dist/index.js"
+      ],
+      "trust": true
+    }
+  }
+}
