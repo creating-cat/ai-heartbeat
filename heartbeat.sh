@@ -487,20 +487,20 @@ attempt_recovery() {
     # 異常種別に応じた特定ドキュメントを決定
     local specific_docs=""
     case "$detection_type" in
-        "活動ログ内省不足"|"活動ログ頻度異常"|"活動ログループ異常"|"活動ログタイムスタンプ異常")
-            specific_docs="3. ai-docs/OPERATION_DETAILS.md - 活動ログ記録の詳細手順"
+        "活動ログ内省不足"|"活動ログ頻度異常"|"活動ログループ異常"|"活動ログタイムスタンプ異常"|"flexibleモードチェックポイント不足")
+            specific_docs="3. ai-docs/BASIC_OPERATIONS.md - 基本操作の詳細手順"
             ;;
         "テーマログパターン異常")
-            specific_docs="3. ai-docs/THEME_MANAGEMENT_GUIDE.md - テーマ管理の完全ガイド"
+            specific_docs="3. ai-docs/THEME_SYSTEM.md - テーマシステム詳細ガイド"
             ;;
         "内省義務違反")
-            specific_docs="3. ai-docs/GUIDELINES.md - 内省活動の詳細ガイド"
+            specific_docs="3. ai-docs/ACTIVITY_DETAILS.md - 各活動種別の詳細ガイド"
             ;;
         "flexibleモードチェックポイント不足")
-            specific_docs="3. ai-docs/OPERATION_DETAILS.md - チェックポイントログの詳細手順"
+            specific_docs="3. ai-docs/BASIC_OPERATIONS.md - 3. チェックポイントログの詳細"
             ;;
         *)
-            specific_docs="3. ai-docs/OPERATION_DETAILS.md - 運用詳細ガイド"
+            specific_docs="3. ai-docs/ERROR_HANDLING.md - エラー・例外処理完全版"
             ;;
     esac
 
@@ -515,8 +515,8 @@ attempt_recovery() {
 **回復手順:**
 以下のドキュメントを再ロードして、**あなた自身の動作ルールを再設定してください**
 
-1. **GEMINI.md** - 基本的な動作ルールを再確認
-2. **ai-docs/TROUBLESHOOTING_GUIDE.md** - この異常状況への具体的対処法を確認
+1. **GEMINI.md** - 基本的な動作ルールを再確認してください。
+2. **ai-docs/TROUBLESHOOTING.md** - この異常状況への具体的対処法を確認してください。
 ${specific_docs}
 
 **次のステップ:**

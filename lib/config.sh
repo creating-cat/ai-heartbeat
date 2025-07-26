@@ -46,7 +46,7 @@ readonly ADVICE_INTROSPECTION="
 - システム運用面: ルール遵守、思考パターン、活動バランス、効率性の確認
 - 創造的成長面: 創造的洞察の深化、学習効果の実感、内発的動機の確認
 
-詳細な内省手順については ai-docs/GUIDELINES.md の「5. 内省活動の詳細ガイド」を参照してください。
+詳細な内省手順については ai-docs/ACTIVITY_DETAILS.md の「6. 内省活動」を参照してください。
 定期的な内省活動により、継続的な自律思考と成長を実現しましょう。
 "
 
@@ -126,7 +126,7 @@ readonly ADVICE_INTROSPECTION_OBLIGATION="
 深い作業（deep work）完了後の内省義務に違反しています。
 
 深い作業を完了した後は、必ず次の活動ログで内省活動を行う必要があります。
-これは、集中的な作業の後に思考を整理し、学習効果を定着させ、次の活動に活かすために重要なルールです。
+これは、集中的な作業の後に思考を整理し、学習効果を定着させ、次の活動に活かすために重要なルールです。詳細は ai-docs/ACTIVITY_DETAILS.md の「内省義務」のセクションを参照してください。
 
 **内省義務が発生する条件:**
 *   深い作業宣言（start_deep_work）を行い、その作業が完了した場合
@@ -146,7 +146,7 @@ readonly ADVICE_INTROSPECTION_OBLIGATION="
 *   今後の活動への活かし方
 *   作業プロセスの改善点
 
-詳細な内省手順については ai-docs/GUIDELINES.md の「5. 内省活動の詳細ガイド」を参照してください。
+詳細は ai-docs/BASIC_OPERATIONS.md の「チェックポイントログの詳細」を参照してください。
 "
 
 readonly ADVICE_FLEXIBLE_MODE_CHECKPOINT="
