@@ -60,6 +60,7 @@ initialize_ai_workspace() {
     # テンプレートファイルのコピー
     log_info "📋 テンプレートファイルをコピー中..."
     cp "ai-works-lib/GEMINI.md" "ai-works/"
+    cp "ai-works-lib/stop.sh" "ai-works/"
     cp -r "ai-works-lib/ai-docs" "ai-works/"
     cp -r "ai-works-lib/.gemini" "ai-works/"
     
