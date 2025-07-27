@@ -514,7 +514,7 @@ attempt_recovery() {
 
 1. **GEMINI.md**: 基本的な動作ルールを再確認してください。
 2. **ai-docs/SYSTEM_PHILOSOPHY.md**: なぜそのルールが存在するのか、システムの根本的な思想を再確認してください。
-3. **ai-docs/TROUBLESHOOTING.md**: この異常状況への具体的対処法を確認してください。
+3. **ai-docs/ERROR_HANDLING.md**: この異常状況への具体的対処法を確認してください。
 4. ${specific_docs}
 
 **次のステップ:**
@@ -581,7 +581,7 @@ initial_heartbeat_msg="Heartbeat: $(date "+%Y%m%d%H%M%S")"
 if [ ! -d ai-works/artifacts/* ] 2>/dev/null || [ -z "$(find ai-works/artifacts -maxdepth 1 -type d ! -name artifacts ! -name theme_histories 2>/dev/null)" ]; then
     initial_heartbeat_msg="$initial_heartbeat_msg
 **システム初回起動**: 現在テーマが設定されていません。
-ai-docs/THEME_MANAGEMENT_GUIDE.md の「2. テーマ開始手順」を参照し
+ai-docs/THEME_SYSTEM.md の「1. テーマ開始活動の詳細」を参照し
 必ずテーマ開始活動を実行してください。"
     log_info "Initial startup detected: No theme directories found"
 fi
