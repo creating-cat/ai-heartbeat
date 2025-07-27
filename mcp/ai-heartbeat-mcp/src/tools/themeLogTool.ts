@@ -59,6 +59,9 @@ export const themeLogTool = {
   input_schema: themeLogInputSchema,
   execute: async (args: z.infer<typeof themeLogInputSchema>) => {
     try {
+      // 一時ファイルパスを先に定義
+      let tmpLogFilePath: string | null = null;
+
       const {
         action,
         themeStartId,
@@ -135,43 +138,6 @@ export const themeLogTool = {
         );
       }
 
-      // 個別ファイル重複チェック（念のため）
-      if (await fs.pathExists(logFilePath)) {
-        throw new Error(
-          `テーマ履歴ファイルは既に存在します: ${logFilePath}。ハートビートIDが重複していないか確認してください。`
-        );
-      }
-
-      // テーマ開始時: ディレクトリ構造の確保
-      if (action === 'start') {
-        if (isSubtheme) {
-          // サブテーマの場合：親テーマディレクトリの存在確認
-          const parentPath = resolveThemePath(parentThemeStartId!, sanitizedParentDirectoryPart!);
-          if (!await fs.pathExists(parentPath)) {
-            throw new Error(`親テーマディレクトリが存在しません: ${parentPath}`);
-          }
-        }
-
-        // ディレクトリが既に存在する場合（専門家コンテキスト作成済み）
-        if (await fs.pathExists(themeDirectoryPath)) {
-          console.log(`既存のテーマディレクトリを使用: ${themeDirectoryPath}`);
-        } else {
-          // 新規作成
-          await fs.ensureDir(themeDirectoryPath);
-        }
-
-        // historiesディレクトリは常に確保
-        await fs.ensureDir(path.join(themeDirectoryPath, 'histories'));
-      } else {
-        // テーマ終了時: ディレクトリ存在確認
-        if (!await fs.pathExists(themeDirectoryPath)) {
-          // 警告は出すが、処理は継続（履歴記録は重要）
-          console.warn(`警告: テーマディレクトリが見つかりません: ${themeDirectoryPath}`);
-        }
-
-
-      }
-
       // マークダウン内容の生成
       let markdownContent = '';
       const actionType = action === 'start' ? '開始' : '終了';
@@ -210,9 +176,44 @@ ${achievementList}
 `;
       }
 
-      // ファイル書き込み
+      // --- 堅牢なファイル操作 ---
+      // 1. 一時ファイルに書き込み
+      tmpLogFilePath = `${logFilePath}.tmp`;
+      await fs.ensureDir(path.dirname(tmpLogFilePath)); // 一時ファイル用のディレクトリも確保
+      await fs.writeFile(tmpLogFilePath, markdownContent, 'utf-8');
+
+      // 2. ディレクトリ構造の確保（ファイル書き込み成功後）
+      if (action === 'start') {
+        if (isSubtheme) {
+          const parentPath = resolveThemePath(parentThemeStartId!, sanitizedParentDirectoryPart!);
+          if (!await fs.pathExists(parentPath)) {
+            throw new Error(`親テーマディレクトリが存在しません: ${parentPath}`);
+          }
+        }
+        // ディレクトリが既に存在する場合でもensureDirは問題ない
+        await fs.ensureDir(themeDirectoryPath);
+        await fs.ensureDir(path.join(themeDirectoryPath, 'histories'));
+      } else { // action === 'end'
+        if (!await fs.pathExists(themeDirectoryPath)) {
+          console.warn(`警告: テーマディレクトリが見つかりません: ${themeDirectoryPath}`);
+        }
+      }
+
+      // 3. 最終的なファイルパスの重複を再度チェック（リネーム直前）
+      if (await fs.pathExists(logFilePath)) {
+        throw new Error(
+          `テーマ履歴ファイルは既に存在します: ${logFilePath}。競合が発生した可能性があります。`
+        );
+      }
+
+      // 4. 一時ファイルを本番パスにリネーム（アトミック操作）
+      await fs.rename(tmpLogFilePath, logFilePath);
+      tmpLogFilePath = null; // 成功したのでクリーンアップ対象から外す
+
+      /* 従来のファイル書き込み処理は削除
       await fs.ensureDir(path.dirname(logFilePath));
       await fs.writeFile(logFilePath, markdownContent, 'utf-8');
+      */
 
       // 応答メッセージ作成
       let responseText = `${themeType}履歴ファイルを作成しました: ${logFilePath}`;
@@ -243,6 +244,12 @@ ${achievementList}
 
       return { content: [{ type: 'text' as const, text: responseText }] };
     } catch (error) {
+      // エラー発生時に一時ファイルをクリーンアップ
+      // @ts-ignore tmpLogFilePath is not defined in this scope
+      if (typeof tmpLogFilePath === 'string' && await fs.pathExists(tmpLogFilePath)) {
+        // @ts-ignore
+        await fs.remove(tmpLogFilePath);
+      }
       return {
         content: [
           { type: 'text' as const, text: `エラーが発生しました: ${error instanceof Error ? error.message : String(error)}` },

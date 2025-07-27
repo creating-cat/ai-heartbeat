@@ -1,4 +1,4 @@
-# テーマ：generate_categoriesツールチュートリアル (改善案)
+# テーマ：generate_categoriesツールチュートリアル
 
 ## 目的：
 generate_categoriesツールの機能と、`randomize_selection`オプション、`domain_context`オプションの挙動を深く理解する。
