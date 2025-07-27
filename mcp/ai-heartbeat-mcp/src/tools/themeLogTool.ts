@@ -25,7 +25,7 @@ export const themeLogInputSchema = z.object({
   reason: z.string().describe('テーマを開始または終了する理由。'),
   achievements: z.array(z.string()).optional().describe("テーマ終了時に記録する主な成果のリスト。actionが'end'の場合に使用します。"),
   activityContent: z.array(z.string()).optional().describe("テーマ開始時に記録する初期活動計画のリスト。actionが'start'の場合に使用します。"),
-  
+
   // 🆕 サブテーマ対応の新規フィールド
   parentThemeStartId: z.string()
     .regex(/^\d{14}$/, 'PARENT_THEME_START_IDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
@@ -125,7 +125,7 @@ export const themeLogTool = {
       // ハートビートID重複チェック（全テーマ履歴ファイルを検索）
       const themeHistoryPattern = path.join(THEME_HISTORIES_DIR, `${logFileId}_*.md`);
       const existingThemeHistories = await glob(themeHistoryPattern);
-      
+
       if (existingThemeHistories.length > 0) {
         const existingFile = path.basename(existingThemeHistories[0]);
         throw new Error(
@@ -159,7 +159,7 @@ export const themeLogTool = {
           // 新規作成
           await fs.ensureDir(themeDirectoryPath);
         }
-        
+
         // historiesディレクトリは常に確保
         await fs.ensureDir(path.join(themeDirectoryPath, 'histories'));
       } else {
@@ -168,7 +168,7 @@ export const themeLogTool = {
           // 警告は出すが、処理は継続（履歴記録は重要）
           console.warn(`警告: テーマディレクトリが見つかりません: ${themeDirectoryPath}`);
         }
-        
+
 
       }
 
@@ -227,8 +227,12 @@ ${achievementList}
         if (isSubtheme) {
           responseText += `\n親テーマに戻ります: ${parentThemeStartId}_${sanitizedParentDirectoryPart}`;
         }
+
+        // テーマ終了時の待機指示
+        responseText += `\n\n重要: 次のテーマ開始は次のハートビートまで待機してください`;
+        responseText += `\n理由: システムの安定性とツール制限の回避のため`;
       }
-      
+
       // サニタイズ警告
       if (isSanitized) {
         responseText += `\n警告: ディレクトリ名を「${themeDirectoryPart}」から「${sanitizedDirectoryPart}」に修正しました`;
