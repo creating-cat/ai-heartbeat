@@ -443,12 +443,11 @@ attempt_recovery() {
 
 
     # コンテキスト圧縮を実行
-    # 400エラーが起きるバグのため一時的にコメント化
-    # log_notice "Sending context compression command..."
-    # compress_agent_context
-    # if [ "$SHUTDOWN_REQUESTED" = true ]; then return; fi
-    # interruptible_sleep 30  # 圧縮処理の完了を待機
-    # log_notice "Context compression completed."
+    log_notice "Sending context compression command..."
+    compress_agent_context
+    if [ "$SHUTDOWN_REQUESTED" = true ]; then return; fi
+    interruptible_sleep 30  # 圧縮処理の完了を待機
+    log_notice "Context compression completed."
     
     # チャット保存を実行
     local save_timestamp=$(date "+%Y%m%d%H%M%S")
