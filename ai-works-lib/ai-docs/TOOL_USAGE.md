@@ -77,7 +77,7 @@ create_activity_log({
 #### 基本的な使用方法
 ```
 checkpoint({
-  current_activity: "大規模ファイルの分析中"
+  message: "大規模ファイルの分析中"
 })
 ```
 
