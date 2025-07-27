@@ -2,24 +2,24 @@ import { z } from 'zod';
 import fs from 'fs-extra';
 import path from 'path';
 import { getLatestActivityLogInfo } from '../lib/logUtils';
-import { convertTimestampToSeconds, formatElapsedTime, getLatestCheckpointInfo } from '../lib/timeUtils';
-import { STATS_DIR } from '../lib/pathConstants';
+import { getCurrentTimestamp, getFileModificationTime, formatElapsedTime, getLatestCheckpointInfo } from '../lib/timeUtils';
+import { STATS_DIR, CHECKPOINTS_DIR } from '../lib/pathConstants';
 
 const checkpointInputSchema = z.object({
   message: z.string().min(1, 'メッセージを記述してください').describe('このチェックポイントの状況を表すメッセージ。作業の開始・完了・進捗・現在の活動内容など（例: 「データベース設計開始」「分析完了」「複雑な問題の調査中」）'),
 });
 
 async function getElapsedTimeMessage(currentHeartbeatId: string): Promise<string> {
-  const latestLogInfo = await getLatestActivityLogInfo();
-  const currentTime = convertTimestampToSeconds(currentHeartbeatId);
+  const currentTime = getCurrentTimestamp(); // 実際の現在時刻を使用
   let message = '';
 
   // 最後の活動ログからの経過時間
+  const latestLogInfo = await getLatestActivityLogInfo();
   if (latestLogInfo) {
-    const latestLogTime = convertTimestampToSeconds(latestLogInfo.heartbeatId);
+    const latestLogTime = await getFileModificationTime(latestLogInfo.filePath);
     const elapsedSeconds = currentTime - latestLogTime;
 
-    if (elapsedSeconds >= 0) {
+    if (elapsedSeconds > 0) { // 0秒の場合は表示しない
       message += `\n最後の活動ログから${formatElapsedTime(elapsedSeconds)}が経過しています。`;
     }
   }
@@ -28,15 +28,16 @@ async function getElapsedTimeMessage(currentHeartbeatId: string): Promise<string
   try {
     const latestCheckpoint = await getLatestCheckpointInfo();
     if (latestCheckpoint) {
-      // 現在のチェックポイントと同じでない場合のみ表示
-      if (latestCheckpoint.heartbeatId !== currentHeartbeatId) {
-        const elapsedSeconds = currentTime - latestCheckpoint.timestamp;
-        if (elapsedSeconds >= 0) {
-          message += `\n前回のチェックポイントから${formatElapsedTime(elapsedSeconds)}が経過しています。`;
-          message += `\n前回のメッセージ: ${latestCheckpoint.message}`;
-        }
+      const checkpointFile = path.join(CHECKPOINTS_DIR, `${latestCheckpoint.heartbeatId}.txt`);
+      const checkpointTime = await getFileModificationTime(checkpointFile);
+      const elapsedSeconds = currentTime - checkpointTime;
+
+      if (elapsedSeconds > 30) { // 30秒以上経過した場合のみ表示
+        message += `\n前回のチェックポイントから${formatElapsedTime(elapsedSeconds)}が経過しています。`;
+        message += `\n前回のメッセージ: ${latestCheckpoint.message}`;
+      } else if (elapsedSeconds > 0) {
+        message += `\n最近チェックポイントを作成しました。`;
       } else {
-        // 同じハートビートIDの場合は初回
         message += `\n初回のチェックポイントです。`;
       }
     } else {
@@ -56,10 +57,10 @@ async function getElapsedTimeMessage(currentHeartbeatId: string): Promise<string
   );
 
   if (!hasActiveDeepWork && latestLogInfo) {
-    const latestLogTime = convertTimestampToSeconds(latestLogInfo.heartbeatId);
+    const latestLogTime = await getFileModificationTime(latestLogInfo.filePath);
     const elapsedSeconds = currentTime - latestLogTime;
     const elapsedMinutes = Math.floor(elapsedSeconds / 60);
-    
+
     if (elapsedMinutes >= 5) {
       message += `\n\n長時間の集中作業が見込まれる場合は、start_deep_workツールの使用を検討してください。`;
     }
@@ -88,9 +89,9 @@ export const checkpointTool = {
       const elapsedTimeMessage = await getElapsedTimeMessage(heartbeatId);
 
       return {
-        content: [{ 
-          type: 'text' as const, 
-          text: `チェックポイントを作成しました\nハートビートID: ${heartbeatId}\nファイル: ${checkpointFile}${elapsedTimeMessage}` 
+        content: [{
+          type: 'text' as const,
+          text: `チェックポイントを作成しました\nハートビートID: ${heartbeatId}\nファイル: ${checkpointFile}${elapsedTimeMessage}`
         }],
       };
     } catch (error) {

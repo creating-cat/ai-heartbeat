@@ -6,7 +6,7 @@ import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
-import { convertTimestampToSeconds, formatElapsedTime, getLatestCheckpointInfo } from '../lib/timeUtils';
+import { getCurrentTimestamp, getFileModificationTime, convertTimestampToSeconds, formatElapsedTime, getLatestCheckpointInfo } from '../lib/timeUtils';
 import { resolveThemePath } from '../lib/themeUtils';
 import { getLatestActivityLogInfo } from '../lib/logUtils';
 import { EXTENDED_PROCESSING_DIR, STATS_DIR } from '../lib/pathConstants';
@@ -56,16 +56,16 @@ export const activityLogInputSchema = z.object({
  * 前回活動ログとチェックポイントからの経過時間メッセージを生成
  */
 async function generateTimeAnalysisMessage(heartbeatId: string): Promise<string> {
-  const currentTime = convertTimestampToSeconds(heartbeatId);
+  const currentTime = getCurrentTimestamp(); // 実際の現在時刻を使用
   let timeMessages: string[] = [];
 
   // 前回活動ログからの経過時間
   try {
     const latestLogInfo = await getLatestActivityLogInfo();
     if (latestLogInfo) {
-      const latestLogTime = convertTimestampToSeconds(latestLogInfo.heartbeatId);
+      const latestLogTime = await getFileModificationTime(latestLogInfo.filePath);
       const elapsedSeconds = currentTime - latestLogTime;
-      if (elapsedSeconds >= 0) {
+      if (elapsedSeconds > 0) { // 0秒の場合は表示しない
         timeMessages.push(`前回の活動ログから${formatElapsedTime(elapsedSeconds)}が経過しています。`);
       }
     }
@@ -77,8 +77,10 @@ async function generateTimeAnalysisMessage(heartbeatId: string): Promise<string>
   try {
     const latestCheckpoint = await getLatestCheckpointInfo();
     if (latestCheckpoint) {
-      const elapsedSeconds = currentTime - latestCheckpoint.timestamp;
-      if (elapsedSeconds >= 0) {
+      const checkpointFile = path.join(STATS_DIR, 'checkpoints', `${latestCheckpoint.heartbeatId}.txt`);
+      const checkpointTime = await getFileModificationTime(checkpointFile);
+      const elapsedSeconds = currentTime - checkpointTime;
+      if (elapsedSeconds > 0) { // 0秒の場合は表示しない
         timeMessages.push(`前回のチェックポイントから${formatElapsedTime(elapsedSeconds)}が経過しています。`);
 
         // チェックポイントの内容も表示
@@ -107,7 +109,7 @@ async function checkProcessingTime(heartbeatId: string): Promise<string | null> 
     }
 
     const heartbeatTime = convertTimestampToSeconds(heartbeatId);
-    const currentTime = Math.floor(Date.now() / 1000);
+    const currentTime = getCurrentTimestamp(); // 実際の現在時刻を使用
     const elapsedSeconds = currentTime - heartbeatTime;
     const elapsedMinutes = Math.floor(elapsedSeconds / 60);
 
@@ -330,12 +332,12 @@ export const activityLogTool = {
             const originalPath = path.join(deepWorkDir, activeFile);
             const completedPath = originalPath.replace(/\.txt$/, '.completed.txt');
 
-            // 深い作業の開始時刻を取得（ファイル名から）
+            // 深い作業の開始時刻を取得（ファイル作成時刻から）
             const deepWorkHeartbeatId = activeFile.replace('.txt', '');
             if (/^\d{14}$/.test(deepWorkHeartbeatId)) {
               try {
-                const startTime = convertTimestampToSeconds(deepWorkHeartbeatId);
-                const currentTime = convertTimestampToSeconds(heartbeatId);
+                const startTime = await getFileModificationTime(originalPath);
+                const currentTime = getCurrentTimestamp();
                 const elapsedSeconds = currentTime - startTime;
 
                 if (elapsedSeconds >= 0) {

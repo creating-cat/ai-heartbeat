@@ -5,7 +5,27 @@ import path from 'path';
 import { CHECKPOINTS_DIR } from './pathConstants';
 
 /**
+ * 現在時刻をUnix秒で取得（実際の処理時刻）
+ */
+export function getCurrentTimestamp(): number {
+  return Math.floor(Date.now() / 1000);
+}
+
+/**
+ * ファイルの更新時刻をUnix秒で取得
+ */
+export async function getFileModificationTime(filePath: string): Promise<number> {
+  try {
+    const stats = await fs.stat(filePath);
+    return Math.floor(stats.mtime.getTime() / 1000);
+  } catch (error) {
+    return 0;
+  }
+}
+
+/**
  * YYYYMMDDHHMMSS形式のタイムスタンプをUnix秒に変換
+ * 既存ファイルのハートビートID処理用（後方互換性のため維持）
  */
 export function convertTimestampToSeconds(timestamp: string): number {
   if (!/^\d{14}$/.test(timestamp)) {
