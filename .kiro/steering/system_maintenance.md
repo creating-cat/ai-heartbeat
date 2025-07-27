@@ -24,14 +24,13 @@ AI心臓システムは、システム管理領域とAI活動領域を分離し�
 
 ### AI向けドキュメント
 - `ai-works-lib/GEMINI.md`: AI動作の基本ルール（最重要）
-- `ai-works-lib/ai-docs/GUIDELINES.md`: 運用ガイドライン・内省活動詳細
-- `ai-works-lib/ai-docs/OPERATION_DETAILS.md`: 運用詳細手順・ツール制限管理
-- `ai-works-lib/ai-docs/THEME_MANAGEMENT_GUIDE.md`: テーマ管理完全ガイド・MCPツール活用
-- `ai-works-lib/ai-docs/TROUBLESHOOTING_GUIDE.md`: トラブルシューティング・異常検知対応
-- `ai-works-lib/ai-docs/MCP_WARNING_GUIDE.md`: MCPツール警告対応・エラーハンドリング
-- `ai-works-lib/ai-docs/THEME_CONCEPT_GUIDE.md`: テーマ概念説明・設計思想
-- `ai-works-lib/ai-docs/THEME_CONTEXT_IMPLEMENTATION.md`: テーマ専門家コンテキスト実装
-- `ai-works-lib/ai-docs/TOOL_RESTRICTIONS.md`: ツール使用制限・クールダウン管理
+- `ai-works-lib/ai-docs/SYSTEM_PHILOSOPHY.md`: システムの理念・概念の詳細
+- `ai-works-lib/ai-docs/BASIC_OPERATIONS.md`: 基本操作の詳細手順
+- `ai-works-lib/ai-docs/ACTIVITY_DETAILS.md`: 各活動種別の詳細ガイド
+- `ai-works-lib/ai-docs/THEME_SYSTEM.md`: テーマ・サブテーマ管理
+- `ai-works-lib/ai-docs/TOOL_USAGE.md`: MCPツール使用方法
+- `ai-works-lib/ai-docs/ERROR_HANDLING.md`: エラー・例外処理
+- `ai-works-lib/ai-docs/ADVANCED_FEATURES.md`: 高度な機能
 
 ### サンプル・テンプレート・開発ツール
 - `theme_sample/`: テーマファイルのサンプル
@@ -59,6 +58,16 @@ MAX_RECOVERY_WAIT_CYCLES=5             # 最大回復待機サイクル数
 // 実際の設定は ai-works/.gemini/settings.json にコピーされる
 {
   "mcpServers": {
+    "creative-ideation-mcp": {
+      "command": "npx",
+      "args": ["-y", "@creating-cat/creative-ideation-mcp"],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}"
+      },
+      "disabled": false,
+      "timeout": 300000,
+      "trust": true
+    },
     "gemini-image-mcp-server": {
       "command": "npx",
       "args": ["-y", "@creating-cat/gemini-image-mcp-server"],
@@ -78,7 +87,7 @@ MAX_RECOVERY_WAIT_CYCLES=5             # 最大回復待機サイクル数
     },
     "ai-heartbeat-mcp": {
       "command": "node",
-      "args": ["./mcp/ai-heartbeat-mcp/dist/index.js"],
+      "args": ["../mcp/ai-heartbeat-mcp/dist/index.js"],
       "trust": true
     }
   }
@@ -128,7 +137,7 @@ npm run dev          # 開発モード実行（テスト用）
 2. `src/index.ts`でツールを登録
 3. Zodスキーマによる入力検証を実装
 4. 適切なエラーハンドリングと警告メッセージを追加
-5. `ai-docs/MCP_WARNING_GUIDE.md`にツール固有の警告を記載
+5. `ai-works-lib/ai-docs/ERROR_HANDLING.md`にツール固有のエラー対応を記載
 
 ## バージョン管理・リリース
 

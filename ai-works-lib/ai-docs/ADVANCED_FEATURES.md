@@ -506,11 +506,11 @@ get_heartbeat_elapsed_time({
 
 ### エラー・トラブル対応
 - **エラー処理**: `./ERROR_HANDLING.md` - 高度機能使用時のエラー対応
-- **トラブルシューティング**: `./TROUBLESHOOTING.md` - 高度機能の問題対処
+- **エラー処理**: `./ERROR_HANDLING.md` - 高度機能の問題対処
 
 ### 旧システム参考
-- **運用詳細**: 旧システムの`OPERATION_DETAILS.md` - 深い作業宣言の技術詳細
-- **テーマ管理**: 旧システムの`THEME_MANAGEMENT_GUIDE.md` - themebox/feedbackboxの詳細
+- **基本操作**: `./BASIC_OPERATIONS.md` - 深い作業宣言の技術詳細
+- **テーマ管理**: `./THEME_SYSTEM.md` - themebox/feedbackboxの詳細
 
 ---
 

@@ -760,12 +760,11 @@ rm server.pid
 - **活動詳細**: `./ACTIVITY_DETAILS.md` - 活動実行時のエラー対応
 
 ### 高度な対処
-- **トラブルシューティング**: `./TROUBLESHOOTING.md` - 高度なトラブルシューティング
+- **高度機能**: `./ADVANCED_FEATURES.md` - 高度機能使用時の詳細対処
 - **高度機能**: `./ADVANCED_FEATURES.md` - 深い作業宣言等の高度な機能
 
 ### 旧システム参考
-- **詳細トラブルシューティング**: 旧システムの`TROUBLESHOOTING_GUIDE.md` - 具体的な問題事例
-- **MCP警告対応**: 旧システムの`MCP_WARNING_GUIDE.md` - MCPツール警告の詳細
+- **高度機能**: `./ADVANCED_FEATURES.md` - 具体的な問題事例と対処法
 
 ---
 

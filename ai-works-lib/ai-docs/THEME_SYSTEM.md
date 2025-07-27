@@ -547,5 +547,5 @@ artifacts/
 - **各活動種別の詳細**: `./ACTIVITY_DETAILS.md` - テーマ開始・終了活動の基本手順
 
 ### 運用詳細
-- **MCPツール活用**: `./OPERATION_DETAILS.md` - テーマ管理MCPツールの詳細
-- **異常時対応**: `./TROUBLESHOOTING_GUIDE.md` - テーマ管理での問題対処
+- **MCPツール活用**: `./TOOL_USAGE.md` - テーマ管理MCPツールの詳細
+- **エラー処理**: `./ERROR_HANDLING.md` - テーマ管理での問題対処

@@ -34,11 +34,11 @@ Gemini CLIの主要な組み込みツール（`read_many_files`、`replace`、`r
   ```
 
 ### ステップ2.2: 正確な置換のデモンストレーションと`old_string`の厳密性
-* `read_file`で`target.txt`の内容を確認後、`old_string`を完全に一致させて単一置換を成功させる。
+* `read_file`で`target.txt`の内容を確認後、`old_string`を完全に一致させて単一置換をしてみる。
   * `file_path`: `projects/tutorial_theme/replace_test/target.txt`の絶対パス
   * `old_string`: `Line 1: Apple is red.`
   * `new_string`: `Line 1: Orange is orange.`
-* `read_file`で`target.txt`の内容を確認後、`old_string`にわざと空白を追加して元の文字列と不一致させることで単一置換を失敗させる。
+* `read_file`で`target.txt`の内容を確認後、`old_string`にわざと空白を追加して元の文字列と不一致させることで単一置換をしてみる。
   * `file_path`: `projects/tutorial_theme/replace_test/target.txt`の絶対パス
   * `old_string`: `Line 2: Banana is yellow. `
   * `new_string`: `Line 2: Muscat is green.`

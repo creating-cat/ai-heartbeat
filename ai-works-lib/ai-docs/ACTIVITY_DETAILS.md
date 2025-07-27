@@ -467,5 +467,5 @@
 - **時間ベース制御の理念**: `./SYSTEM_PHILOSOPHY.md` - 制限の意味と価値
 
 ### 運用詳細
-- **MCPツール制限**: `./TOOL_RESTRICTIONS.md` - 使用制限と対処法
-- **異常検知対応**: `./TROUBLESHOOTING_GUIDE.md` - 問題発生時の対処
+- **MCPツール使用**: `./TOOL_USAGE.md` - 使用方法と制限
+- **エラー処理**: `./ERROR_HANDLING.md` - 問題発生時の対処

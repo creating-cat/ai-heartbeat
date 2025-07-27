@@ -89,16 +89,24 @@ log_heartbeat() # ハートビート（専用フォーマット）
 ```typescript
 // src/index.ts - エントリーポイント
 // src/lib/ - ユーティリティライブラリ
+// - activityLogParser.ts
+// - logUtils.ts
+// - pathConstants.ts
+// - themeUtils.ts
 // - timeUtils.ts
 // src/tools/ - 各ツールの実装
 // - activityLogTool.ts (活動ログ作成・参照)
-// - themeLogTool.ts (テーマ履歴管理)
-// - itemProcessorTool.ts (themebox/feedbackbox処理)
-// - webSearchStatsTool.ts (Web検索制限管理)
+// - checkpointTool.ts (チェックポイントログ作成)
+// - checkThemeStatusTool.ts (テーマ状態確認)
 // - createThemeExpertContextTool.ts (専門家コンテキスト作成)
+// - getHeartbeatElapsedTimeTool.ts (ハートビート経過時間取得)
+// - getLatestActivityLogTool.ts (最新活動ログ取得)
+// - getLatestThemeContextTool.ts (最新テーマコンテキスト取得)
+// - itemProcessorTool.ts (themebox/feedbackbox処理)
+// - listThemeArtifactsTool.ts (テーマ成果物一覧取得)
 // - reportToolUsageTool.ts (ツール使用報告)
-// - themeStatusTool.ts (テーマ状態分析)
-// - themeArtifactsTool.ts (成果物一覧取得)
+// - startDeepWorkTool.ts (深い作業宣言)
+// - themeLogTool.ts (テーマ履歴管理)
 ```
 
 ### ツール設計パターン
@@ -166,7 +174,7 @@ fi
 timeout 30s npm run dev
 
 # 出力も保存したい場合（オプション）
-timeout 30s npm run dev 2>&1 | tee artifacts/current_theme/server_output.log
+timeout 30s npm run dev 2>&1 | tee ai-works/artifacts/current_theme/server_output.log
 ```
 
 **利点**:
@@ -238,5 +246,5 @@ rm -f /tmp/web_server_$$.pid
 - **型安全性**: TypeScript + Zodによる厳密な型チェック
 - **エラーメッセージ**: ユーザーフレンドリーな警告・エラー
 - **後方互換性**: 既存機能への影響を最小化
-- **警告システム**: `ai-works-lib/ai-docs/MCP_WARNING_GUIDE.md`との連携
+- **エラーハンドリング**: `ai-works-lib/ai-docs/ERROR_HANDLING.md`との連携
 - **ツール制限**: クールダウン・ロック機能の実装
