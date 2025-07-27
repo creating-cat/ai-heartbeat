@@ -31,7 +31,7 @@ export const activityLogInputSchema = z.object({
     .describe('テーマ開始時のハートビートID'),
   themeDirectoryPart: z.string()
     .describe('テーマディレクトリ名の一部。THEME_START_IDと組み合わせて "{THEME_START_ID}_{themeDirectoryPart}" の形式でテーマディレクトリが特定されます'),
-  
+
   // 🆕 サブテーマ対応の新規フィールド
   parentThemeStartId: z.string()
     .regex(/^\d{14}$/, 'PARENT_THEME_START_IDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
@@ -80,7 +80,7 @@ async function generateTimeAnalysisMessage(heartbeatId: string): Promise<string>
       const elapsedSeconds = currentTime - latestCheckpoint.timestamp;
       if (elapsedSeconds >= 0) {
         timeMessages.push(`前回のチェックポイントから${formatElapsedTime(elapsedSeconds)}が経過しています。`);
-        
+
         // チェックポイントの内容も表示
         timeMessages.push(`最後のチェックポイント: ${latestCheckpoint.message}`);
       }
@@ -110,11 +110,11 @@ async function checkProcessingTime(heartbeatId: string): Promise<string | null> 
     const currentTime = Math.floor(Date.now() / 1000);
     const elapsedSeconds = currentTime - heartbeatTime;
     const elapsedMinutes = Math.floor(elapsedSeconds / 60);
-    
+
     if (elapsedSeconds >= PROCESSING_TIME_CONFIG.warningThreshold) { // 10分
       return `※ 長時間作業中です。適度な区切りでの活動ログ作成を推奨します。`;
     }
-    
+
     return null;
   } catch (error) {
     // タイムスタンプ変換エラーの場合は警告を出さない
@@ -124,11 +124,11 @@ async function checkProcessingTime(heartbeatId: string): Promise<string | null> 
 
 function generateActivityLogMarkdown(args: z.infer<typeof activityLogInputSchema>): string {
   const lines: string[] = [];
-  
+
   // Title
   lines.push(`# ハートビートログ`);
   lines.push('');
-  
+
   // サブテーマ情報（サブテーマの場合のみ）
   if (args.parentThemeStartId && args.parentThemeDirectoryPart) {
     lines.push('## テーマ情報');
@@ -136,12 +136,12 @@ function generateActivityLogMarkdown(args: z.infer<typeof activityLogInputSchema
     lines.push(`**親テーマ**: ${args.parentThemeStartId}_${args.parentThemeDirectoryPart}`);
     lines.push('');
   }
-  
+
   // Activity type
   lines.push('## 活動種別');
   lines.push(args.activityType);
   lines.push('');
-  
+
   // Activity content
   lines.push('## 活動内容');
   if (args.activityContent.length > 0) {
@@ -152,7 +152,7 @@ function generateActivityLogMarkdown(args: z.infer<typeof activityLogInputSchema
     lines.push('具体的な活動内容なし');
   }
   lines.push('');
-  
+
   // Artifacts
   lines.push('## 成果物、関連ファイル');
   if (args.artifacts && args.artifacts.length > 0) {
@@ -163,7 +163,7 @@ function generateActivityLogMarkdown(args: z.infer<typeof activityLogInputSchema
     lines.push('なし');
   }
   lines.push('');
-  
+
   // Evaluation
   lines.push('## 自己評価、備考');
   if (args.evaluation && args.evaluation.trim()) {
@@ -172,14 +172,14 @@ function generateActivityLogMarkdown(args: z.infer<typeof activityLogInputSchema
     lines.push('特記事項なし');
   }
   lines.push('');
-  
+
   return lines.join('\n');
 }
 
 function getActivityLogFilePath(
-  themeStartId: string, 
-  themeDirectoryPart: string, 
-  heartbeatId: string, 
+  themeStartId: string,
+  themeDirectoryPart: string,
+  heartbeatId: string,
   sequence?: number,
   parentThemeStartId?: string,
   parentThemeDirectoryPart?: string
@@ -191,53 +191,53 @@ function getActivityLogFilePath(
     parentThemeStartId,
     parentThemeDirectoryPart
   );
-  
+
   // ファイル名生成
   const filename = sequence ? `${heartbeatId}_${sequence.toString().padStart(2, '0')}.md` : `${heartbeatId}.md`;
-  
+
   return path.join(themeDirectoryPath, 'histories', filename);
 }
 
 async function findAvailableSequence(
-  themeStartId: string, 
-  themeDirectoryPart: string, 
+  themeStartId: string,
+  themeDirectoryPart: string,
   heartbeatId: string,
   parentThemeStartId?: string,
   parentThemeDirectoryPart?: string
 ): Promise<{ sequence: number | null; warning: string | null }> {
   const basePath = getActivityLogFilePath(
-    themeStartId, 
-    themeDirectoryPart, 
-    heartbeatId, 
+    themeStartId,
+    themeDirectoryPart,
+    heartbeatId,
     undefined,
     parentThemeStartId,
     parentThemeDirectoryPart
   );
-  
+
   // 基本ファイルが存在しない場合は連番なしで作成
   if (!await fs.pathExists(basePath)) {
     return { sequence: null, warning: null };
   }
-  
+
   // 連番ファイルをチェック（ファイル重複回避のため連番生成ロジックは維持）
   for (let i = 1; i <= 99; i++) {
     const sequencePath = getActivityLogFilePath(
-      themeStartId, 
-      themeDirectoryPart, 
-      heartbeatId, 
+      themeStartId,
+      themeDirectoryPart,
+      heartbeatId,
       i,
       parentThemeStartId,
       parentThemeDirectoryPart
     );
     if (!await fs.pathExists(sequencePath)) {
       // 連番警告は削除し、時間ベース警告に統一
-      return { 
-        sequence: i, 
+      return {
+        sequence: i,
         warning: null  // 連番警告を削除
       };
     }
   }
-  
+
   // 99個まで埋まっている場合はエラー
   throw new Error(`ハートビートID ${heartbeatId} の活動ログの連番が上限（99）に達しました。`);
 }
@@ -270,12 +270,12 @@ export const activityLogTool = {
       // Generate markdown content
       let markdownContent = generateActivityLogMarkdown(args);
       markdownContent = markdownContent.replace('# ハートビートログ', `# ハートビートログ：${heartbeatId}`);
-      
+
       // Sanitize directory part to prevent directory traversal
       const sanitizedDirectoryPart = path.basename(args.themeDirectoryPart);
-      const sanitizedParentDirectoryPart = args.parentThemeDirectoryPart ? 
+      const sanitizedParentDirectoryPart = args.parentThemeDirectoryPart ?
         path.basename(args.parentThemeDirectoryPart) : undefined;
-      
+
       // テーマディレクトリパスを構築
       const themeDirectoryPath = resolveThemePath(
         args.themeStartId,
@@ -283,37 +283,37 @@ export const activityLogTool = {
         args.parentThemeStartId,
         sanitizedParentDirectoryPart
       );
-      
+
       // テーマディレクトリの存在確認
       if (!await fs.pathExists(themeDirectoryPath)) {
         const themeType = args.parentThemeStartId ? 'サブテーマ' : 'テーマ';
         throw new Error(`${themeType}ディレクトリが存在しません: ${themeDirectoryPath}`);
       }
-      
+
       // Check for duplicates and find available sequence
       const { sequence, warning } = await findAvailableSequence(args.themeStartId, sanitizedDirectoryPart, heartbeatId, args.parentThemeStartId, sanitizedParentDirectoryPart);
-      
+
       const filePath = getActivityLogFilePath(
-        args.themeStartId, 
-        sanitizedDirectoryPart, 
-        heartbeatId, 
+        args.themeStartId,
+        sanitizedDirectoryPart,
+        heartbeatId,
         sequence ?? undefined,
         args.parentThemeStartId,
         sanitizedParentDirectoryPart
       );
-      
+
       // Check processing time (統一された時間ベース制御)
       const processingTimeWarning = await checkProcessingTime(heartbeatId);
-      
+
       // Generate time analysis message
       const timeAnalysisMessage = await generateTimeAnalysisMessage(heartbeatId);
-      
+
       // Ensure directory exists
       await fs.ensureDir(path.dirname(filePath));
-      
+
       // Write file
       await fs.writeFile(filePath, markdownContent, 'utf-8');
-      
+
       // 深い作業宣言ファイルの完了処理
       const deepWorkDir = path.join(STATS_DIR, 'deep_work');
       let extendedProcessingMessage = '';
@@ -324,57 +324,85 @@ export const activityLogTool = {
 
         if (activeDeepWorkFiles.length > 0) {
           const completedFiles = [];
+          const deepWorkDurations = [];
+
           for (const activeFile of activeDeepWorkFiles) {
             const originalPath = path.join(deepWorkDir, activeFile);
             const completedPath = originalPath.replace(/\.txt$/, '.completed.txt');
+
+            // 深い作業の開始時刻を取得（ファイル名から）
+            const deepWorkHeartbeatId = activeFile.replace('.txt', '');
+            if (/^\d{14}$/.test(deepWorkHeartbeatId)) {
+              try {
+                const startTime = convertTimestampToSeconds(deepWorkHeartbeatId);
+                const currentTime = convertTimestampToSeconds(heartbeatId);
+                const elapsedSeconds = currentTime - startTime;
+
+                if (elapsedSeconds >= 0) {
+                  deepWorkDurations.push(`${activeFile}: ${formatElapsedTime(elapsedSeconds)}`);
+                } else {
+                  deepWorkDurations.push(`${activeFile}: 時間計算エラー`);
+                }
+              } catch (error) {
+                deepWorkDurations.push(`${activeFile}: 時間計算エラー`);
+              }
+            } else {
+              deepWorkDurations.push(`${activeFile}: 無効な形式`);
+            }
+
             await fs.rename(originalPath, completedPath);
             completedFiles.push(activeFile);
           }
-          extendedProcessingMessage = `\n深い作業宣言（${completedFiles.join(', ')}）を完了しました。`;
+
+          if (deepWorkDurations.length > 0) {
+            extendedProcessingMessage = `\n深い作業宣言を完了しました:\n${deepWorkDurations.map(d => `- ${d}`).join('\n')}`;
+          } else {
+            extendedProcessingMessage = `\n深い作業宣言（${completedFiles.join(', ')}）を完了しました。`;
+          }
         }
       }
-      
+
       // Prepare response message
       const themeType = args.parentThemeStartId ? 'サブテーマ' : 'テーマ';
       let responseText = `活動ログを作成しました: ${filePath}`;
       responseText += `\nハートビートID: ${heartbeatId}`;
-      
+
       if (args.parentThemeStartId) {
         responseText += `\n${themeType}: ${sanitizedDirectoryPart} (${args.themeStartId})`;
         responseText += `\n親テーマ: ${sanitizedParentDirectoryPart} (${args.parentThemeStartId})`;
       } else {
         responseText += `\n${themeType}: ${sanitizedDirectoryPart} (${args.themeStartId})`;
       }
-      
+
       if (warning) {
         responseText += `\n警告: ${warning}`;
       }
-      
+
       // Sanitization warning
       if (sanitizedDirectoryPart !== args.themeDirectoryPart) {
         responseText += `\n警告: ディレクトリ名を「${args.themeDirectoryPart}」から「${sanitizedDirectoryPart}」に修正しました`;
       }
-      
-      if (sanitizedParentDirectoryPart && args.parentThemeDirectoryPart && 
-          sanitizedParentDirectoryPart !== args.parentThemeDirectoryPart) {
+
+      if (sanitizedParentDirectoryPart && args.parentThemeDirectoryPart &&
+        sanitizedParentDirectoryPart !== args.parentThemeDirectoryPart) {
         responseText += `\n警告: 親ディレクトリ名を「${args.parentThemeDirectoryPart}」から「${sanitizedParentDirectoryPart}」に修正しました`;
       }
-      
+
       // 時間分析メッセージを追加
       if (timeAnalysisMessage) {
         responseText += `\n\n${timeAnalysisMessage}`;
       }
-      
+
       // 統一された時間ベース制御の警告を追加
       if (processingTimeWarning) {
         responseText += `\n\n${processingTimeWarning}`;
       }
-      
+
       // 長時間処理宣言の完了メッセージを追加
       if (extendedProcessingMessage) {
         responseText += extendedProcessingMessage;
       }
-      
+
       return {
         content: [
           {
