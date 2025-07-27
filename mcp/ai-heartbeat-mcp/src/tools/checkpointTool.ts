@@ -38,7 +38,7 @@ async function getElapsedTimeMessage(currentHeartbeatId: string): Promise<string
       } else if (elapsedSeconds > 0) {
         message += `\n最近チェックポイントを作成しました。`;
       } else {
-        message += `\n初回のチェックポイントです。`;
+        message += `\n未来のチェックポイントです？`;
       }
     } else {
       message += `\n初回のチェックポイントです。`;
