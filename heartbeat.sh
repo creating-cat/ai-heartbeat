@@ -242,19 +242,19 @@ check_tool_restrictions() {
 check_agent_health() {
     local current_time=$(date +%s)
     
-    # 深い作業完了の検知（内省義務化のため）
-    detect_deep_work_completion
+    # 深い作業完了の検知（内省義務化のため）- 削除済み
+    # detect_deep_work_completion
     
-    # 内省義務違反チェック（新機能）
-    local introspection_obligation_result=$(check_introspection_obligation_violation "$current_time")
-    local introspection_obligation_code=$(echo "$introspection_obligation_result" | cut -d':' -f1)
-    local introspection_obligation_detail=$(echo "$introspection_obligation_result" | cut -d':' -f2)
+    # 内省義務違反チェック（新機能）- 削除済み
+    # local introspection_obligation_result=$(check_introspection_obligation_violation "$current_time")
+    # local introspection_obligation_code=$(echo "$introspection_obligation_result" | cut -d':' -f1)
+    # local introspection_obligation_detail=$(echo "$introspection_obligation_result" | cut -d':' -f2)
     
-    if [ "$introspection_obligation_code" != "0" ]; then
-        HEALTH_CHECK_DETAIL="内省義務違反: ハートビートID $introspection_obligation_detail"
-        log_warning "[CHECK] Introspection obligation violation detected: $introspection_obligation_detail"
-        return 22 # 内省義務違反（新しいエラーコード）
-    fi
+    # if [ "$introspection_obligation_code" != "0" ]; then
+    #     HEALTH_CHECK_DETAIL="内省義務違反: ハートビートID $introspection_obligation_detail"
+    #     log_warning "[CHECK] Introspection obligation violation detected: $introspection_obligation_detail"
+    #     return 22 # 内省義務違反（新しいエラーコード）
+    # fi
     
     # flexibleモードでのチェックポイント必須チェック（新機能）
     local flexible_checkpoint_result=$(check_flexible_mode_checkpoint_requirement "$current_time")
@@ -392,8 +392,12 @@ $ADVICE_ACTIVITY_LOG_FREQUENCY"
 
 $ADVICE_INTROSPECTION"
             return 0 ;;
-        18) # 内省活動エラー（新機能 - v2）
-            handle_failure "Introspection activity error: No introspection activity for $((detail / 60)) minutes." "活動ログ内省不足" ;;
+        18) # 内省活動警告（重度）（新機能 - v2）
+            log_warning "Introspection activity warning (severe): No introspection activity for $((detail / 60)) minutes."
+            INTROSPECTION_REMINDER_MESSAGE="内省不足警告（重度）: $((detail / 60))分間内省活動が行われていません。
+
+$ADVICE_INTROSPECTION"
+            return 0 ;;
         19) # 活動ログタイムスタンプ警告（新機能 - v2復活）
             log_warning "Activity log timestamp warning: Timestamp is $((detail / 60)) minutes old."
             INACTIVITY_WARNING_MESSAGE="活動ログタイムスタンプ警告: 最新の活動ログのハートビートIDが$((detail / 60))分以上古いです。
@@ -408,8 +412,8 @@ $ADVICE_INTROSPECTION"
 
 $ADVICE_INTROSPECTION"
             return 0 ;;
-        22) # 内省義務違反（新機能）
-            handle_failure "Introspection obligation violation: Deep work completed but next activity log is not introspection (ハートビートID: $detail)." "内省義務違反" ;;
+        # 22) # 内省義務違反（削除済み）
+        #     handle_failure "Introspection obligation violation: Deep work completed but next activity log is not introspection (ハートビートID: $detail)." "内省義務違反" ;;
         23) # flexibleモードチェックポイント不足警告（新機能）
             log_warning "Flexible mode checkpoint requirement warning: No checkpoints for $detail minutes."
             INACTIVITY_WARNING_MESSAGE="flexibleモード警告: $detail 分間チェックポイントログが作成されていません。
@@ -473,9 +477,9 @@ attempt_recovery() {
         "活動ログタイムスタンプ異常")
             advice_message="$ADVICE_ACTIVITY_LOG_TIMESTAMP"
             ;;
-        "内省義務違反")
-            advice_message="$ADVICE_INTROSPECTION_OBLIGATION"
-            ;;
+        # "内省義務違反") # 削除済み
+        #     advice_message="$ADVICE_INTROSPECTION_OBLIGATION"
+        #     ;;
         *)
             advice_message=""
             ;;
@@ -490,9 +494,9 @@ attempt_recovery() {
         "テーマログパターン異常")
             specific_docs="4. ai-docs/THEME_SYSTEM.md - テーマシステム詳細ガイド"
             ;;
-        "内省義務違反")
-            specific_docs="4. ai-docs/ACTIVITY_DETAILS.md - 各活動種別の詳細ガイド"
-            ;;
+        # "内省義務違反") # 削除済み
+        #     specific_docs="4. ai-docs/ACTIVITY_DETAILS.md - 各活動種別の詳細ガイド"
+        #     ;;
         *)
             specific_docs="4. ai-docs/ERROR_HANDLING.md - エラー・例外処理完全版"
             ;;

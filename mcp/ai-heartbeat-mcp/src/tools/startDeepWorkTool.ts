@@ -93,7 +93,7 @@ function generateAdviceMessage(restrictionType: 'flexible' | 'strict', plannedDu
 **flexibleモード（柔軟な制限）:**
 - 活動ログの作成は一時的に停止しても構いません
 - ただし、定期的にcheckpointツールでチェックポイントログを作成してください
-- 内省不足エラーは無効化されます
+- 内省不足警告は無効化されます
 - 次の活動ログ作成時に宣言は自動的に解除されます
 
 **推奨事項:**
@@ -104,7 +104,7 @@ function generateAdviceMessage(restrictionType: 'flexible' | 'strict', plannedDu
 **strictモード（厳格な制限）:**
 - 指定時間（${plannedDurationMinutes}分）まで、全ての異常検知が無効化されます
 - チェックポイントログの作成も不要です
-- 内省不足エラーも無効化されます
+- 内省不足警告も無効化されます
 - 指定時間内に活動ログを作成すれば正常完了となります
 - 時間超過した場合は自動的に期限切れとなり、異常検知が復活します
 
@@ -118,10 +118,10 @@ export const startDeepWorkTool = {
   name: 'start_deep_work',
   description: `深い作業の宣言を行います。2つのモードがあります：
   
-**flexibleモード**: チェックポイント作成可能、内省不足エラーのみ無効化
+**flexibleモード**: チェックポイント作成可能、内省不足警告のみ無効化
 **strictモード**: 指定時間まで全ての異常検知を無効化
 
-活動ログ作成時に宣言は自動的に解除されます。深い作業完了後は必ず内省活動を行ってください。`,
+活動ログ作成時に宣言は自動的に解除されます。深い作業完了後は内省活動を行うことを推奨します。`,
   input_schema: startDeepWorkBaseSchema,
   execute: async (args: z.infer<typeof startDeepWorkBaseSchema>) => {
     // 入力検証（strictモードの場合のplannedDurationMinutes必須チェック）
@@ -167,7 +167,7 @@ export const startDeepWorkTool = {
       // 制限タイプに応じたアドバイス
       responseText += generateAdviceMessage(args.restrictionType, args.plannedDurationMinutes);
       
-      responseText += '\n\n**重要**: 深い作業完了後は必ず内省活動を行ってください。';
+      responseText += '\n\n**推奨**: 深い作業完了後は内省活動を行うことを推奨します。';
       
       return {
         content: [

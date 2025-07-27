@@ -74,7 +74,7 @@ initialize_ai_workspace() {
     mkdir -p "ai-works/stats/lock"
     mkdir -p "ai-works/stats/deep_work"
     mkdir -p "ai-works/stats/checkpoints"
-    mkdir -p "ai-works/stats/introspection_obligation"    
+    # mkdir -p "ai-works/stats/introspection_obligation" # 削除済み（内省義務システム廃止）    
     
     log_success "✅ AI作業環境初期化完了"
 }
