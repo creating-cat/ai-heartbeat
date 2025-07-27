@@ -6,8 +6,9 @@ import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
-import { convertTimestampToSeconds } from '../lib/timeUtils';
+import { convertTimestampToSeconds, formatElapsedTime, getLatestCheckpointInfo } from '../lib/timeUtils';
 import { resolveThemePath } from '../lib/themeUtils';
+import { getLatestActivityLogInfo } from '../lib/logUtils';
 import { EXTENDED_PROCESSING_DIR, STATS_DIR } from '../lib/pathConstants';
 
 // 未来ハートビートID検証（未来は即エラー）
@@ -52,6 +53,46 @@ export const activityLogInputSchema = z.object({
  */
 
 /**
+ * 前回活動ログとチェックポイントからの経過時間メッセージを生成
+ */
+async function generateTimeAnalysisMessage(heartbeatId: string): Promise<string> {
+  const currentTime = convertTimestampToSeconds(heartbeatId);
+  let timeMessages: string[] = [];
+
+  // 前回活動ログからの経過時間
+  try {
+    const latestLogInfo = await getLatestActivityLogInfo();
+    if (latestLogInfo) {
+      const latestLogTime = convertTimestampToSeconds(latestLogInfo.heartbeatId);
+      const elapsedSeconds = currentTime - latestLogTime;
+      if (elapsedSeconds >= 0) {
+        timeMessages.push(`前回の活動ログから${formatElapsedTime(elapsedSeconds)}が経過しています。`);
+      }
+    }
+  } catch (error) {
+    // エラーは無視して続行
+  }
+
+  // 前回チェックポイントからの経過時間
+  try {
+    const latestCheckpoint = await getLatestCheckpointInfo();
+    if (latestCheckpoint) {
+      const elapsedSeconds = currentTime - latestCheckpoint.timestamp;
+      if (elapsedSeconds >= 0) {
+        timeMessages.push(`前回のチェックポイントから${formatElapsedTime(elapsedSeconds)}が経過しています。`);
+        
+        // チェックポイントの内容も表示
+        timeMessages.push(`最後のチェックポイント: ${latestCheckpoint.message}`);
+      }
+    }
+  } catch (error) {
+    // エラーは無視して続行
+  }
+
+  return timeMessages.length > 0 ? timeMessages.join('\n') : '';
+}
+
+/**
  * ハートビート開始からの経過時間をチェックして警告メッセージを生成
  * 長時間処理宣言がある場合は抑制される
  */
@@ -71,9 +112,7 @@ async function checkProcessingTime(heartbeatId: string): Promise<string | null> 
     const elapsedMinutes = Math.floor(elapsedSeconds / 60);
     
     if (elapsedSeconds >= PROCESSING_TIME_CONFIG.warningThreshold) { // 10分
-      return `活動分割推奨: ハートビート開始から${elapsedMinutes}分が経過しています。「小さな一歩」の原則に従い、活動を区切ることを推奨します。`;
-    } else if (elapsedSeconds >= PROCESSING_TIME_CONFIG.infoThreshold) { // 5分
-      return `経過時間通知: ハートビート開始から${elapsedMinutes}分が経過しています。`;
+      return `※ 長時間作業中です。適度な区切りでの活動ログ作成を推奨します。`;
     }
     
     return null;
@@ -266,6 +305,9 @@ export const activityLogTool = {
       // Check processing time (統一された時間ベース制御)
       const processingTimeWarning = await checkProcessingTime(heartbeatId);
       
+      // Generate time analysis message
+      const timeAnalysisMessage = await generateTimeAnalysisMessage(heartbeatId);
+      
       // Ensure directory exists
       await fs.ensureDir(path.dirname(filePath));
       
@@ -318,9 +360,14 @@ export const activityLogTool = {
         responseText += `\n警告: 親ディレクトリ名を「${args.parentThemeDirectoryPart}」から「${sanitizedParentDirectoryPart}」に修正しました`;
       }
       
+      // 時間分析メッセージを追加
+      if (timeAnalysisMessage) {
+        responseText += `\n\n${timeAnalysisMessage}`;
+      }
+      
       // 統一された時間ベース制御の警告を追加
       if (processingTimeWarning) {
-        responseText += `\n${processingTimeWarning}`;
+        responseText += `\n\n${processingTimeWarning}`;
       }
       
       // 長時間処理宣言の完了メッセージを追加
