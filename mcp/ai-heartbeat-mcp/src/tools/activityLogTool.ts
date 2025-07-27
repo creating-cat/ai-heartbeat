@@ -6,18 +6,14 @@ import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
-import { getCurrentTimestamp, getFileModificationTime, convertTimestampToSeconds, formatElapsedTime, getLatestCheckpointInfo } from '../lib/timeUtils';
+import { getCurrentTimestamp, getFileModificationTime, formatElapsedTime, getLatestCheckpointInfo } from '../lib/timeUtils';
 import { resolveThemePath } from '../lib/themeUtils';
 import { getLatestActivityLogInfo } from '../lib/logUtils';
 import { EXTENDED_PROCESSING_DIR, STATS_DIR } from '../lib/pathConstants';
 
 // 未来ハートビートID検証（未来は即エラー）
 
-// 処理時間制御の設定（heartbeat.shと統一）
-const PROCESSING_TIME_CONFIG = {
-  infoThreshold: 300,    // 5分で情報通知
-  warningThreshold: 600, // 10分で警告（heartbeat.shのエラーレベルと統一）
-};
+
 
 // Zod schema for activity log input (サブテーマ対応版)
 export const activityLogInputSchema = z.object({
@@ -94,35 +90,7 @@ async function generateTimeAnalysisMessage(heartbeatId: string): Promise<string>
   return timeMessages.length > 0 ? timeMessages.join('\n') : '';
 }
 
-/**
- * ハートビート開始からの経過時間をチェックして警告メッセージを生成
- * 長時間処理宣言がある場合は抑制される
- */
-async function checkProcessingTime(heartbeatId: string): Promise<string | null> {
-  try {
-    // 深い作業宣言の確認
-    const deepWorkDir = path.join(STATS_DIR, 'deep_work');
-    const deepWorkFile = path.join(deepWorkDir, `${heartbeatId}.txt`);
-    if (await fs.pathExists(deepWorkFile)) {
-      // 宣言ファイルが存在する場合は時間チェックを抑制
-      return null;
-    }
 
-    const heartbeatTime = convertTimestampToSeconds(heartbeatId);
-    const currentTime = getCurrentTimestamp(); // 実際の現在時刻を使用
-    const elapsedSeconds = currentTime - heartbeatTime;
-    const elapsedMinutes = Math.floor(elapsedSeconds / 60);
-
-    if (elapsedSeconds >= PROCESSING_TIME_CONFIG.warningThreshold) { // 10分
-      return `※ 長時間作業中です。適度な区切りでの活動ログ作成を推奨します。`;
-    }
-
-    return null;
-  } catch (error) {
-    // タイムスタンプ変換エラーの場合は警告を出さない
-    return null;
-  }
-}
 
 function generateActivityLogMarkdown(args: z.infer<typeof activityLogInputSchema>): string {
   const lines: string[] = [];
@@ -304,8 +272,7 @@ export const activityLogTool = {
         sanitizedParentDirectoryPart
       );
 
-      // Check processing time (統一された時間ベース制御)
-      const processingTimeWarning = await checkProcessingTime(heartbeatId);
+
 
       // Generate time analysis message
       const timeAnalysisMessage = await generateTimeAnalysisMessage(heartbeatId);
@@ -395,10 +362,7 @@ export const activityLogTool = {
         responseText += `\n\n${timeAnalysisMessage}`;
       }
 
-      // 統一された時間ベース制御の警告を追加
-      if (processingTimeWarning) {
-        responseText += `\n\n${processingTimeWarning}`;
-      }
+
 
       // 長時間処理宣言の完了メッセージを追加
       if (extendedProcessingMessage) {
