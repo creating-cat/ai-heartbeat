@@ -131,11 +131,12 @@ export const themeLogTool = {
 
       if (existingThemeHistories.length > 0) {
         const existingFile = path.basename(existingThemeHistories[0]);
-        throw new Error(
-          `ルール違反: ハートビートID (${logFileId}) は既にテーマ履歴で使用されています: ${existingFile}\n` +
-          `1つのハートビートでは1つのテーマ操作のみ実行可能です。\n` +
-          `解決方法: 次のハートビートを待ってからテーマ操作を実行してください。`
-        );
+        const warningMessage =
+          `警告: このハートビートでは既にテーマ操作が実行されています（${existingFile}）。ルール違反になるため、この操作は実行されませんでした。\n` +
+          `解決方法: 次のハートビートを待ってからテーマ操作を実行してください。`;
+        return {
+          content: [{ type: 'text' as const, text: warningMessage }],
+        };
       }
 
       // マークダウン内容の生成
