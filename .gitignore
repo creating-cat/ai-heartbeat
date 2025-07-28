@@ -7,3 +7,5 @@ logs/
 results/
 
 tmp_*
+
+.DS_Store

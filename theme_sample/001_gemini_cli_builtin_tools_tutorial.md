@@ -38,13 +38,12 @@ Gemini CLIの主要な組み込みツール（`read_many_files`、`replace`、`r
   * `file_path`: `projects/tutorial_theme/replace_test/target.txt`の絶対パス
   * `old_string`: `Line 1: Apple is red.`
   * `new_string`: `Line 1: Orange is orange.`
-* `read_file`で`target.txt`の内容を確認後、`old_string`にわざと空白を追加して元の文字列と不一致させることで単一置換をしてみる。
+* `read_file`で`target.txt`の内容を確認後、ファイル内に**存在しない文字列**を`old_string`に指定して単一置換をしてみる。
   * `file_path`: `projects/tutorial_theme/replace_test/target.txt`の絶対パス
-  * `old_string`: `Line 2: Banana is yellow. `
-  * `new_string`: `Line 2: Muscat is green.`
-* **考察**: `replace`ツールが`old_string`の厳密な一致を要求することの重要性を強調する。**特に、改行コード、空白、インデントのわずかな違いでもマッチしない**ことを説明し、以下の点に注意を促す。
+  * `old_string`: `This line does not exist in the file.`
+  * `new_string`: `New content.`
+* **考察**: `replace`ツールは、`old_string`に指定された文字列がファイル内に**完全に一致して存在しない場合**には置換を実行しないことを強調する。これは、`old_string`が置換対象のテキストと**文字通り完全に一致している**必要があるためである。**現在のツールの挙動では、行末の空白や句読点（ドットなど）の有無に対してある程度の柔軟性が見られる場合があるが、ベストプラクティスとしては、改行コード、空白、インデント、句読点といった目に見えにくい要素も含め、この「完全な一致」を常に意識すること。**
     *   `old_string`は、置換対象のテキストを**完全にコピー＆ペースト**して使用することを強く推奨する。
-    *   目に見えない文字（スペース、タブ、改行）が一致しているか、テキストエディタの機能などで確認する。
     *   `read_file`でファイルの内容を読み込み、その結果を直接`old_string`として使用することで、最も正確な文字列を取得できる。
 
 ### ステップ2.3: 複数置換と安全な運用
