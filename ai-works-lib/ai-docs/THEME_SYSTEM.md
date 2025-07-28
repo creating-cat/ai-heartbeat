@@ -99,10 +99,68 @@ artifacts/{PARENT_THEME_START_ID_親テーマ名}/{SUB_THEME_START_ID_サブテ�
 - **期待される成果**: 探求で得たい結果
 - **親テーマ情報**: サブテーマの場合のみ
 
-#### 1.4.2 記録場所
-- MCPツールによる自動記録（推奨）
-- 手動記録の場合: `artifacts/{THEME_START_ID_テーマ名}/theme_start.md`## 
-2. 専門家コンテキストシステム
+#### 1.4.2 記録場所と作成方法
+
+**基本的な手順**:
+テーマ履歴記録を作成する場合は、以下の仕様に従ってください：
+
+**保存場所**: `artifacts/theme_histories/`
+
+**ファイル命名規則**:
+- テーマ開始時: `{THEME_START_ID}_start_{themeDirectoryPart}.md`
+- テーマ終了時: `{THEME_END_ID}_end_{themeDirectoryPart}.md`
+
+**メインテーマ開始時のフォーマット**:
+```markdown
+# テーマ開始: [テーマ名]
+
+**THEME_START_ID**: [テーマ開始時のハートビートID]
+**テーマディレクトリ**: `artifacts/[THEME_START_ID]_[themeDirectoryPart]/`
+
+**開始理由**: 
+[テーマの開始理由]
+
+**活動内容**: 
+[このテーマで何を行うか]
+```
+
+**サブテーマ開始時のフォーマット**:
+```markdown
+# サブテーマ開始: [サブテーマ名]
+
+**PARENT_THEME_START_ID**: [親テーマのTHEME_START_ID]
+**PARENT_THEME_DIRECTORY**: [親テーマのディレクトリ名]
+**THEME_START_ID**: [サブテーマ開始時のハートビートID]
+**テーマディレクトリ**: `artifacts/[PARENT_THEME_START_ID]_[親テーマディレクトリ]/subthemes/[THEME_START_ID]_[サブテーマディレクトリ]/`
+
+**開始理由**: 
+[サブテーマの開始理由]
+
+**活動内容**: 
+[このサブテーマで何を行うか]
+```
+
+**テーマ終了時のフォーマット**:
+```markdown
+# テーマ終了: [テーマ名]
+
+**THEME_START_ID**: [テーマ開始時のハートビートID]
+**THEME_END_ID**: [テーマ終了時のハートビートID]
+
+**終了理由**: 
+[テーマの終了理由]
+
+**主な成果**: 
+[主な成果物のリスト]
+```
+
+**効率化手段**: MCPツールの活用
+上記の手動手順を自動化し、正確性を向上させるツールが利用可能です：
+- `create_theme_log`ツールによる自動記録
+- 適切なファイル名生成とフォーマット統一
+- エラーチェックと重複防止機能
+
+## 2. 専門家コンテキストシステム
 
 ### 2.1 専門家コンテキストとは
 
