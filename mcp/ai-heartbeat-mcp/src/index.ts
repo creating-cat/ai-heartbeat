@@ -14,7 +14,7 @@ import { checkThemeStatusTool } from './tools/checkThemeStatusTool';
 import { listThemeArtifactsTool } from './tools/listThemeArtifactsTool';
 import { getLatestThemeContextTool } from './tools/getLatestThemeContextTool';
 import { startDeepWorkTool } from './tools/startDeepWorkTool';
-import { getHeartbeatElapsedTimeTool } from './tools/getHeartbeatElapsedTimeTool';
+
 import { checkpointTool } from './tools/checkpointTool';
 
 // Create MCP server
@@ -102,14 +102,6 @@ server.tool(
   startDeepWorkTool.description,
   startDeepWorkTool.input_schema.shape,
   startDeepWorkTool.execute
-);
-
-// Register get heartbeat elapsed time tool
-server.tool(
-  getHeartbeatElapsedTimeTool.name,
-  getHeartbeatElapsedTimeTool.description,
-  getHeartbeatElapsedTimeTool.input_schema.shape,
-  getHeartbeatElapsedTimeTool.execute
 );
 
 // Register checkpoint tool
