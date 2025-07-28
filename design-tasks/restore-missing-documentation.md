@@ -2,7 +2,7 @@
 
 ## 1. 問題点 (What)
 
-調査報告書 (`investigation-report-for-missing-docs.md`) で指摘されている通り、旧ドキュメント (`ai-works-lib.backup/`) に存在したAIの自律性やシステム理解を深めるための重要な記述が、現行のドキュメント (`ai-works-lib/`) から欠落している。
+調査報告書 (`investigation-report-for-missing-docs.md`) で指摘されている通り、旧ドキュメント (`ai-works-lib.old/`) に存在したAIの自律性やシステム理解を深めるための重要な記述が、現行のドキュメント (`ai-works-lib/`) から欠落している。
 
 具体的には、以下の4点の重要なニュアンスや具体例が失われている。
 

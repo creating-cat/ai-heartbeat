@@ -60,7 +60,7 @@
 
 -   **調査ソース**:
     -   `mcp/ai-heartbeat-mcp/src/tools/` 配下のツール実装
-    -   `ai-works-lib.backup/` 配下の古いドキュメント
+    -   `ai-works-lib.old/` 配下の古いドキュメント
 
 ## 7. 見積もり
 
