@@ -75,8 +75,9 @@ export interface CheckpointInfo {
 
 /**
  * 最新のチェックポイント情報を取得
+ * @param excludeHeartbeatId 検索から除外するハートビートID（現在処理中のものを除外する場合に使用）
  */
-export async function getLatestCheckpointInfo(): Promise<CheckpointInfo | null> {
+export async function getLatestCheckpointInfo(excludeHeartbeatId?: string): Promise<CheckpointInfo | null> {
   try {
     if (!await fs.pathExists(CHECKPOINTS_DIR)) {
       return null;
@@ -87,6 +88,7 @@ export async function getLatestCheckpointInfo(): Promise<CheckpointInfo | null> 
       .filter(f => f.endsWith('.txt'))
       .map(f => f.replace('.txt', ''))
       .filter(f => /^\d{14}$/.test(f))
+      .filter(f => !excludeHeartbeatId || f !== excludeHeartbeatId) // 指定されたハートビートIDを除外
       .sort()
       .reverse();
 

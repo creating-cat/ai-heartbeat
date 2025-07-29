@@ -26,7 +26,7 @@ async function getElapsedTimeMessage(currentHeartbeatId: string): Promise<string
 
   // 前回チェックポイントからの経過時間
   try {
-    const latestCheckpoint = await getLatestCheckpointInfo();
+    const latestCheckpoint = await getLatestCheckpointInfo(currentHeartbeatId);
     if (latestCheckpoint) {
       const checkpointFile = path.join(CHECKPOINTS_DIR, `${latestCheckpoint.heartbeatId}.txt`);
       const checkpointTime = await getFileModificationTime(checkpointFile);
@@ -38,7 +38,7 @@ async function getElapsedTimeMessage(currentHeartbeatId: string): Promise<string
       } else if (elapsedSeconds > 0) {
         message += `\n最近チェックポイントを作成しました。`;
       } else {
-        message += `\n未来のチェックポイントです？`;
+        message += `\n時刻計算に異常があります（前回チェックポイント: ${latestCheckpoint.heartbeatId}）。`;
       }
     } else {
       message += `\n初回のチェックポイントです。`;
