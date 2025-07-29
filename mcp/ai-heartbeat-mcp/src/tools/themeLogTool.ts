@@ -230,9 +230,11 @@ ${achievementList}
           responseText += `\n親テーマに戻ります: ${parentThemeStartId}_${sanitizedParentDirectoryPart}`;
         }
 
-        // テーマ終了時の待機指示
-        responseText += `\n\n重要: 次のテーマ開始は次のハートビートまで待機してください`;
-        responseText += `\n理由: システムの安定性とツール制限の回避のため`;
+        // テーマ終了時のリセット指示（より具体的に）
+        responseText += `\n\nテーマが正常に完了しました。`;
+        responseText += `\nこの後、テーマ終了活動の活動ログを作成してこのタスクを完了してください。`;
+        responseText += `\n活動が完了すると、思考コンテキストがリセットされ、次のテーマに備えるためのクールダウン期間に入ります。`;
+        responseText += `\n\n重要: 新しいテーマの開始は、次のハートビートまで待機してください。`;
       }
 
       // サニタイズ警告
