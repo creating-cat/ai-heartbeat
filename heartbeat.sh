@@ -582,7 +582,7 @@ if [ ! -d ai-works/artifacts/* ] 2>/dev/null || [ -z "$(find ai-works/artifacts 
     initial_heartbeat_msg="$initial_heartbeat_msg
 
 **システム初回起動**: 現在テーマが設定されていません。
-ai-docs/THEME_SYSTEM.md の手順に従い、**まずthemeboxを確認し、テーマがあればそれを、なければ自律的に判断したテーマで**、必ずテーマ開始活動を実行してください。"
+まずはai-docs/THEME_SYSTEM.mdの内容を確認し、手順に従ってテーマを設定してください。"
     log_info "Initial startup detected: No theme directories found"
 fi
 
