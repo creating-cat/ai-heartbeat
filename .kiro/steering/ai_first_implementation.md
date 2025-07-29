@@ -86,7 +86,64 @@ AIの活動は、一つのテーマに沿った連続的な思考が基本です
 
 ```
 
-### 2. エラーハンドリングの改善
+### 2. コンテキストの最適化
+
+#### 必要な情報の事前提供
+```typescript
+// MCPツールの設計例
+export const analyzeLogTool = {
+  description: `ログファイルを分析します。
+  
+前提条件:
+- ファイルサイズ上限: 10MB
+- 対応形式: .log, .txt
+- 処理時間目安: 1-5分
+
+出力形式:
+- エラー件数の集計
+- 上位10パターンの抽出
+- 推奨対応策の提示`,
+  
+  input_schema: z.object({
+    filePath: z.string().describe('分析対象のログファイルパス'),
+    analysisType: z.enum(['basic', 'detailed', 'pattern']).describe('分析の詳細レベル'),
+    outputFormat: z.enum(['summary', 'full', 'json']).default('summary')
+  })
+};
+```
+
+#### 状態の可視化
+```bash
+# システム状態の明示
+show_system_status() {
+    echo "現在の状態:"
+    echo "- アクティブテーマ: ${CURRENT_THEME:-'なし'}"
+    echo "- 処理中のタスク: ${ACTIVE_TASKS:-'なし'}"
+    echo "- 利用可能ツール: ${#AVAILABLE_TOOLS[@]}個"
+    echo "- システム負荷: ${SYSTEM_LOAD}"
+}
+```
+
+#### 依存関係の明示
+```typescript
+export const complexProcessingTool = {
+  description: `複雑な処理を実行します。
+  
+依存関係:
+- 事前に basic_setup_tool の実行が必要
+- config.json ファイルが存在する必要がある
+- 最低5分の処理時間が必要
+
+実行順序:
+1. 設定ファイルの検証
+2. 依存関係のチェック
+3. メイン処理の実行
+4. 結果の保存`,
+  // ...
+};
+```
+
+### 3. エラーハンドリングの改善
 
 #### 段階的なエラー情報
 ```typescript
@@ -139,7 +196,7 @@ return {
 };
 ```
 
-### 3. 予測可能性の向上
+### 4. 予測可能性の向上
 
 #### 処理時間の事前通知
 ```typescript
@@ -185,6 +242,263 @@ export const systemConfigTool = {
 - 他のタスクの完了確認
 - システム再起動の準備`,
   // ...
+};
+```
+
+#### 進捗の可視化
+```typescript
+// 長時間処理での進捗報告
+export const progressReportingTool = {
+  execute: async (args) => {
+    const totalSteps = 5;
+    let currentStep = 0;
+    
+    const reportProgress = (step: number, description: string) => {
+      currentStep = step;
+      const percentage = Math.round((step / totalSteps) * 100);
+      console.log(`進捗: ${percentage}% (${step}/${totalSteps}) - ${description}`);
+    };
+    
+    reportProgress(1, "初期化中...");
+    // 処理1
+    
+    reportProgress(2, "データ読み込み中...");
+    // 処理2
+    
+    reportProgress(3, "分析実行中...");
+    // 処理3
+    
+    reportProgress(4, "結果整理中...");
+    // 処理4
+    
+    reportProgress(5, "完了");
+    
+    return { success: true, totalTime: "3分15秒" };
+  }
+};
+```
+
+### 5. 学習効率の向上
+
+#### パターンの一貫性
+```bash
+# 統一されたファイル命名規則
+ai-works/artifacts/theme_histories/20250119143000_theme_start.md
+ai-works/artifacts/theme_histories/20250119143500_analysis_result.md
+ai-works/artifacts/theme_histories/20250119144000_conclusion.md
+
+# 統一されたログ形式
+[INFO] 2025-01-19 14:30:00 - Task started: analysis
+[WARN] 2025-01-19 14:35:00 - Large file detected: 15MB
+[INFO] 2025-01-19 14:40:00 - Task completed: analysis
+
+# 統一されたレスポンス形式
+{
+  "status": "success|warning|error",
+  "message": "人間が読める説明",
+  "data": { /* 構造化されたデータ */ },
+  "metadata": { /* 実行情報 */ }
+}
+```
+
+#### フィードバックループの設計
+```typescript
+// 実行結果に学習材料を含める
+return {
+  result: "処理完了",
+  executionInfo: {
+    duration: "3分15秒",
+    resourceUsage: {
+      memory: "256MB",
+      cpu: "45%",
+      disk: "1.2GB"
+    },
+    performance: {
+      itemsProcessed: 1500,
+      processingRate: "8.3 items/sec",
+      efficiency: "良好"
+    }
+  },
+  optimizationHints: [
+    "次回はファイルを事前に圧縮すると高速化可能",
+    "並列処理により処理時間を50%短縮可能",
+    "メモリ使用量を削減するため、バッチサイズを調整推奨"
+  ],
+  relatedTools: [
+    "compress_file - ファイル圧縮",
+    "parallel_process - 並列処理",
+    "optimize_memory - メモリ最適化"
+  ]
+};
+```
+
+#### 学習パターンの提供
+```typescript
+// 成功パターンの記録
+const successPatterns = {
+  "large_file_processing": {
+    steps: [
+      "1. ファイルサイズ確認",
+      "2. 長時間処理宣言",
+      "3. メモリ使用量チェック",
+      "4. 処理実行",
+      "5. 結果検証"
+    ],
+    bestPractices: [
+      "10MB以上のファイルは事前宣言必須",
+      "メモリ使用量はファイルサイズの3倍を想定",
+      "中間結果の保存を推奨"
+    ]
+  }
+};
+```
+
+### 6. 意思決定支援の強化
+
+#### コンテキスト情報の提供
+```typescript
+// 意思決定に必要な情報を構造化
+return {
+  currentContext: {
+    systemLoad: "中程度",
+    availableMemory: "2.1GB",
+    activeProcesses: 3,
+    timeConstraints: "30分以内",
+    riskTolerance: "低"
+  },
+  historicalData: {
+    similarTasksSuccess: "85%",
+    averageExecutionTime: "12分",
+    commonFailureReasons: [
+      "メモリ不足 (40%)",
+      "タイムアウト (30%)",
+      "データ形式エラー (20%)",
+      "その他 (10%)"
+    ]
+  },
+  recommendations: {
+    primary: "段階的実行を推奨",
+    reasoning: "現在のシステム状況と過去の成功率を考慮",
+    alternatives: ["テスト実行（より安全）", "即座実行（より高速）"]
+  }
+};
+```
+
+### 7. メモリ効率の考慮
+
+#### 情報の圧縮と要約
+```typescript
+// ❌ 冗長な情報
+"ファイル1を読み込みました。ファイル1のサイズは1MBです。ファイル1の内容を解析しました。ファイル1の解析結果は正常でした。ファイル2を読み込みました..."
+
+// ✅ 効率的な要約
+"処理サマリー:
+対象: 3ファイル (合計5.2MB)
+結果: 成功2件、警告1件、エラー0件
+所要時間: 2分30秒
+詳細: file1.log(成功), file2.log(成功), file3.log(警告-軽微な形式エラー)"
+```
+
+#### 段階的な情報開示
+```typescript
+// 基本情報 → 詳細情報の段階的提供
+return {
+  summary: {
+    status: "完了",
+    itemsProcessed: 150,
+    duration: "2分30秒"
+  },
+  details: {
+    // 必要に応じて詳細情報を提供
+    breakdown: {
+      parsing: "45秒",
+      analysis: "1分20秒", 
+      output: "25秒"
+    },
+    warnings: [
+      "3件の軽微な形式エラーを修正"
+    ]
+  },
+  rawData: {
+    // さらに詳細なデータ（通常は不要）
+    // 必要時のみアクセス
+  }
+};
+```
+
+### 8. 自己修復機能の組み込み
+
+#### 自動回復の仕組み
+```bash
+# 自動回復機能付きの処理
+execute_with_recovery() {
+    local max_attempts=3
+    local attempt=1
+    local backoff_seconds=5
+    
+    while [ $attempt -le $max_attempts ]; do
+        log_info "処理開始 (試行 $attempt/$max_attempts)"
+        
+        if execute_main_process; then
+            log_info "処理成功 (試行回数: $attempt)"
+            return 0
+        else
+            log_warning "処理失敗 (試行 $attempt/$max_attempts)"
+            
+            # 部分的な結果をクリーンアップ
+            cleanup_partial_results
+            
+            # 最後の試行でなければ待機
+            if [ $attempt -lt $max_attempts ]; then
+                log_info "${backoff_seconds}秒後に再試行します"
+                sleep $backoff_seconds
+                backoff_seconds=$((backoff_seconds * 2))  # 指数バックオフ
+            fi
+            
+            attempt=$((attempt + 1))
+        fi
+    done
+    
+    log_error "最大試行回数に達しました。手動介入が必要です。"
+    log_error "推奨対応: 1) システム状態確認 2) 設定ファイル検証 3) 手動実行"
+    return 1
+}
+```
+
+#### 状態の自動検証
+```typescript
+// 処理前後の状態検証
+export const selfValidatingTool = {
+  execute: async (args) => {
+    // 事前状態の記録
+    const preState = await captureSystemState();
+    
+    try {
+      // メイン処理
+      const result = await executeMainLogic(args);
+      
+      // 事後状態の検証
+      const postState = await captureSystemState();
+      const validation = validateStateTransition(preState, postState);
+      
+      if (!validation.isValid) {
+        // 自動ロールバック
+        await rollbackToState(preState);
+        throw new Error(`状態検証失敗: ${validation.errors.join(', ')}`);
+      }
+      
+      return {
+        success: true,
+        result,
+        stateValidation: validation
+      };
+      
+    } catch (error) {
+      // エラー時の自動クリーンアップ
+      await rollbackToState(preState);
+      throw error;
+    }
+  }
 };
 ```
 
@@ -257,7 +571,163 @@ export const robustFileTool = {
 // AI側は統一されたエラー形式を処理するだけ
 ```
 
-### 4. 意思決定支援の強化
+### 4. 状態管理の簡素化
+
+#### 複雑な状態をツール側で管理
+```typescript
+// ❌ AI自身が状態を追跡
+"現在のテーマは... 前回の処理は... ファイルの状態は..."
+
+// ✅ 状態管理をツールに委譲
+export const themeStatusTool = {
+  execute: async () => {
+    // 複雑な状態計算をツール内で実行
+    return {
+      currentTheme: getCurrentTheme(),
+      progress: calculateProgress(),
+      nextActions: suggestNextActions()
+    };
+  }
+};
+```
+
+### 5. パフォーマンス最適化
+
+#### 効率的なデータ処理
+```typescript
+// ❌ AI側でのデータ処理（非効率）
+"全ファイルを読み込んで、一つずつ処理して..."
+
+// ✅ 最適化されたツール処理
+export const batchProcessTool = {
+  execute: async (args) => {
+    // 並列処理、キャッシュ、インデックス等を活用
+    return await optimizedBatchProcess(args.files);
+  }
+};
+```
+
+#### メモリ効率の向上
+```typescript
+// ストリーミング処理をツール内で実装
+export const largeFileProcessTool = {
+  execute: async (args) => {
+    // ファイルを分割して処理、メモリ使用量を制限
+    return await streamProcess(args.filePath);
+  }
+};
+```
+
+### 6. 一貫性の保証
+
+#### 標準化された操作
+```typescript
+// 全ての活動ログ作成が同じ形式・検証を通る
+export const createActivityLogTool = {
+  input_schema: z.object({
+    // 厳密なスキーマ検証
+  }),
+  execute: async (args) => {
+    // 一貫した形式での出力
+    // 自動的な検証・サニタイズ
+  }
+};
+```
+
+### 7. 学習効率の向上
+
+#### パターンの抽象化
+```typescript
+// AI側は高レベルの概念のみ理解すればよい
+"ログを分析する" → analyze_logs()
+"テーマを開始する" → start_theme()
+"進捗を確認する" → check_progress()
+
+// 実装詳細は学習不要
+```
+
+### 8. 拡張性とメンテナンス性
+
+#### 機能追加の容易さ
+```typescript
+// 新機能をツールとして追加
+export const newFeatureTool = {
+  // AI側のコード変更なしに新機能を提供
+};
+```
+
+#### バグ修正の局所化
+```typescript
+// ツール内のバグ修正がAI側に影響しない
+// AI側の動作パターンは変更不要
+```
+
+### 具体的な処理負荷軽減の例
+
+#### 1. ファイル操作の複雑さ隠蔽
+```typescript
+// ❌ AI自身が考える必要がある処理
+"ディレクトリを作成し、権限を確認し、既存ファイルをチェックし、
+ バックアップを作成し、原子的な書き込みを実行し、検証し..."
+
+// ✅ MCPツールによる簡素化
+safe_write_file({
+  path: "output.txt",
+  content: "data",
+  backup: true
+})
+// → 複雑な処理はツール内で完結
+```
+
+#### 2. データ変換の自動化
+```typescript
+// ❌ AI自身がデータ形式を理解・変換
+"CSVをパースし、JSONに変換し、スキーマを検証し..."
+
+// ✅ 変換ツールによる自動化
+convert_data({
+  input: "data.csv",
+  outputFormat: "json",
+  schema: "user_schema"
+})
+```
+
+#### 3. 複雑な検索・フィルタリング
+```typescript
+// ❌ AI自身が検索ロジックを実装
+"正規表現を構築し、ファイルを順次検索し、結果をフィルタリングし..."
+
+// ✅ 検索ツールによる効率化
+smart_search({
+  query: "error patterns",
+  scope: "logs",
+  timeRange: "last_week"
+})
+```
+
+### MCPツールによる認知負荷軽減の効果
+
+#### 高次思考への集中
+```
+❌ 従来の処理分散
+├─ 実装詳細の考慮 (60%)
+├─ エラーハンドリング (20%)
+├─ データ形式の理解 (15%)
+└─ 本来の思考・判断 (5%)
+
+✅ MCPツール活用後
+├─ 本来の思考・判断 (70%)
+├─ ツール選択・組み合わせ (20%)
+├─ 結果の解釈・活用 (8%)
+└─ エラー対応 (2%)
+```
+
+#### 創造性の向上
+- **実装制約からの解放**: 技術的制約を考えずにアイデアを発想
+- **高速プロトタイピング**: ツールの組み合わせで迅速な検証
+- **複雑な処理の実現**: 個別には困難な処理の組み合わせ実現
+
+### 9. 意思決定支援の強化
 
 #### 選択肢の重み付け
 ```typescript
@@ -315,6 +785,21 @@ case $health_status in
     1) log_warning "軽微な問題を検出" ;;
     2) log_error "重大な問題を検出 - 回復処理を開始" ;;
 esac
+```
+
+#### 自動回復機能
+```bash
+# 構造化された回復処理
+attempt_recovery() {
+    local detection_type="$1"
+    
+    log_warning "異常検知: ${detection_type}"
+    log_info "回復手順: 1) 処理中断 2) 状態保存 3) システムリセット"
+    
+    interrupt_agent
+    save_agent_state
+    reset_system_state
+}
 ```
 
 ### 2. 時間ベース制御設計での実装
@@ -392,3 +877,63 @@ AIファーストな実装は、AIエージェントの特性を理解し、そ�
 5. **MCPツールの活用**: 複雑な処理はツールに委譲して高次思考に集中する
 
 これらの原則を意識することで、より効率的で安全な活動が可能になります。
+
+## 開発実践における注意点
+
+### 開発サーバー実行時の推奨方法
+
+#### 基本方法: timeout実行（推奨）
+```bash
+# 基本的な使用方法（30秒間実行）
+timeout 30s npm run dev
+
+# 出力も保存したい場合（オプション）
+timeout 30s npm run dev 2>&1 | tee ai-works/artifacts/current_theme/server_output.log
+```
+
+**利点**:
+- **確実な終了**: timeoutにより30秒で確実に終了
+- **直接出力**: サーバーの出力が直接表示され、リアルタイムで確認可能
+- **無活動回避**: 長時間プロセスによる異常検知を防ぐ
+- **継続監視**: 次のハートビートで再実行・監視が可能
+- **シンプル**: 複雑なファイル操作が不要
+
+#### 並行作業が必要な場合: バックグラウンド実行
+```bash
+# サーバーをバックグラウンドで起動（プロセスIDを記録）
+npm run dev &
+SERVER_PID=$!
+echo $SERVER_PID > /tmp/dev_server_$$.pid
+
+# 並行作業の例
+curl http://localhost:3000/api/test
+cat logs/server.log
+# その他の確認作業...
+
+# 作業完了後、確実にサーバーを終了
+kill $SERVER_PID 2>/dev/null || true
+rm -f /tmp/dev_server_$$.pid
+```
+
+**バックグラウンド実行時の注意点**:
+- **プロセス管理**: 必ずプロセスIDを記録し、作業完了後に終了する
+- **時間制限**: 長時間の並行作業は避け、適度な間隔でハートビートを受信できるようにする
+- **リソース管理**: プロセスの残存を防ぐため、確実な終了処理を実行する
+- **用途限定**: 並行して確認作業が必要な場合のみ使用し、基本はtimeout実行を優先する
+
+**使い分けの判断基準**:
+- **シンプルな動作確認**: timeout実行
+- **APIテスト + ログ確認**: バックグラウンド実行
+- **設定変更 + 動作確認**: バックグラウンド実行
+- **複数エンドポイントのテスト**: バックグラウンド実行
+
+### ファイル操作の安全性
+
+**許可領域**: `ai-works/` ディレクトリ配下のみ
+**禁止領域**: `ai-works/` 以外の全てのファイル・ディレクトリ
+
+**主な禁止対象**:
+- システムスクリプト（`*.sh`・`lib/`配下）
+- 設定ファイル（`heartbeat.conf`・`ai-works-lib/.gemini/settings.json`）
+- AIドキュメント（`ai-works-lib/ai-docs/`・`ai-works-lib/GEMINI.md`）
+- システムファイル（`.gitignore`, `LICENSE`, `README.md`等）
