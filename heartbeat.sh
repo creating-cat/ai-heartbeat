@@ -401,8 +401,7 @@ $ADVICE_INTROSPECTION"
         19) # 活動ログタイムスタンプ警告（新機能 - v2復活）
             log_warning "Activity log timestamp warning: Timestamp is $((detail / 60)) minutes old."
             INACTIVITY_WARNING_MESSAGE="活動ログタイムスタンプ警告: 最新の活動ログのハートビートIDが$((detail / 60))分以上古いです。
-活動ログはハートビート毎に毎回新しく作成する必要があります。
-このハートビートの活動の終わりに必ず新しい活動ログを作成してください。"
+この活動サイクルの終わりに必ず新しい活動ログを作成してください。"
             return 0 ;;
         20) # 活動ログタイムスタンプエラー（新機能 - v2復活）
             handle_failure "Activity log timestamp error: Timestamp is $((detail / 60)) minutes old." "活動ログタイムスタンプ異常" ;;
@@ -521,7 +520,7 @@ attempt_recovery() {
 1. 上記ドキュメントで動作ルールと対処法を再確認
 2. artifacts/theme_historiesで直前の活動履歴を確認
 3. 最新の活動ログで中断前の状況を把握
-4. 適切な内省活動を実行して、このハートビートの活動を終了し、次のハートビートから活動を再開
+4. 適切な内省活動を実行して、活動ログを記録し、この活動サイクルを終了し、次のハートビートから活動を再開
 "
 
     # アドバイスメッセージがある場合は追加
