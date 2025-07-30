@@ -1,26 +1,37 @@
 /**
  * Item Processor Tool
- * Checks for and processes items from themebox or feedbackbox.
+ * Checks for and processes items from feedbackbox.
+ * Note: themebox functionality has been replaced by preview_next_theme and start_theme tools.
  */
 
 import { z } from 'zod';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { THEMEBOX_DIR, FEEDBACKBOX_DIR } from '../lib/pathConstants';
+import { FEEDBACKBOX_DIR } from '../lib/pathConstants';
 
-// Zod schema for the tool input
+// Zod schema for the tool input (feedbackbox only)
 export const itemProcessorInputSchema = z.object({
-  type: z.enum(['themebox', 'feedbackbox']).describe("チェックするボックスの種類。'themebox'または'feedbackbox'のいずれかを指定します。"),
+  type: z.literal('feedbackbox').describe("チェックするボックスの種類。現在は'feedbackbox'のみサポートしています。"),
 });
 
 // The tool definition
 export const itemProcessorTool = {
   name: 'check_and_process_item',
-  description: '指定されたボックス（themeboxまたはfeedbackbox）で利用可能な最初のアイテムを確認し、処理します。',
+  description: 'feedbackboxで利用可能な最初のアイテムを確認し、処理します。注意: themebox機能は preview_next_theme と start_theme ツールに置き換えられました。',
   input_schema: itemProcessorInputSchema,
   execute: async (args: z.infer<typeof itemProcessorInputSchema>) => {
     const { type } = args;
-    const directoryPath = type === 'themebox' ? THEMEBOX_DIR : FEEDBACKBOX_DIR;
+    
+    if (type !== 'feedbackbox') {
+      return {
+        content: [{ 
+          type: 'text' as const, 
+          text: 'エラー: このツールは現在feedbackboxのみをサポートしています。themebox機能は preview_next_theme と start_theme ツールを使用してください。' 
+        }],
+      };
+    }
+
+    const directoryPath = FEEDBACKBOX_DIR;
 
     try {
       // 1. Ensure directory exists

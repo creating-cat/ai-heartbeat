@@ -5,7 +5,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { activityLogTool } from './tools/activityLogTool';
-import { themeLogTool } from './tools/themeLogTool';
+import { previewNextThemeTool } from './tools/previewNextThemeTool';
+import { startThemeTool } from './tools/startThemeTool';
+import { endThemeTool } from './tools/endThemeTool';
 import { itemProcessorTool } from './tools/itemProcessorTool';
 import { reportToolUsageTool } from './tools/reportToolUsageTool';
 import { createThemeExpertContextTool } from './tools/createThemeExpertContextTool';
@@ -32,20 +34,36 @@ server.tool(
   activityLogTool.execute
 );
 
-// Register theme log tool
+// Register preview next theme tool
 server.tool(
-  themeLogTool.name,
-  themeLogTool.description,
-  themeLogTool.input_schema.shape,
-  themeLogTool.execute
+  previewNextThemeTool.name,
+  previewNextThemeTool.description,
+  previewNextThemeTool.input_schema.shape,
+  previewNextThemeTool.execute
 );
 
-// Register item processor tool
+// Register start theme tool
+server.tool(
+  startThemeTool.name,
+  startThemeTool.description,
+  startThemeTool.input_schema.shape,
+  startThemeTool.execute
+);
+
+// Register end theme tool
+server.tool(
+  endThemeTool.name,
+  endThemeTool.description,
+  endThemeTool.input_schema.shape,
+  endThemeTool.execute
+);
+
+// Register item processor tool (feedbackbox only)
 server.tool(
   itemProcessorTool.name,
   itemProcessorTool.description,
   itemProcessorTool.input_schema.shape,
-  itemProcessorTool.execute,
+  itemProcessorTool.execute
 );
 
 // Register report tool usage tool

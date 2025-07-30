@@ -158,36 +158,98 @@ start_deep_work({
 
 ## 3. テーマ管理ツール群
 
-### 3.1 check_and_process_item - アイテム処理
+### 3.1 preview_next_theme - テーマ候補確認
 
-**目的**: themebox・feedbackboxの自動処理
-**使用場面**: テーマ開始活動、フィードバック確認
+**目的**: themeboxのテーマ候補を安全に確認
+**使用場面**: テーマ開始活動での候補確認
 
-#### themebox処理
+#### 基本的な手順
 ```
-check_and_process_item({
-  type: "themebox"
+preview_next_theme()
+```
+
+**機能**:
+- 状態を一切変更しない安全な読み取り専用操作
+- 未処理ファイルの自動検索と除外ルール適用
+- ファイル内容の表示
+- 何度でも実行可能
+
+**特徴**:
+- **安全性**: システム状態を変更しない
+- **反復可能**: 何度でも確認可能
+- **思考支援**: じっくり吟味する時間を提供
+
+### 3.2 start_theme - アトミックなテーマ開始
+
+**目的**: テーマ開始に必要な全処理をアトミックに実行
+**使用場面**: テーマ開始の意思決定後
+
+#### 基本的な使用方法
+```
+start_theme({
+  target_filename: "preview_next_themeで確認したファイル名",
+  themeName: "決定したテーマ名",
+  themeDirectoryPart: "theme_directory_name",
+  reason: "テーマを開始する理由",
+  activityContent: ["活動計画1", "活動計画2"]
+})
+```
+
+#### サブテーマの場合
+```
+start_theme({
+  target_filename: "subtheme_file.md",
+  themeName: "サブテーマ名",
+  themeDirectoryPart: "subtheme_dir",
+  reason: "サブテーマ開始理由",
+  activityContent: ["サブテーマ活動計画"],
+  parentThemeStartId: "20250125100000",
+  parentThemeDirectoryPart: "parent_theme_dir"
+})
+```
+
+**アトミック処理の特徴**:
+- **5段階処理**: ファイル確認→クールダウン確認→履歴作成→ディレクトリ作成→リネーム
+- **失敗時安全**: 途中で失敗しても状態不整合にならない
+- **自動クリーンアップ**: エラー時に作成済みファイルを自動削除
+- **詳細エラー**: 段階別の具体的なエラーメッセージ
+
+### 3.3 end_theme - テーマ終了専用
+
+**目的**: 現在のテーマの終了処理
+**使用場面**: テーマ終了活動
+
+#### 基本的な使用方法
+```
+end_theme({
+  themeStartId: "20250125143000",
+  themeDirectoryPart: "theme_directory_name",
+  themeName: "終了するテーマ名",
+  reason: "テーマを終了する理由",
+  achievements: ["成果1", "成果2", "成果3"]
+})
+```
+
+#### サブテーマの場合
+```
+end_theme({
+  themeStartId: "20250125143000",
+  themeDirectoryPart: "subtheme_dir",
+  themeName: "サブテーマ名",
+  reason: "サブテーマ終了理由",
+  achievements: ["サブテーマ成果"],
+  parentThemeStartId: "20250125100000",
+  parentThemeDirectoryPart: "parent_theme_dir"
 })
 ```
 
 **機能**:
-- 未処理ファイルの自動検索
-- 除外ルール適用
-- ファイル内容の自動読み込み
+- テーマ終了履歴の自動作成
+- クールダウン期間の重要性を明確に伝達
+- サブテーマから親テーマへの復帰案内
+- 思考コンテキストリセットの促進
 
-#### feedbackbox処理
-```
-check_and_process_item({
-  type: "feedbackbox"
-})
-```
-
-**機能**:
-- 緊急フィードバックの確認
-- 優先度判定
-- 処理状況の記録
-
-### 3.2 create_theme_expert_context - 専門家コンテキスト作成
+### 3.4 create_theme_expert_context - 専門家コンテキスト作成
 
 **目的**: テーマ専門家コンテキストの作成
 **使用場面**: テーマ開始時の専門性設定
@@ -204,7 +266,7 @@ create_theme_expert_context({
 })
 ```
 
-### 3.3 check_theme_status - テーマ状況確認
+### 3.5 check_theme_status - テーマ状況確認
 
 **目的**: 現在のテーマ状況の確認
 **使用場面**: システム状況の把握、テーマ管理
@@ -220,7 +282,26 @@ check_theme_status()
 - 専門家コンテキスト状況
 - サブテーマ関係
 
-### 3.4 list_theme_artifacts - テーマ成果物一覧
+### 3.6 check_and_process_item - フィードバック処理
+
+**目的**: feedbackboxの自動処理
+**使用場面**: フィードバック確認
+
+#### feedbackbox処理
+```
+check_and_process_item({
+  type: "feedbackbox"
+})
+```
+
+**機能**:
+- 緊急フィードバックの確認
+- 優先度判定
+- 処理状況の記録
+
+**注意**: themebox機能は `preview_next_theme` と `start_theme` ツールに置き換えられました。
+
+### 3.7 list_theme_artifacts - テーマ成果物一覧
 
 **目的**: テーマ成果物の一覧取得
 **使用場面**: 内省活動、テーマ終了時の整理
