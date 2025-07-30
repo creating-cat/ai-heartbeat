@@ -153,7 +153,7 @@ export function validateActivityLogStructure(content: string): ValidationResult 
   
   // Check required sections
   const requiredSections = [
-    '# ハートビートログ：',
+    '# 活動ログ：',
     '## 活動種別',
     '## 活動内容',
     '## 成果物、関連ファイル',
@@ -167,7 +167,7 @@ export function validateActivityLogStructure(content: string): ValidationResult 
   }
   
   // Validate heartbeat ID format
-  const heartbeatIdMatch = content.match(/# ハートビートログ：(\d{14})/);
+  const heartbeatIdMatch = content.match(/# 活動ログ：(\d{14})/);
   if (!heartbeatIdMatch) {
     errors.push('ハートビートIDが正しい形式ではありません');
   }
@@ -212,7 +212,7 @@ export async function parseActivityLogFile(filePath: string): Promise<ActivityLo
   const lines = content.split('\n');
   
   // Extract heartbeat ID from content (double-check with filename)
-  const heartbeatIdMatch = content.match(/# ハートビートログ：(\d{14})/);
+  const heartbeatIdMatch = content.match(/# 活動ログ：(\d{14})/);
   const contentHeartbeatId = heartbeatIdMatch?.[1];
   
   if (contentHeartbeatId && contentHeartbeatId !== fileInfo.heartbeatId) {

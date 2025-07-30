@@ -96,7 +96,7 @@ function generateActivityLogMarkdown(args: z.infer<typeof activityLogInputSchema
   const lines: string[] = [];
 
   // Title
-  lines.push(`# ハートビートログ`);
+  lines.push(`# 活動ログ`);
   lines.push('');
 
   // サブテーマ情報（サブテーマの場合のみ）
@@ -214,7 +214,7 @@ async function findAvailableSequence(
 
 export const activityLogTool = {
   name: 'create_activity_log',
-  description: 'AIハートビートシステム用の、標準形式の活動ログを作成します。ハートビートIDはシステムから自動取得されます。サブテーマにも対応しており、parentThemeStartIdを指定することでサブテーマの活動ログとして作成されます。時間ベース制御により、適切な時間内で自然な思考フロー（観測→思考→創造）に基づく連続活動を支援します。論理的に連続した処理や効率的な活動フローの場合、同一ハートビート内での複数活動が許可されており、その際は自動で連番ファイルが作成されます。ハートビート開始から5分経過で経過時間通知、10分経過で活動分割推奨が表示されます。長時間処理が必要な場合は事前にstart_deep_workツールで宣言してください。',
+  description: 'AI心臓システム用の、標準形式の活動ログを作成します。ハートビートIDはシステムから自動取得されます。サブテーマにも対応しており、parentThemeStartIdを指定することでサブテーマの活動ログとして作成されます。時間ベース制御により、適切な時間内で自然な思考フローに基づく連続活動を支援します。論理的に連続した処理や効率的な活動フローの場合、同一ハートビート内での複数活動が許可されており、その際は自動で連番ファイルが作成されます。活動サイクル開始から5分経過で経過時間通知、10分経過で活動分割推奨が表示されます。長時間処理が必要な場合は事前にstart_deep_workツールで宣言してください。',
   input_schema: activityLogInputSchema,
   execute: async (args: z.infer<typeof activityLogInputSchema>) => {
     try {
@@ -239,7 +239,7 @@ export const activityLogTool = {
 
       // Generate markdown content
       let markdownContent = generateActivityLogMarkdown(args);
-      markdownContent = markdownContent.replace('# ハートビートログ', `# ハートビートログ：${heartbeatId}`);
+      markdownContent = markdownContent.replace('# 活動ログ', `# 活動ログ：${heartbeatId}`);
 
       // Sanitize directory part to prevent directory traversal
       const sanitizedDirectoryPart = path.basename(args.themeDirectoryPart);

@@ -55,7 +55,7 @@ function formatList(items: string[] | undefined, emptyPlaceholder: string): stri
 
 export const themeLogTool = {
   name: 'create_theme_log',
-  description: 'AIハートビートシステム用のテーマ履歴ログを作成します。サブテーマにも対応しており、parentThemeStartIdを指定することでサブテーマとして作成されます。',
+  description: 'AI心臓システム用のテーマ履歴ログを作成します。サブテーマにも対応しており、parentThemeStartIdを指定することでサブテーマとして作成されます。',
   input_schema: themeLogInputSchema,
   execute: async (args: z.infer<typeof themeLogInputSchema>) => {
     try {
@@ -132,8 +132,8 @@ export const themeLogTool = {
       if (existingThemeHistories.length > 0) {
         const existingFile = path.basename(existingThemeHistories[0]);
         const warningMessage =
-          `警告: このハートビートでは既にテーマ操作が実行されています（${existingFile}）。ルール違反になるため、この操作は実行されませんでした。\n` +
-          `解決方法: 次のハートビートを待ってからテーマ操作を実行してください。`;
+          `警告: この活動サイクルでは既にテーマ操作が実行されています（${existingFile}）。ルール違反になるため、この操作は実行されませんでした。\n` +
+          `解決方法: 次のハートビートを待って新たな活動サイクルを開始してからテーマ操作を実行してください。`;
         return {
           content: [{ type: 'text' as const, text: warningMessage }],
         };
@@ -234,7 +234,7 @@ ${achievementList}
         responseText += `\n\nテーマが正常に完了しました。`;
         responseText += `\nこの後、テーマ終了活動の活動ログを作成してこのタスクを完了してください。`;
         responseText += `\n活動が完了すると、思考コンテキストがリセットされ、次のテーマに備えるためのクールダウン期間に入ります。`;
-        responseText += `\n\n重要: 新しいテーマの開始は、次のハートビートまで待機してください。`;
+        responseText += `\n\n重要: 新しいテーマの開始は、次のハートビートを待って新たな活動サイクルで行ってください。`;
       }
 
       // サニタイズ警告

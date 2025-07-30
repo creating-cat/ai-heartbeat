@@ -135,8 +135,8 @@ export const createThemeExpertContextTool = {
         const existingPath = existingContexts[0].replace('artifacts/', '');
         throw new Error(
           `ルール違反: ハートビートID (${heartbeatId}) は既に専門家コンテキストで使用されています: ${existingPath}\n` +
-          `1つのハートビートでは1つのテーマ操作のみ実行可能です。\n` +
-          `解決方法: 次のハートビートを待ってから専門家コンテキスト作成を実行してください。`
+          `1つの活動サイクルでは1つのテーマ操作のみ実行可能です。\n` +
+          `解決方法: 次のハートビートを待って新たな活動サイクルを開始してから専門家コンテキスト作成を実行してください。`
         );
       }
 
