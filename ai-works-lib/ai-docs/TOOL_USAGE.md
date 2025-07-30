@@ -237,7 +237,7 @@ list_theme_artifacts({
 ### 4.1 Web検索ツール
 
 #### gemini_cli.google_web_search
-**制限**: 1ハートビートで1回まで、クォータ制限あり
+**制限**: 1活動サイクルで1回まで、クォータ制限あり
 
 ```
 google_web_search({
@@ -254,7 +254,7 @@ report_tool_usage({
 ```
 
 #### gemini_cli.web_fetch
-**制限**: 1ハートビートで1回まで、クォータ制限あり
+**制限**: 1活動サイクルで1回まで、クォータ制限あり
 
 ```
 web_fetch({
@@ -288,7 +288,7 @@ fetch_json({ url: "https://api.example.com" })
 - **クォータ制限**: なし
 
 ### 4.3 creative-ideation-mcp.generate_categories
-**制限**: 1ハートビートで1回まで
+**制限**: 1活動サイクルで1回まで
 
 ```
 generate_categories({
@@ -297,7 +297,7 @@ generate_categories({
 ```
 
 **詳細制限**:
-- **サイクル制限**: 1ハートビートで1回まで
+- **サイクル制限**: 1活動サイクルで1回まで
 - **時間制限**: なし（report_tool_usage不要）
 - **クォータ制限**: ありだが実質ほぼなし
 
