@@ -25,6 +25,53 @@ log_success() {
     echo -e "\033[1;34m[SUCCESS]\033[0m $1"
 }
 
+# スナップショット復元関数
+restore_from_snapshot() {
+    local snapshot_name="$1"
+    local snapshot_path="snapshots/$snapshot_name"
+    
+    log_info "📸 スナップショットから環境を復元中..."
+    
+    # スナップショットの存在確認
+    if [ ! -d "$snapshot_path" ]; then
+        echo "エラー: スナップショット '$snapshot_name' が見つかりません。"
+        echo "パス: $snapshot_path"
+        echo "スナップショットを作成してから再実行してください。"
+        exit 1
+    fi
+    
+    if [ ! -f "$snapshot_path/ai_works.tar.gz" ]; then
+        echo "エラー: スナップショットアーカイブが見つかりません。"
+        echo "ファイル: $snapshot_path/ai_works.tar.gz"
+        exit 1
+    fi
+    
+    # 既存のai-worksをバックアップ
+    if [ -d "ai-works" ]; then
+        local backup_dir="ai-works.$(date +%Y%m%d_%H%M%S).backup"
+        log_info "📦 既存環境をバックアップ中: $backup_dir"
+        cp -r "ai-works" "$backup_dir"
+        log_success "✅ バックアップ完了: $backup_dir"
+        
+        # 既存環境削除
+        log_info "🗑️ 既存環境を削除中..."
+        rm -rf "ai-works"
+        log_success "✅ 既存環境削除完了"
+    fi
+    
+    # スナップショットから復元
+    log_info "📦 スナップショットアーカイブを展開中..."
+    tar -xzf "$snapshot_path/ai_works.tar.gz"
+    
+    if [ ! -d "ai-works" ]; then
+        echo "エラー: スナップショットの展開に失敗しました。"
+        exit 1
+    fi
+    
+    log_success "✅ スナップショット復元完了"
+    log_info "ℹ️ チャット履歴は起動後に自動復元されます"
+}
+
 # AI作業環境初期化関数
 initialize_ai_workspace() {
     local force_recreate="$1"
@@ -61,6 +108,7 @@ initialize_ai_workspace() {
     log_info "📋 テンプレートファイルをコピー中..."
     cp "ai-works-lib/GEMINI.md" "ai-works/"
     cp "ai-works-lib/stop.sh" "ai-works/"
+    cp "ai-works-lib/interrupt_for_snapshot.sh" "ai-works/"
     cp -r "ai-works-lib/ai-docs" "ai-works/"
     cp -r "ai-works-lib/.gemini" "ai-works/"
     
@@ -86,6 +134,7 @@ usage() {
     echo "    <テーマ文字列>          指定した文字列を初期テーマとして起動します。"
     echo "    -f, --file <ファイル>   指定したファイルから初期テーマを読み込んで起動します。"
     echo "    -t, --use-themebox      themeboxに準備済みのテーマで起動します（テーマ指定は不要）。"
+    echo "    --snapshot <名前>       指定したスナップショットから環境を復元して起動します。"
     echo "  その他のオプション:"
     echo "    -d, --dirs-only         ai-works環境を再作成してディレクトリのみ作成し終了します。"
     echo "    -s, --sessions-only     tmuxセッションのみを起動します。"
@@ -98,6 +147,7 @@ usage() {
     echo "例:"
     echo "  $0 \"新しいテーマ\"        指定テーマで起動"
     echo "  $0 -t                   themeboxのテーマで起動"
+    echo "  $0 --snapshot tutorial-completed   スナップショットから復元して起動"
     exit 1
 }
 
@@ -107,6 +157,8 @@ FILE_INPUT=""
 DIRS_ONLY=false
 SESSIONS_ONLY=false
 USE_THEMEBOX=false
+USE_SNAPSHOT=false
+SNAPSHOT_NAME=""
 
 # 引数がない場合はヘルプを表示
 if [ $# -eq 0 ]; then
@@ -135,6 +187,17 @@ while [[ $# -gt 0 ]]; do
             USE_THEMEBOX=true
             shift
             ;;
+        --snapshot)
+            if [ -z "$2" ] || [[ "$2" == -* ]]; then
+                echo "エラー: --snapshot オプションにはスナップショット名が必要です"
+                echo "使用方法: $0 --snapshot <スナップショット名>"
+                echo "例: $0 --snapshot tutorial-completed"
+                usage
+            fi
+            SNAPSHOT_NAME="$2"
+            USE_SNAPSHOT=true
+            shift 2
+            ;;
         -h|--help)
             usage
             ;;
@@ -150,9 +213,10 @@ theme_options_count=0
 [ -n "$INIT_PROMPT" ] && ((theme_options_count++))
 [ -n "$FILE_INPUT" ] && ((theme_options_count++))
 [ "$USE_THEMEBOX" = true ] && ((theme_options_count++))
+[ "$USE_SNAPSHOT" = true ] && ((theme_options_count++))
 
 if [ "$theme_options_count" -gt 1 ]; then
-    echo "エラー: テーマ指定オプション（テーマ文字列, -f, -t）は1つしか指定できません。"
+    echo "エラー: テーマ指定オプション（テーマ文字列, -f, -t, --snapshot）は1つしか指定できません。"
     usage
 fi
 
@@ -174,7 +238,24 @@ if [ -n "$FILE_INPUT" ]; then
 fi
 
 # AI作業環境の初期化
-initialize_ai_workspace "$DIRS_ONLY"
+if [ "$USE_SNAPSHOT" = true ]; then
+    # スナップショット存在チェック
+    if [ ! -d "snapshots/$SNAPSHOT_NAME" ]; then
+        echo "エラー: スナップショット '$SNAPSHOT_NAME' が見つかりません。"
+        echo "パス: snapshots/$SNAPSHOT_NAME/"
+        echo ""
+        echo "利用可能なスナップショット:"
+        if [ -d "snapshots" ] && [ "$(ls -A snapshots 2>/dev/null)" ]; then
+            ls -1 snapshots/
+        else
+            echo "  (スナップショットが存在しません)"
+        fi
+        exit 1
+    fi
+    restore_from_snapshot "$SNAPSHOT_NAME"
+else
+    initialize_ai_workspace "$DIRS_ONLY"
+fi
 
 # ディレクトリ作成のみのオプションが指定された場合はここで終了
 if [ "$DIRS_ONLY" = true ]; then
@@ -296,8 +377,42 @@ echo ""
 log_info "🚀 エージェント起動中..."
 tmux send-keys -t agent "$AGENT_COMMAND" C-m
 sleep 20  # gemini-cliの起動を待機
+
+# スナップショット復元時はチャット履歴も復元
+if [ "$USE_SNAPSHOT" = true ]; then
+    log_info "💬 チャット履歴を復元中..."
+    tmux send-keys -t agent "/chat resume $SNAPSHOT_NAME"
+    sleep 1
+    tmux send-keys -t agent C-m
+    sleep 1 # サジェスト決定のため２回エンターが必要な場合がある
+    tmux send-keys -t agent C-m
+    sleep 5  # チャット履歴復元の待機
+    log_success "✅ チャット履歴復元完了"
+fi
+
 log_success "✅ エージェントプロセス起動コマンド送信完了"
 echo ""
+
+# スナップショット復元時はハートビート起動をスキップ
+if [ "$USE_SNAPSHOT" = true ]; then
+    echo ""
+    log_success "🎉 スナップショット復元完了！"
+    echo ""
+    echo "📋 次の手順:"
+    echo "==================="
+    echo "1. 必要に応じてthemeboxにテーマを追加してください"
+    echo "   例: echo 'テーマ: 新しい探求テーマ' > ai-works/themebox/001_new_theme.md"
+    echo ""
+    echo "2. 復元状態を確認してください"
+    echo "   - ai-works/ディレクトリの内容確認"
+    echo "   - チャット履歴の復元確認"
+    echo ""
+    echo "3. 準備完了後、以下のコマンドでハートビートを開始してください:"
+    echo "   ./restart.sh"
+    echo ""
+    log_info "ℹ️ ハートビート起動をスキップしました。準備完了後に ./restart.sh を実行してください。"
+    exit 0
+fi
 
 # STEP 7: ハートビート起動
 log_info "❤️ ハートビート起動中..."

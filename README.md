@@ -118,6 +118,11 @@ npm run dev
 ./setup.sh -t
 ```
 
+#### スナップショットからの復元
+```bash
+./setup.sh --snapshot tutorial-completed  # スナップショットから環境を復元
+```
+
 #### その他のオプション
 ```bash
 ./setup.sh -h  # ヘルプ表示
@@ -135,6 +140,9 @@ npm run dev
 
 # themeboxの準備済みテーマで起動
 ./setup.sh -t
+
+# スナップショットから復元
+./setup.sh --snapshot tutorial-completed
 
 # その他のオプション
 ./setup.sh -h  # ヘルプ表示
@@ -161,6 +169,41 @@ echo "テーマ: あなたの探求したいテーマ" > ai-works/themebox/001_y
 AIがシステムを理解してから本格的なタスクを開始するため、より安定した動作が期待できます。
 
 **詳細なセットアップ手順とトラブルシューティングは [SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md) を参照してください。**
+
+## スナップショット機能
+
+現在のAI心臓システムの状態を「スナップショット」として保存し、後で同じ状態から活動を再開できます。
+
+### 主な用途
+- **開発環境の保存**: 特定の開発段階の状態を保存
+- **実験の基準点**: 実験前の安定した状態を保存  
+- **バックアップ**: 重要な成果物がある状態を保存
+- **環境の複製**: 同じ状態を複数の環境で再現
+- **チュートリアルスキップ**: 初期セットアップの高速化
+
+### スナップショット作成
+任意のタイミングで現在の状態をスナップショットとして保存できます：
+```bash
+./create_snapshot.sh my-project-v1.0
+./create_snapshot.sh before-experiment  
+./create_snapshot.sh stable-state
+./create_snapshot.sh tutorial-completed
+```
+
+### スナップショットからの復元
+保存したスナップショットから環境を復元できます：
+```bash
+# 1. 指定したスナップショットから環境を復元
+./setup.sh --snapshot my-project-v1.0
+
+# 2. 必要に応じてthemeboxにテーマを追加
+echo "テーマ: 新しい探求テーマ" > ai-works/themebox/001_new_theme.md
+
+# 3. 準備完了後、活動を開始
+./restart.sh
+```
+
+この機能により、開発・実験サイクルを大幅に高速化し、安全な状態管理が可能になります。
 
 ## 実行結果と出力ファイル
 
