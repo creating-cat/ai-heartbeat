@@ -440,22 +440,22 @@ attempt_recovery() {
     if [ "$SHUTDOWN_REQUESTED" = true ]; then return; fi
     log_notice "Agent processing has been interrupted."
 
-
-    # コンテキスト圧縮を実行
-    log_notice "Sending context compression command..."
-    compress_agent_context
-    if [ "$SHUTDOWN_REQUESTED" = true ]; then return; fi
-    interruptible_sleep 30  # 圧縮処理の完了を待機
-    log_notice "Context compression completed."
-    
     # チャット保存を実行
     local save_timestamp=$(date "+%Y%m%d%H%M%S")
     local chat_tag="HEARTBEAT_${HEARTBEAT_START_TIMESTAMP}_${save_timestamp}"
     log_notice "Saving chat with tag: $chat_tag"
     save_agent_chat_history "$chat_tag"
     if [ "$SHUTDOWN_REQUESTED" = true ]; then return; fi
-    interruptible_sleep 30  # チャット保存処理の完了を待機
+    interruptible_sleep 10  # チャット保存処理の完了を待機
     log_notice "Chat saved with tag: $chat_tag"
+
+    # コンテキスト圧縮を実行
+    # NOTE: 圧縮処理後に400エラーになる問題があるため、一旦コメントアウト
+    # log_notice "Sending context compression command..."
+    # compress_agent_context
+    # if [ "$SHUTDOWN_REQUESTED" = true ]; then return; fi
+    # interruptible_sleep 60  # 圧縮処理の完了を待機
+    # log_notice "Context compression completed."
     
     # 異常種別に応じたアドバイスメッセージを設定
     local advice_message=""
