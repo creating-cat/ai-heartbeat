@@ -7,7 +7,7 @@
 1. [MCPツールの概要と理念](#1-mcpツールの概要と理念)
 2. [基本的なツール群](#2-基本的なツール群)
 3. [テーマ管理ツール群](#3-テーマ管理ツール群)
-4. [制限のあるツール群](#4-制限のあるツール群)
+4. [ツール使用の制限](#4-ツール使用の制限)
 5. [使用時の注意事項とベストプラクティス](#5-使用時の注意事項とベストプラクティス)
 6. [トラブルシューティング](#6-トラブルシューティング)
 7. [関連ドキュメント](#7-関連ドキュメント)
@@ -313,111 +313,14 @@ list_theme_artifacts({
 })
 ```
 
-## 4. 制限のあるツール群
+## 4. ツール使用の制限
 
-### 4.1 Web検索ツール
+一部のツールには、システムの安定性や外部サービスの利用規約を守るために、利用制限が設けられています。
+制限には、**サイクルベースの制限**（1活動サイクルあたりの使用回数）と、**時間ベースの制限**（クールダウン/ロック）があります。
 
-#### gemini_cli.google_web_search
-**制限**: 1活動サイクルで1回まで、クォータ制限あり
+**重要**: 制限対象のツールと具体的なルールについては、必ず以下の専門ドキュメントを参照してください。
 
-```
-google_web_search({
-  query: "検索クエリ"
-})
-```
-
-**使用後の必須処理**:
-```
-report_tool_usage({
-  toolId: "gemini_cli.google_web_search",
-  result: "success" // または "quota_exceeded"
-})
-```
-
-#### gemini_cli.web_fetch
-**制限**: 1活動サイクルで1回まで、クォータ制限あり
-
-```
-web_fetch({
-  url: "https://example.com"
-})
-```
-
-### 4.2 外部フェッチツール
-
-#### mult-fetch-mcp-server系ツール
-**制限**: 連続使用時は1秒以上の間隔が必要
-
-**対象ツール**:
-- `mult-fetch-mcp-server.fetch_html`
-- `mult-fetch-mcp-server.fetch_json`
-- `mult-fetch-mcp-server.fetch_txt`
-- `mult-fetch-mcp-server.fetch_markdown`
-- `mult-fetch-mcp-server.fetch_plaintext`
-
-**使用方法**:
-```
-fetch_html({ url: "https://example.com" })
-// 連続使用時は必ず1秒以上の間隔を空ける
-sleep 1
-fetch_json({ url: "https://api.example.com" })
-```
-
-**注意事項**:
-- **サイクル制限**: 連続使用時は`sleep 1`等を使用して一秒以上間隔を空けること
-- **時間制限**: なし（report_tool_usage不要）
-- **クォータ制限**: なし
-
-### 4.3 creative-ideation-mcp.generate_categories
-**制限**: 1活動サイクルで1回まで
-
-```
-generate_categories({
-  input: "カテゴリ生成の対象"
-})
-```
-
-**詳細制限**:
-- **サイクル制限**: 1活動サイクルで1回まで
-- **時間制限**: なし（report_tool_usage不要）
-- **クォータ制限**: ありだが実質ほぼなし
-
-### 4.4 ツール使用報告システム
-
-#### report_tool_usage の使用方法
-時間ベース制限を持つツールを使用した後は、システムがクールダウンやロックを正しく管理できるよう、ツールの実行結果を報告する必要があります。
-
-**MCPツールによる報告（推奨）**:
-```
-report_tool_usage({
-  toolId: "gemini_cli.google_web_search",
-  status: "success" // または "quota_exceeded"
-})
-```
-
-**手動での状態報告（代替手段）**:
-MCPツールが利用できない場合や、基本的なファイル操作として、以下のコマンドを実行して状態ファイルを手動で作成してください。
-
-*   **成功 (`success`) の場合:**
-    ツールが正常に完了したことを示すため、クールダウン用のファイルを作成します。
-    ```bash
-    touch stats/cooldown/{toolId}
-    ```
-    **例:** `gemini.google.search` が成功した場合
-    `touch stats/cooldown/gemini.google.search`
-
-*   **クォータ超過 (`quota_exceeded`) の場合:**
-    ツールのAPIクォータ制限に達したことを示すため、ロック用のファイルを作成します。
-    ```bash
-    touch stats/lock/{toolId}
-    ```
-    **例:** `gemini.google.search` でクォータエラーが発生した場合
-    `touch stats/lock/gemini.google.search`
-
-**報告が必要なツール**:
-
-- gemini_cli.google_web_search
-- gemini_cli.web_fetch
+**詳細**: `./TOOL_RESTRICTIONS.md` を参照
 
 
 ## 5. 使用時の注意事項とベストプラクティス

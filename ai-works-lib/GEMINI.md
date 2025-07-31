@@ -272,6 +272,7 @@
 - `./ai-docs/ACTIVITY_DETAILS.md` - 各活動種別の詳細ガイド  
 - `./ai-docs/THEME_SYSTEM.md` - テーマ・サブテーマ管理
 - `./ai-docs/TOOL_USAGE.md` - MCPツール使用方法
+- `./ai-docs/TOOL_RESTRICTIONS.md` - ツール利用制限ガイド
 - `./ai-docs/ERROR_HANDLING.md` - エラー・例外処理
 - `./ai-docs/ADVANCED_FEATURES.md` - 高度な機能
 
