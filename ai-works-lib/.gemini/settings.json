@@ -1,5 +1,10 @@
 {
   "mcpServers": {
+    "puppeteer": {
+      "command": "npx",
+      "args": ["-y", "puppeteer-mcp-server"],
+      "env": {}
+    },
     "creative-ideation-mcp": {
       "command": "npx",
       "args": [
