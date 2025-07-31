@@ -269,8 +269,8 @@ check_agent_health() {
         fi
     fi
     
-    # 8. 活動ログ頻度異常検知（新機能 - v2）
-    local activity_freq_result=$(check_activity_log_frequency_anomaly "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
+    # 8. 意識レベル低下検知（新機能 - v2）
+    local activity_freq_result=$(check_consciousness_level_anomaly "$current_time" "$INACTIVITY_WARNING_THRESHOLD" "$INACTIVITY_STOP_THRESHOLD" "$HEARTBEAT_START_TIME")
     local activity_freq_code=$(echo "$activity_freq_result" | cut -d':' -f1)
     local activity_freq_detail=$(echo "$activity_freq_result" | cut -d':' -f2)
     
@@ -376,12 +376,12 @@ check_recent_activity() {
             return 0 ;;
         10) # 活動ログ頻度警告（新機能 - v2）
             log_warning "Activity log frequency warning: No activity log updates for $((detail / 60)) minutes."
-            INACTIVITY_WARNING_MESSAGE="活動ログ頻度警告: $((detail / 60))分間活動ログの更新がありません。
+            INACTIVITY_WARNING_MESSAGE="意識レベル低下警告: $((detail / 60))分間意識の証明（活動ログ・チェックポイントログ）がありません。
 
-$ADVICE_ACTIVITY_LOG_FREQUENCY"
+$ADVICE_CONSCIOUSNESS_LEVEL_ANOMALY"
             return 0 ;;
-        11) # 活動ログ頻度エラー（新機能 - v2）
-            handle_failure "Activity log frequency error: No activity log updates for $((detail / 60)) minutes." "活動ログ頻度異常" ;;
+        11) # 意識レベル低下エラー（新機能 - v2）
+            handle_failure "Consciousness level anomaly: No consciousness proof (activity/checkpoint logs) for $((detail / 60)) minutes." "意識レベル低下検知" ;;
         14) # 活動ログループエラー（復活 - 手動編集による問題行動検知のため）
             handle_failure "Activity log loop error: Same activity log edited $detail times consecutively." "活動ログループ異常" ;;
         16) # テーマログパターンエラー（新機能 - v2）
@@ -463,8 +463,8 @@ attempt_recovery() {
         "活動ログ内省不足")
             advice_message="$ADVICE_INTROSPECTION"
             ;;
-        "活動ログ頻度異常")
-            advice_message="$ADVICE_ACTIVITY_LOG_FREQUENCY"
+        "意識レベル低下検知")
+            advice_message="$ADVICE_CONSCIOUSNESS_LEVEL_ANOMALY"
             ;;
         "活動ログループ異常")
             advice_message="$ADVICE_ACTIVITY_LOG_LOOP"
@@ -486,7 +486,7 @@ attempt_recovery() {
     # 異常種別に応じた特定ドキュメントを決定
     local specific_docs=""
     case "$detection_type" in
-        "活動ログ内省不足"|"活動ログ頻度異常"|"活動ログループ異常"|"活動ログタイムスタンプ異常")
+        "活動ログ内省不足"|"意識レベル低下検知"|"活動ログループ異常"|"活動ログタイムスタンプ異常")
             specific_docs="4. ai-docs/BASIC_OPERATIONS.md - 基本操作の詳細手順"
             ;;
         "テーマログパターン異常")

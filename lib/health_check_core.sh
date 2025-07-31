@@ -237,25 +237,25 @@ _get_latest_activity_or_checkpoint_info() {
 }
 
 # 活動ログ作成頻度異常の判定（新機能 - v2）
-# 活動ログファイルの最新更新時刻をチェックして頻度異常を検知
+# 意識レベル低下を検知（活動ログ・チェックポイントログの更新状況をチェック）
 # 引数: current_time, warning_threshold, stop_threshold, heartbeat_start_time
 # 戻り値: 常に0（エラーコードはecho出力に含める）
 # 出力: "error_code:detail" 形式（0:diff=正常, 1:diff=警告, 2:diff=エラー）
-check_activity_log_frequency_anomaly() {
+check_consciousness_level_anomaly() {
     local current_time="$1"
     local warning_threshold="$2"
     local stop_threshold="$3"
     local heartbeat_start_time="$4"
     
-    debug_log "ACTIVITY_LOG_FREQUENCY check started: current_time=$current_time"
+    debug_log "CONSCIOUSNESS_LEVEL check started: current_time=$current_time"
     
     # 長時間処理宣言の期限チェック
     if check_extended_processing_deadline; then
-        debug_log "ACTIVITY_LOG_FREQUENCY: Extended processing declared and valid, skipping check"
+        debug_log "CONSCIOUSNESS_LEVEL: Extended processing declared and valid, skipping check"
         echo "0:0"
         return 0
     fi
-    debug_log "ACTIVITY_LOG_FREQUENCY thresholds: warning=${warning_threshold}s, stop=${stop_threshold}s"
+    debug_log "CONSCIOUSNESS_LEVEL thresholds: warning=${warning_threshold}s, stop=${stop_threshold}s"
 
     # 最新活動ログまたはチェックポイントログファイル情報を取得
     local latest_info=$(_get_latest_activity_or_checkpoint_info)
@@ -265,39 +265,39 @@ check_activity_log_frequency_anomaly() {
     
     # 活動ログもチェックポイントログも存在しない場合の処理
     if [ -z "$latest_info" ]; then
-        debug_log "ACTIVITY_LOG_FREQUENCY: No activity or checkpoint log files found, using heartbeat start time"
+        debug_log "CONSCIOUSNESS_LEVEL: No activity or checkpoint log files found, using heartbeat start time"
         diff=$((current_time - heartbeat_start_time))
     else
         # 最新ログの時刻とファイル名を取得
         local latest_time=$(echo "$latest_info" | cut -d' ' -f1)
         local latest_file=$(echo "$latest_info" | cut -d' ' -f2-)
         
-        debug_log "ACTIVITY_LOG_FREQUENCY: Latest log: $(basename "$latest_file") at $latest_time"
+        debug_log "CONSCIOUSNESS_LEVEL: Latest log: $(basename "$latest_file") at $latest_time"
         
         # 既存のcheck_inactivity_anomalyと同じロジックを適用
         if [ $latest_time -lt $heartbeat_start_time ]; then
             diff=$((current_time - heartbeat_start_time))
-            debug_log "ACTIVITY_LOG_FREQUENCY: Using heartbeat start time as baseline (log older than heartbeat start)"
+            debug_log "CONSCIOUSNESS_LEVEL: Using heartbeat start time as baseline (log older than heartbeat start)"
         else
             diff=$((current_time - latest_time))
-            debug_log "ACTIVITY_LOG_FREQUENCY: Using log time as baseline"
+            debug_log "CONSCIOUSNESS_LEVEL: Using log time as baseline"
         fi
     fi
 
-    debug_log "ACTIVITY_LOG_FREQUENCY: Time difference = ${diff}s"
+    debug_log "CONSCIOUSNESS_LEVEL: Time difference = ${diff}s"
 
     # エラーコード付きで出力（誤使用防止のためreturnは常に0）
     if [ $diff -gt $stop_threshold ]; then
-        debug_warning "ACTIVITY_LOG_FREQUENCY: Error level reached (${diff}s > ${stop_threshold}s)"
+        debug_warning "CONSCIOUSNESS_LEVEL: Error level reached (${diff}s > ${stop_threshold}s)"
         echo "2:$diff"
          return 0
     elif [ $diff -gt $warning_threshold ]; then
-        debug_log "ACTIVITY_LOG_FREQUENCY: Warning level reached (${diff}s > ${warning_threshold}s)"
+        debug_log "CONSCIOUSNESS_LEVEL: Warning level reached (${diff}s > ${warning_threshold}s)"
         echo "1:$diff"
         return 0
     fi
     
-    debug_log "ACTIVITY_LOG_FREQUENCY: Normal operation (${diff}s <= ${warning_threshold}s)"
+    debug_log "CONSCIOUSNESS_LEVEL: Normal operation (${diff}s <= ${warning_threshold}s)"
     echo "0:$diff"
     return 0
 }
