@@ -12,7 +12,7 @@ import { THEME_HISTORIES_DIR, THEMEBOX_DIR } from '../lib/pathConstants';
 
 // Zod schema for start theme input
 export const startThemeInputSchema = z.object({
-  target_filename: z.string().describe('preview_next_themeで取得した、処理対象のファイル名'),
+  target_filename: z.string().optional().describe('themboxからテーマを開始する場合の、処理対象のファイル名。自律的にテーマを考案した場合は不要。'),
   themeName: z.string().describe('AIが決定したテーマの正式名称'),
   themeDirectoryPart: z.string()
     .describe('テーマディレクトリ名の一部。THEME_START_IDと組み合わせて "{THEME_START_ID}_{themeDirectoryPart}" の形式でテーマディレクトリが作成されます。半角英小文字、数字、アンダースコアのみ推奨'),
@@ -83,14 +83,17 @@ export const startThemeTool = {
         now.getSeconds().toString().padStart(2, '0');
 
       // --- 段階1: ファイル存在確認 ---
-      const targetFilePath = path.join(THEMEBOX_DIR, target_filename);
-      if (!(await fs.pathExists(targetFilePath))) {
-        throw new Error('指定されたテーマファイルが見つかりません');
-      }
+      let targetFilePath: string | null = null;
+      if (target_filename) {
+        targetFilePath = path.join(THEMEBOX_DIR, target_filename);
+        if (!(await fs.pathExists(targetFilePath))) {
+          throw new Error(`指定されたテーマファイルが見つかりません: ${target_filename}`);
+        }
 
-      // 既に処理済みかチェック
-      if (target_filename.startsWith('processed.')) {
-        throw new Error('指定されたテーマファイルは既に処理済みです');
+        // 既に処理済みかチェック
+        if (target_filename.startsWith('processed.')) {
+          throw new Error('指定されたテーマファイルは既に処理済みです');
+        }
       }
 
       // --- 段階2: クールダウン期間確認（ハートビートID重複チェック） ---
@@ -188,8 +191,10 @@ ${activityList}
         tmpHistoryFile = null; // 成功したのでクリーンアップ対象から外す
 
         // themeboxファイルを処理済みにリネーム
-        const processedFilePath = path.join(THEMEBOX_DIR, `processed.${target_filename}`);
-        await fs.rename(targetFilePath, processedFilePath);
+        if (target_filename && targetFilePath) {
+          const processedFilePath = path.join(THEMEBOX_DIR, `processed.${target_filename}`);
+          await fs.rename(targetFilePath, processedFilePath);
+        }
 
       } catch (error) {
         // 段階3・4で作成したファイル・ディレクトリをクリーンアップ
