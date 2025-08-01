@@ -1,5 +1,6 @@
 ai-works/
 *.backup
+backups/
 
 logs/
 snapshots/

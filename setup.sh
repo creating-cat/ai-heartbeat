@@ -48,7 +48,9 @@ restore_from_snapshot() {
     
     # 既存のai-worksをバックアップ
     if [ -d "ai-works" ]; then
-        local backup_dir="ai-works.$(date +%Y%m%d_%H%M%S).backup"
+        # バックアップディレクトリを作成
+        mkdir -p "backups"
+        local backup_dir="backups/ai-works.$(date +%Y%m%d_%H%M%S).backup"
         log_info "📦 既存環境をバックアップ中: $backup_dir"
         cp -r "ai-works" "$backup_dir"
         log_success "✅ バックアップ完了: $backup_dir"
@@ -82,7 +84,8 @@ initialize_ai_workspace() {
             log_info "🔧 AI作業環境を再作成中..."
             
             # バックアップ作成
-            local backup_dir="ai-works.$(date +%Y%m%d_%H%M%S).backup"
+            mkdir -p "backups"
+            local backup_dir="backups/ai-works.$(date +%Y%m%d_%H%M%S).backup"
             log_info "📦 既存環境をバックアップ中: $backup_dir"
             cp -r "ai-works" "$backup_dir"
             log_success "✅ バックアップ完了: $backup_dir"
