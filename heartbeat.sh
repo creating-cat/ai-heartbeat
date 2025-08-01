@@ -111,7 +111,7 @@ interruptible_sleep() {
 }
 
 # ログファイル設定
-LOG_DIR="logs"
+LOG_DIR="ai-works/logs"
 # ログファイル名は起動時のハートビートID付き（例: heartbeat_20250106143022.log）
 LOG_FILE="$LOG_DIR/heartbeat_${HEARTBEAT_START_TIMESTAMP}.log"
 
