@@ -53,7 +53,7 @@
 ```
 preview_next_theme()  # テーマ候補の安全な確認
 start_theme({         # アトミックなテーマ開始
-  target_filename: "確認したファイル名",
+  targetFilename: "確認したファイル名",
   themeName: "決定したテーマ名",
   themeDirectoryPart: "ディレクトリ名",
   reason: "開始理由",
@@ -70,7 +70,7 @@ themeboxにテーマがない場合の自律的なテーマ決定：
 1. **過去のテーマ分析**: 過去の活動履歴の確認、未完了の探求領域の特定、発展可能性のある分野の抽出。
 2. **現在の関心・興味の確認**: 最近の思考傾向の分析、創造活動の方向性確認、学習したい領域の特定。
 3. **テーマの具体化**: 明確で実行可能な範囲の設定、探求期間の見積もり、期待される成果の想定。
-4. **テーマ開始の実行**: `start_theme`ツールを使用して自律的にテーマを開始します。この場合、`target_filename`パラメータは不要です。
+4. **テーマ開始の実行**: `start_theme`ツールを使用して自律的にテーマを開始します。この場合、`targetFilename`パラメータは不要です。
    ```
    start_theme({
      themeName: "自律的に考案したテーマ名",
@@ -171,7 +171,7 @@ artifacts/{PARENT_THEME_START_ID_親テーマ名}/{SUB_THEME_START_ID_サブテ�
 上記の手動手順を自動化し、正確性と安全性を向上させるツールが利用可能です：
 ```
 start_theme({         # テーマ開始の自動記録
-  target_filename: "ファイル名",
+  targetFilename: "ファイル名",
   themeName: "テーマ名",
   themeDirectoryPart: "ディレクトリ名",
   reason: "開始理由",

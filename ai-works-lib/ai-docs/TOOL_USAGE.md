@@ -187,7 +187,7 @@ preview_next_theme()
 #### 基本的な使用方法
 ```
 start_theme({
-  target_filename: "preview_next_themeで確認したファイル名",
+  targetFilename: "preview_next_themeで確認したファイル名",
   themeName: "決定したテーマ名",
   themeDirectoryPart: "theme_directory_name",
   reason: "テーマを開始する理由",
@@ -198,7 +198,7 @@ start_theme({
 #### サブテーマの場合
 ```
 start_theme({
-  target_filename: "subtheme_file.md",
+  targetFilename: "subtheme_file.md",
   themeName: "サブテーマ名",
   themeDirectoryPart: "subtheme_dir",
   reason: "サブテーマ開始理由",

@@ -460,7 +460,7 @@ themeboxを処理する場合は、以下の手順に従ってください：
 ```
 preview_next_theme()  # テーマ候補の安全な確認
 start_theme({         # アトミックなテーマ開始
-  target_filename: "確認したファイル名",
+  targetFilename: "確認したファイル名",
   themeName: "決定したテーマ名",
   themeDirectoryPart: "ディレクトリ名",
   reason: "開始理由",
