@@ -12,13 +12,13 @@ import { THEME_HISTORIES_DIR, THEMEBOX_DIR } from '../lib/pathConstants';
 
 // Zod schema for start theme input
 export const startThemeInputSchema = z.object({
-  target_filename: z.string().optional().describe('themboxからテーマを開始する場合の、処理対象のファイル名。自律的にテーマを考案した場合は不要。'),
+  targetFilename: z.string().optional().describe('themboxからテーマを開始する場合の、処理対象のファイル名。自律的にテーマを考案した場合は不要。'),
   themeName: z.string().describe('AIが決定したテーマの正式名称'),
   themeDirectoryPart: z.string()
     .describe('テーマディレクトリ名の一部。THEME_START_IDと組み合わせて "{THEME_START_ID}_{themeDirectoryPart}" の形式でテーマディレクトリが作成されます。半角英小文字、数字、アンダースコアのみ推奨'),
   reason: z.string().describe('テーマを開始する理由'),
   activityContent: z.array(z.string()).optional().describe('テーマ開始時に記録する初期活動計画のリスト'),
-  
+
   // サブテーマ対応
   parentThemeStartId: z.string()
     .regex(/^\d{14}$/, 'PARENT_THEME_START_IDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
@@ -55,7 +55,7 @@ export const startThemeTool = {
 
     try {
       const {
-        target_filename,
+        targetFilename,
         themeName,
         themeDirectoryPart,
         reason,
@@ -84,14 +84,14 @@ export const startThemeTool = {
 
       // --- 段階1: ファイル存在確認 ---
       let targetFilePath: string | null = null;
-      if (target_filename) {
-        targetFilePath = path.join(THEMEBOX_DIR, target_filename);
+      if (targetFilename) {
+        targetFilePath = path.join(THEMEBOX_DIR, targetFilename);
         if (!(await fs.pathExists(targetFilePath))) {
-          throw new Error(`指定されたテーマファイルが見つかりません: ${target_filename}`);
+          throw new Error(`指定されたテーマファイルが見つかりません: ${targetFilename}`);
         }
 
         // 既に処理済みかチェック
-        if (target_filename.startsWith('processed.')) {
+        if (targetFilename.startsWith('processed.')) {
           throw new Error('指定されたテーマファイルは既に処理済みです');
         }
       }
@@ -166,7 +166,7 @@ ${activityList}
             throw new Error(`親テーマディレクトリが存在しません: ${parentPath}`);
           }
         }
-        
+
         await fs.ensureDir(themeDirectoryPath);
         await fs.ensureDir(path.join(themeDirectoryPath, 'histories'));
         createdThemeDirectory = themeDirectoryPath;
@@ -191,8 +191,8 @@ ${activityList}
         tmpHistoryFile = null; // 成功したのでクリーンアップ対象から外す
 
         // themeboxファイルを処理済みにリネーム
-        if (target_filename && targetFilePath) {
-          const processedFilePath = path.join(THEMEBOX_DIR, `processed.${target_filename}`);
+        if (targetFilename && targetFilePath) {
+          const processedFilePath = path.join(THEMEBOX_DIR, `processed.${targetFilename}`);
           await fs.rename(targetFilePath, processedFilePath);
         }
 
@@ -212,7 +212,7 @@ ${activityList}
       responseText += `${themeType}履歴ファイル: ${logFilePath}\n`;
       responseText += `${themeType}ディレクトリ: ${themeDirectoryPath}\n`;
       responseText += `THEME_START_ID: ${themeStartId}`;
-      
+
       if (isSubtheme) {
         responseText += `\nPARENT_THEME_START_ID: ${parentThemeStartId}`;
       }
@@ -225,11 +225,11 @@ ${activityList}
         responseText += `\n警告: 親ディレクトリ名を「${parentThemeDirectoryPart}」から「${sanitizedParentDirectoryPart}」に修正しました`;
       }
 
-      return { 
-        content: [{ 
-          type: 'text' as const, 
-          text: responseText 
-        }] 
+      return {
+        content: [{
+          type: 'text' as const,
+          text: responseText
+        }]
       };
 
     } catch (error) {
@@ -248,9 +248,9 @@ ${activityList}
         console.error('クリーンアップ処理でエラーが発生しました:', cleanupError);
         return {
           content: [
-            { 
-              type: 'text' as const, 
-              text: `エラー: ${error instanceof Error ? error.message : String(error)}\n\n追加エラー: クリーンアップ処理に失敗しました。手動でファイルの確認が必要な場合があります。` 
+            {
+              type: 'text' as const,
+              text: `エラー: ${error instanceof Error ? error.message : String(error)}\n\n追加エラー: クリーンアップ処理に失敗しました。手動でファイルの確認が必要な場合があります。`
             },
           ],
         };
@@ -258,9 +258,9 @@ ${activityList}
 
       return {
         content: [
-          { 
-            type: 'text' as const, 
-            text: `エラー: ${error instanceof Error ? error.message : String(error)}\n\n作成済みファイルをクリーンアップしました。安心して再実行してください。` 
+          {
+            type: 'text' as const,
+            text: `エラー: ${error instanceof Error ? error.message : String(error)}\n\n作成済みファイルをクリーンアップしました。安心して再実行してください。`
           },
         ],
       };
