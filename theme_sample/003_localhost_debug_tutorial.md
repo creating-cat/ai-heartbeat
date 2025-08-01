@@ -29,6 +29,7 @@
 * puppeteerのpuppeteer_connect_active_tabで接続し、puppeteer_navigateでlocalhostに移動してみてください。
   * 失敗する場合は、ユーザーがリモートデバッグモードでChromeを起動していない可能性が高いです。この場合は使用を諦めて最後のステップへ進んでください。
   * 成功した場合は、さらにpuppeteer_screenshotやpuppeteer_evaluateを使用してページ内容などを取得できたりするかや、jsの処理を実行できるかなどを試してみて、その結果を考察してみてください。
+    * puppeteer_evaluateでは、`console.log`を使用したパターンや、明示的に`return`で値を返す場合とそうでない場合とかで試してみてください。
 
 ## 最終ステップ
 
