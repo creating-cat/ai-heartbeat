@@ -1,7 +1,9 @@
 #!/bin/bash
 
+# gemini cli側がスリープするまで待つ
+sleep 30
+
 # gemini cliの処理の割り込みを行い停止させる。
-sleep 10
 tmux send-keys -t agent Escape
 sleep 1
 tmux send-keys -t agent Escape
