@@ -302,7 +302,7 @@ check_consciousness_level_anomaly() {
     return 0
 }
 
-# 最新テーマログファイル情報を取得するヘルパー関数
+# 最新テーマ履歴ファイル情報を取得するヘルパー関数
 _get_latest_theme_log_info() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS
@@ -313,8 +313,8 @@ _get_latest_theme_log_info() {
     fi
 }
 
-# テーマログパターン異常の判定（新機能 - v2）
-# 最新テーマログと同じタイムスタンプのテーマログファイル数をチェックして重複作成異常を検知
+# テーマ履歴パターン異常の判定（新機能 - v2）
+# 最新テーマ履歴と同じタイムスタンプのテーマ履歴ファイル数をチェックして重複作成異常を検知
 # 引数: current_time
 # 戻り値: 常に0（エラーコードはecho出力に含める）
 # 出力: "error_code:detail" 形式（0:count=正常, 1:count=警告, 2:count=エラー）
@@ -323,7 +323,7 @@ check_theme_log_pattern_anomaly() {
     
     debug_log "THEME_LOG_PATTERN check started: current_time=$current_time"
     
-    # 最新テーマログファイル情報を取得
+    # 最新テーマ履歴ファイル情報を取得
     local latest_theme_log_info=$(_get_latest_theme_log_info)
     
     if [ -z "$latest_theme_log_info" ]; then
@@ -332,7 +332,7 @@ check_theme_log_pattern_anomaly() {
         return 0
     fi
     
-    # 最新テーマログのファイル名からタイムスタンプを抽出
+    # 最新テーマ履歴のファイル名からタイムスタンプを抽出
     local latest_theme_log_file=$(echo "$latest_theme_log_info" | cut -d' ' -f2-)
     local latest_filename=$(basename "$latest_theme_log_file")
     
@@ -348,7 +348,7 @@ check_theme_log_pattern_anomaly() {
     
     debug_log "THEME_LOG_PATTERN: Latest theme log timestamp: $timestamp_pattern"
     
-    # 同じタイムスタンプのテーマログファイル数を取得
+    # 同じタイムスタンプのテーマ履歴ファイル数を取得
     local same_timestamp_count=$(find ai-works/artifacts/theme_histories -name "${timestamp_pattern}*.md" -type f 2>/dev/null | wc -l)
     
     debug_log "THEME_LOG_PATTERN: Same timestamp file count: $same_timestamp_count"

@@ -45,7 +45,14 @@ function getThemeType(parentThemeStartId?: string): string {
 
 export const startThemeTool = {
   name: 'start_theme',
-  description: 'AIがテーマ開始を意思決定した後に、テーマの開始に必要なすべての処理をアトミック（不可分）に実行します。途中で失敗した場合は一切の状態変更を行わず、具体的なエラーメッセージを返します。',
+  description: `AIがテーマ開始を意思決定した後に、テーマの開始に必要なすべての処理をアトミック（不可分）に実行します。
+このツールは、以下の処理を一連のトランザクションとして実行します：
+1. 指定されたテーマファイルの存在確認と処理済みチェック
+2. 現在のハートビートID（THEME_START_ID）の生成
+3. テーマ履歴ファイルの作成
+4. テーマディレクトリの作成
+5. 履歴ファイルの最終確認とリネーム
+途中で失敗した場合は一切の状態変更を行わず、具体的なエラーメッセージを返します。`,
   input_schema: startThemeInputSchema,
   execute: async (args: z.infer<typeof startThemeInputSchema>) => {
     // クリーンアップ用の変数

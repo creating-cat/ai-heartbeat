@@ -285,7 +285,7 @@ check_agent_health() {
         fi
     fi
 
-    # 9. テーマログパターン異常検知（新機能 - v2）
+    # 9. テーマ履歴パターン異常検知（新機能 - v2）
     local theme_pattern_result=$(check_theme_log_pattern_anomaly "$current_time")
     local theme_pattern_code=$(echo "$theme_pattern_result" | cut -d':' -f1)
     local theme_pattern_detail=$(echo "$theme_pattern_result" | cut -d':' -f2)
@@ -294,7 +294,7 @@ check_agent_health() {
         HEALTH_CHECK_DETAIL="$theme_pattern_detail"
         if [ "$theme_pattern_code" = "2" ]; then
             log_warning "[CHECK] Theme log pattern error detected (code 16): $theme_pattern_detail files"
-            return 16 # テーマログパターンエラー
+            return 16 # テーマ履歴パターンエラー
         fi
     fi
 
@@ -384,8 +384,8 @@ $ADVICE_CONSCIOUSNESS_LEVEL_ANOMALY"
             handle_failure "Consciousness level anomaly: No consciousness proof (activity/checkpoint logs) for $((detail / 60)) minutes." "意識レベル低下検知" ;;
         14) # 活動ログループエラー（復活 - 手動編集による問題行動検知のため）
             handle_failure "Activity log loop error: Same activity log edited $detail times consecutively." "活動ログループ異常" ;;
-        16) # テーマログパターンエラー（新機能 - v2）
-            handle_failure "Theme log pattern error: $detail files with same timestamp detected." "テーマログパターン異常" ;;
+        16) # テーマ履歴パターンエラー（新機能 - v2）
+            handle_failure "Theme log pattern error: $detail files with same timestamp detected." "テーマ履歴パターン異常" ;;
         17) # 内省活動警告（新機能 - v2）
             log_warning "Introspection activity warning: No introspection activity for $((detail / 60)) minutes."
             INTROSPECTION_REMINDER_MESSAGE="内省不足警告: $((detail / 60))分間内省活動が行われていません。
@@ -469,7 +469,7 @@ attempt_recovery() {
         "活動ログループ異常")
             advice_message="$ADVICE_ACTIVITY_LOG_LOOP"
             ;;
-        "テーマログパターン異常")
+        "テーマ履歴パターン異常")
             advice_message="$ADVICE_THEME_LOG_PATTERN"
             ;;
         "活動ログタイムスタンプ異常")
@@ -489,7 +489,7 @@ attempt_recovery() {
         "活動ログ内省不足"|"意識レベル低下検知"|"活動ログループ異常"|"活動ログタイムスタンプ異常")
             specific_docs="4. ai-docs/BASIC_OPERATIONS.md - 基本操作の詳細手順"
             ;;
-        "テーマログパターン異常")
+        "テーマ履歴パターン異常")
             specific_docs="4. ai-docs/THEME_SYSTEM.md - テーマシステム詳細ガイド"
             ;;
         # "内省義務違反") # 削除済み

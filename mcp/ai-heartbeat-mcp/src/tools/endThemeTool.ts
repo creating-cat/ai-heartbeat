@@ -47,7 +47,14 @@ function getThemeType(parentThemeStartId?: string): string {
 
 export const endThemeTool = {
   name: 'end_theme',
-  description: '現在のテーマの終了に関する処理を専門に実行します。テーマ終了の履歴ファイルを作成します。',
+  description: `現在のテーマの終了に関する処理を専門に実行します。
+このツールは、以下の処理を一連のトランザクションとして実行します：
+
+1. 現在のハートビートID（THEME_END_ID）の生成
+2. テーマ履歴ファイルの作成
+4. 履歴ファイルの最終確認とリネーム
+
+途中で失敗した場合は一切の状態変更を行わず、具体的なエラーメッセージを返します。`,
   input_schema: endThemeInputSchema,
   execute: async (args: z.infer<typeof endThemeInputSchema>) => {
     try {
