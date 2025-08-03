@@ -8,7 +8,7 @@ import * as path from 'path';
 import { z } from 'zod';
 import { glob } from 'glob';
 import { resolveThemePath } from '../lib/themeUtils';
-import { THEME_HISTORIES_DIR } from '../lib/pathConstants';
+import { THEME_HISTORIES_DIR, STATS_DIR } from '../lib/pathConstants';
 
 // Zod schema for end theme input
 export const endThemeInputSchema = z.object({
@@ -50,7 +50,7 @@ export const endThemeTool = {
   description: `現在のテーマの終了に関する処理を専門に実行します。
 このツールは、以下の処理を一連のトランザクションとして実行します：
 
-1. 現在のハートビートID（THEME_END_ID）の生成
+1. 現在のハートビートID（THEME_END_ID）の取得
 2. テーマ履歴ファイルの作成
 4. 履歴ファイルの最終確認とリネーム
 
@@ -77,14 +77,16 @@ export const endThemeTool = {
         throw new Error('parentThemeDirectoryPartが指定された場合、parentThemeStartIdも必須です');
       }
 
-      // 現在のハートビートIDを生成（THEME_END_ID）
-      const now = new Date();
-      const themeEndId = now.getFullYear().toString() +
-        (now.getMonth() + 1).toString().padStart(2, '0') +
-        now.getDate().toString().padStart(2, '0') +
-        now.getHours().toString().padStart(2, '0') +
-        now.getMinutes().toString().padStart(2, '0') +
-        now.getSeconds().toString().padStart(2, '0');
+      // 現在のハートビートIDを取得（THEME_END_ID）
+      const heartbeatIdPath = path.join(STATS_DIR, 'current_heartbeat_id.txt');
+      if (!(await fs.pathExists(heartbeatIdPath))) {
+        throw new Error('ハートビートIDファイルが見つかりません。システムが正常に動作していない可能性があります。');
+      }
+      
+      const themeEndId = (await fs.readFile(heartbeatIdPath, 'utf-8')).trim();
+      if (!/^\d{14}$/.test(themeEndId)) {
+        throw new Error(`無効なハートビートID形式です: ${themeEndId}`);
+      }
 
       // ハートビートID重複チェック（全テーマ履歴ファイルを検索）
       const themeHistoryPattern = path.join(THEME_HISTORIES_DIR, `${themeEndId}_*.md`);

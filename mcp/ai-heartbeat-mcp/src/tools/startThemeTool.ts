@@ -8,7 +8,7 @@ import * as path from 'path';
 import { z } from 'zod';
 import { glob } from 'glob';
 import { resolveThemePath } from '../lib/themeUtils';
-import { THEME_HISTORIES_DIR, THEMEBOX_DIR } from '../lib/pathConstants';
+import { THEME_HISTORIES_DIR, THEMEBOX_DIR, STATS_DIR } from '../lib/pathConstants';
 
 // Zod schema for start theme input
 export const startThemeInputSchema = z.object({
@@ -48,7 +48,7 @@ export const startThemeTool = {
   description: `AIがテーマ開始を意思決定した後に、テーマの開始に必要なすべての処理をアトミック（不可分）に実行します。
 このツールは、以下の処理を一連のトランザクションとして実行します：
 1. 指定されたテーマファイルの存在確認と処理済みチェック
-2. 現在のハートビートID（THEME_START_ID）の生成
+2. 現在のハートビートID（THEME_START_ID）の取得
 3. テーマ履歴ファイルの作成
 4. テーマディレクトリの作成
 5. 履歴ファイルの最終確認とリネーム
@@ -80,14 +80,16 @@ export const startThemeTool = {
         throw new Error('parentThemeDirectoryPartが指定された場合、parentThemeStartIdも必須です');
       }
 
-      // 現在のハートビートIDを生成（THEME_START_ID）
-      const now = new Date();
-      const themeStartId = now.getFullYear().toString() +
-        (now.getMonth() + 1).toString().padStart(2, '0') +
-        now.getDate().toString().padStart(2, '0') +
-        now.getHours().toString().padStart(2, '0') +
-        now.getMinutes().toString().padStart(2, '0') +
-        now.getSeconds().toString().padStart(2, '0');
+      // 現在のハートビートIDを取得（THEME_START_ID）
+      const heartbeatIdPath = path.join(STATS_DIR, 'current_heartbeat_id.txt');
+      if (!(await fs.pathExists(heartbeatIdPath))) {
+        throw new Error('ハートビートIDファイルが見つかりません。システムが正常に動作していない可能性があります。');
+      }
+      
+      const themeStartId = (await fs.readFile(heartbeatIdPath, 'utf-8')).trim();
+      if (!/^\d{14}$/.test(themeStartId)) {
+        throw new Error(`無効なハートビートID形式です: ${themeStartId}`);
+      }
 
       // --- 段階1: ファイル存在確認 ---
       let targetFilePath: string | null = null;
