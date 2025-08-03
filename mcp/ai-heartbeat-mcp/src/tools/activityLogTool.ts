@@ -43,6 +43,73 @@ export const activityLogInputSchema = z.object({
 // Helper functions
 
 /**
+ * 成果物ファイルの存在チェック
+ * @param artifacts 成果物ファイルパスの配列
+ * @returns 検証結果とメッセージ
+ */
+async function validateArtifacts(artifacts: string[]): Promise<{
+  hasIssues: boolean;
+  existingFiles: string[];
+  missingFiles: string[];
+  validationMessage: string;
+}> {
+  if (artifacts.length === 0) {
+    return {
+      hasIssues: false,
+      existingFiles: [],
+      missingFiles: [],
+      validationMessage: ''
+    };
+  }
+
+  const existingFiles: string[] = [];
+  const missingFiles: string[] = [];
+
+  for (const artifact of artifacts) {
+    try {
+      // パスの正規化（セキュリティ対策）
+      const normalizedPath = path.normalize(artifact);
+
+      // パストラバーサル攻撃の防止（上位ディレクトリへの移動を禁止）
+      if (normalizedPath.includes('..') || path.isAbsolute(normalizedPath)) {
+        missingFiles.push(`${artifact} (相対パスのみ許可されています)`);
+        continue;
+      }
+
+      if (await fs.pathExists(normalizedPath)) {
+        existingFiles.push(artifact);
+      } else {
+        missingFiles.push(artifact);
+      }
+    } catch (error) {
+      missingFiles.push(`${artifact} (ファイルアクセスエラー)`);
+    }
+  }
+
+  const hasIssues = missingFiles.length > 0;
+  let validationMessage = '';
+
+  if (hasIssues) {
+    validationMessage = `以下のファイルが存在しません:\n`;
+    missingFiles.forEach(file => {
+      validationMessage += `- ${file}\n`;
+    });
+    validationMessage += `\n対処方法:\n`;
+    validationMessage += `1. ファイルパスが正しいか確認してください\n`;
+    validationMessage += `2. ファイルが実際に作成されているか確認してください\n`;
+    validationMessage += `3. 必要に応じてファイルを作成してから再実行してください\n`;
+    validationMessage += `4. 作成していないファイルは成果物から除外してください`;
+  }
+
+  return {
+    hasIssues,
+    existingFiles,
+    missingFiles,
+    validationMessage
+  };
+}
+
+/**
  * 未来ハートビートIDの検証
  * @param heartbeatId YYYYMMDDHHMMSS形式のハートビートID
  * @throws Error 未来のハートビートIDが許容範囲を超えている場合
@@ -126,6 +193,7 @@ function generateActivityLogMarkdown(args: z.infer<typeof activityLogInputSchema
   // Artifacts
   lines.push('## 成果物、関連ファイル');
   if (args.artifacts && args.artifacts.length > 0) {
+    // 検証を通過したファイルのみが記録される（全て存在することが保証済み）
     args.artifacts.forEach(artifact => {
       lines.push(`- ${artifact}`);
     });
@@ -235,6 +303,13 @@ export const activityLogTool = {
 
       if (args.parentThemeDirectoryPart && !args.parentThemeStartId) {
         throw new Error('parentThemeDirectoryPartが指定された場合、parentThemeStartIdも必須です');
+      }
+
+      // 成果物ファイルの存在チェック
+      const artifactValidation = await validateArtifacts(args.artifacts || []);
+      if (artifactValidation.hasIssues) {
+        // 存在しないファイルがある場合はエラーで停止
+        throw new Error(`成果物ファイルの検証に失敗しました:\n${artifactValidation.validationMessage}\n\n指定されたファイルが実際に存在することを確認してから、再度活動ログの作成を実行してください。`);
       }
 
       // Generate markdown content
