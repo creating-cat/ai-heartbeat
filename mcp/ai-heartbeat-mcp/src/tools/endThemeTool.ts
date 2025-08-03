@@ -47,7 +47,7 @@ function getThemeType(parentThemeStartId?: string): string {
 
 export const endThemeTool = {
   name: 'end_theme',
-  description: '現在のテーマの終了に関する処理を専門に実行します。テーマ終了の履歴ファイルを作成し、クールダウン期間の重要性を明確に伝えます。',
+  description: '現在のテーマの終了に関する処理を専門に実行します。テーマ終了の履歴ファイルを作成します。',
   input_schema: endThemeInputSchema,
   execute: async (args: z.infer<typeof endThemeInputSchema>) => {
     try {
@@ -168,8 +168,7 @@ ${achievementList}
 
       // テーマ終了時のリセット指示（AIファースト設計に基づく明確なメッセージ）
       responseText += `\n\nテーマが正常に完了しました。`;
-      responseText += `\nこの後、テーマ終了活動の活動ログを作成してこのタスクを完了してください。`;
-      responseText += `\n活動が完了すると、思考コンテキストがリセットされ、次のテーマに備えるためのクールダウン期間に入ります。`;
+      responseText += `\nこの後、テーマ終了活動の活動ログを作成して必ずターン完了応答を行なってください。`;
       responseText += `\n\n重要: 新しいテーマの開始は、次のハートビートを待って新たな活動サイクルで行ってください。`;
 
       return { 

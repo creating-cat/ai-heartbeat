@@ -96,13 +96,13 @@ export const startThemeTool = {
         }
       }
 
-      // --- 段階2: クールダウン期間確認（ハートビートID重複チェック） ---
+      // --- 段階2: ハートビートID重複チェック ---
       const themeHistoryPattern = path.join(THEME_HISTORIES_DIR, `${themeStartId}_*.md`);
       const existingThemeHistories = await glob(themeHistoryPattern);
 
       if (existingThemeHistories.length > 0) {
         const existingFile = path.basename(existingThemeHistories[0]);
-        throw new Error(`クールダウン期間中です。この活動サイクルでは既にテーマ操作が実行されています（${existingFile}）。次のハートビートを待って新たな活動サイクルを開始してから再実行してください。`);
+        throw new Error(`この活動サイクルでは既にテーマ操作が実行されています（${existingFile}）。ターン完了応答を行い、次のハートビートを待って新たな活動サイクルを開始してから再実行してください。`);
       }
 
       // ディレクトリ名のサニタイズ
