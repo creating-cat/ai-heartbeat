@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Chrome リモートデバッグモード起動スクリプト
-# AIエージェントがpuppeteerでデバッグする際に使用
+# Chrome リモートデバッグモード起動スクリプト（シンプル版）
+# Chrome起動後、すぐにスクリプト終了
 
 set -e
 
@@ -33,23 +33,6 @@ detect_chrome_binary() {
     return 1
 }
 
-# プロセス終了時のクリーンアップ
-cleanup() {
-    if [[ -n "$CHROME_PID" ]] && kill -0 "$CHROME_PID" 2>/dev/null; then
-        echo "Chrome プロセス (PID: $CHROME_PID) を終了しています..."
-        kill "$CHROME_PID" 2>/dev/null || true
-        wait "$CHROME_PID" 2>/dev/null || true
-    fi
-    
-    if [[ -d "$USER_DATA_DIR" ]]; then
-        echo "一時ディレクトリを削除しています: $USER_DATA_DIR"
-        rm -rf "$USER_DATA_DIR"
-    fi
-}
-
-# シグナルハンドラー設定
-trap cleanup EXIT INT TERM
-
 # Chrome実行ファイルの検出
 if ! detect_chrome_binary; then
     exit 1
@@ -67,10 +50,9 @@ if lsof -ti:$DEBUG_PORT >/dev/null 2>&1; then
     exit 1
 fi
 
-# Chromeをリモートデバッグモードで起動
+# Chromeをリモートデバッグモードで起動（デーモン化）
 "$CHROME_BINARY" \
     --remote-debugging-port=$DEBUG_PORT \
-    --remote-debugging-address=0.0.0.0 \
     --user-data-dir="$USER_DATA_DIR" \
     --no-first-run \
     --no-default-browser-check \
@@ -91,28 +73,25 @@ if ! kill -0 "$CHROME_PID" 2>/dev/null; then
     exit 1
 fi
 
-# 接続確認
-echo "Chrome プロセスが起動しました"
-echo "プロセスID: $CHROME_PID"
-echo "デバッグURL: http://localhost:$DEBUG_PORT"
-
 # プロセス情報をファイルに保存
 PID_FILE="/tmp/chrome_debug_${DEBUG_PORT}.pid"
 echo "$CHROME_PID" > "$PID_FILE"
+
+# 一時ディレクトリ情報も保存（クリーンアップ用）
+TEMP_DIR_FILE="/tmp/chrome_debug_${DEBUG_PORT}.tmpdir"
+echo "$USER_DATA_DIR" > "$TEMP_DIR_FILE"
+
+echo "Chrome プロセスが起動しました"
+echo "プロセスID: $CHROME_PID"
+echo "デバッグURL: http://localhost:$DEBUG_PORT"
 echo "プロセスID情報を保存: $PID_FILE"
+echo "一時ディレクトリ情報を保存: $TEMP_DIR_FILE"
 
 echo ""
 echo "=== 使用方法 ==="
 echo "1. Puppeteerから接続: puppeteer.connect({browserURL: 'http://localhost:$DEBUG_PORT'})"
 echo "2. DevToolsでデバッグ: http://localhost:$DEBUG_PORT"
-echo "3. プロセス終了: kill $CHROME_PID または Ctrl+C"
+echo "3. プロセス終了: ./stop_chrome_debug.sh $DEBUG_PORT"
 echo ""
-echo "Chrome デバッグモードが実行中です..."
-echo "終了するには Ctrl+C を押してください"
-
-# プロセスの監視
-while kill -0 "$CHROME_PID" 2>/dev/null; do
-    sleep 5
-done
-
-echo "Chrome プロセスが終了しました"
+echo "Chrome デバッグモードが起動完了しました"
+echo "このスクリプトは終了します。Chromeプロセスはバックグラウンドで継続実行中です。"

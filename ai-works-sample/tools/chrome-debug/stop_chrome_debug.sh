@@ -60,10 +60,21 @@ if lsof -ti:$DEBUG_PORT >/dev/null 2>&1; then
 fi
 
 # 一時ディレクトリのクリーンアップ
-TEMP_DIRS=$(find /tmp -maxdepth 1 -name "chrome_debug_*" -type d 2>/dev/null || true)
-if [[ -n "$TEMP_DIRS" ]]; then
-    echo "一時ディレクトリをクリーンアップしています..."
-    echo "$TEMP_DIRS" | xargs rm -rf
+TEMP_DIR_FILE="/tmp/chrome_debug_${DEBUG_PORT}.tmpdir"
+if [[ -f "$TEMP_DIR_FILE" ]]; then
+    USER_DATA_DIR=$(cat "$TEMP_DIR_FILE")
+    if [[ -d "$USER_DATA_DIR" ]]; then
+        echo "一時ディレクトリをクリーンアップしています: $USER_DATA_DIR"
+        rm -rf "$USER_DATA_DIR"
+    fi
+    rm -f "$TEMP_DIR_FILE"
+else
+    # フォールバック: 従来の方法
+    TEMP_DIRS=$(find /tmp -maxdepth 1 -name "chrome_debug_*" -type d 2>/dev/null || true)
+    if [[ -n "$TEMP_DIRS" ]]; then
+        echo "一時ディレクトリをクリーンアップしています..."
+        echo "$TEMP_DIRS" | xargs rm -rf
+    fi
 fi
 
 echo "Chrome デバッグプロセスの停止が完了しました"
