@@ -119,8 +119,8 @@ AI心臓システム/
 ├── ai-works-sample/            # サンプルテーマとツール
 │   ├── themebox/               # サンプルテーマ集
 │   │   ├── 000_ai_heartbeat_tutorial.md  # チュートリアルテーマ
-│   │   ├── 001_gemini_cli_builtin_tools_tutorial.md
-│   │   └── zzz_summary_of_activities.md  # 活動まとめテーマ
+│   │   ├── 100_stop_heartbeat_for_snapshot.md  # スナップショット取得のための一時停止テーマ
+│   │   └── 999_summary_of_activities.md  # 活動まとめテーマ
 │   └── tools/                  # サンプルツール
 └── ai-works/                   # AI活動領域（setup.shで自動生成）
     ├── themebox/               # テーマ事前準備ディレクトリ
