@@ -47,9 +47,37 @@ HEALTH_CHECK_DETAIL=""
 HEARTBEAT_STATE="normal"  # normal / recovery_waiting
 RECOVERY_WAIT_CYCLES=0
 
-# ツールクールダウン設定用連想配列
-declare -A TOOL_COOLDOWNS
-declare -A TOOL_LOCKS
+# ツールクールダウン設定用配列（古いBash対応）
+# フォーマット: "tool_id:cooldown_sec:lock_sec"
+TOOL_SETTINGS=()
+
+# 古いBash対応: ツール設定を取得するヘルパー関数
+get_tool_setting() {
+    local tool_id="$1"
+    local setting_type="$2"  # "cooldown" or "lock"
+    
+    for setting in "${TOOL_SETTINGS[@]}"; do
+        if [[ "$setting" =~ ^"$tool_id": ]]; then
+            local cooldown_sec=$(echo "$setting" | cut -d: -f2)
+            local lock_sec=$(echo "$setting" | cut -d: -f3)
+            
+            if [ "$setting_type" = "cooldown" ]; then
+                echo "$cooldown_sec"
+                return 0
+            elif [ "$setting_type" = "lock" ]; then
+                echo "$lock_sec"
+                return 0
+            fi
+        fi
+    done
+    
+    # デフォルト値を返す
+    if [ "$setting_type" = "cooldown" ]; then
+        echo "600"  # 10分
+    elif [ "$setting_type" = "lock" ]; then
+        echo "3600"  # 1時間
+    fi
+}
 
 # 終了フラグ
 SHUTDOWN_REQUESTED=false
@@ -181,8 +209,8 @@ load_tool_cooldown_config() {
         [[ "$tool_id" =~ ^\s*# ]] && continue
         [[ -z "$tool_id" ]] && continue
 
-        TOOL_COOLDOWNS["$tool_id"]=${cooldown_sec:-0}
-        TOOL_LOCKS["$tool_id"]=${lock_sec:-0}
+        # 古いBash対応: 配列に "tool_id:cooldown_sec:lock_sec" 形式で保存
+        TOOL_SETTINGS+=("$tool_id:${cooldown_sec:-0}:${lock_sec:-0}")
         log_info "Loaded cooldown for '$tool_id': ${cooldown_sec}s (cooldown), ${lock_sec}s (lock)"
     done < "$config_file"
 }
@@ -197,7 +225,7 @@ check_tool_restrictions() {
         [ -f "$lockfile" ] || continue
         local tool_id=$(basename "$lockfile")
         local lock_time=$(get_file_time "$lockfile")
-        local lock_duration=${TOOL_LOCKS[$tool_id]:-3600} # Default 1 hour
+        local lock_duration=$(get_tool_setting "$tool_id" "lock")
         local diff=$((current_time - lock_time))
 
         if [ $diff -lt $lock_duration ]; then
@@ -215,7 +243,7 @@ check_tool_restrictions() {
         # すでにロックされていないか確認
         if [[ $TOOL_RESTRICTION_MESSAGES != *"$tool_id"* ]]; then
             local cooldown_time=$(get_file_time "$cooldownfile")
-            local cooldown_duration=${TOOL_COOLDOWNS[$tool_id]:-600} # Default 10 mins
+            local cooldown_duration=$(get_tool_setting "$tool_id" "cooldown")
             local diff=$((current_time - cooldown_time))
 
             if [ $diff -lt $cooldown_duration ]; then
@@ -654,12 +682,12 @@ while true; do
     if [ "$HEARTBEAT_STATE" = "normal" ]; then
         # 深い作業宣言の状況をログに記録
         if check_extended_processing_deadline; then
-            local extended_info=$(get_extended_processing_info)
+            extended_info=$(get_extended_processing_info)
             if [ $? -eq 0 ]; then
-                local heartbeat_id=$(echo "$extended_info" | cut -d':' -f1)
-                local planned_minutes=$(echo "$extended_info" | cut -d':' -f2)
-                local remaining_minutes=$(echo "$extended_info" | cut -d':' -f3)
-                local reason=$(echo "$extended_info" | cut -d':' -f4)
+                heartbeat_id=$(echo "$extended_info" | cut -d':' -f1)
+                planned_minutes=$(echo "$extended_info" | cut -d':' -f2)
+                remaining_minutes=$(echo "$extended_info" | cut -d':' -f3)
+                reason=$(echo "$extended_info" | cut -d':' -f4)
                 
                 if [ "$planned_minutes" = "0" ]; then
                     # flexible モード

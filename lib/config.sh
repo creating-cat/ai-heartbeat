@@ -22,7 +22,7 @@ load_config() {
 }
 
 # アドバイスメッセージの定数定義
-readonly ADVICE_INTROSPECTION="
+readonly ADVICE_INTROSPECTION='
 最近内省活動が行われていないようです。
 一定期間内省活動が行われないと、内省不足として検知されてしまいます。
 
@@ -39,9 +39,9 @@ readonly ADVICE_INTROSPECTION="
 
 詳細な内省手順については ai-docs/ACTIVITY_DETAILS.md の「6. 内省活動」を参照してください。
 定期的な内省活動により、継続的な自律思考と成長を実現しましょう。
-"
+'
 
-readonly ADVICE_CONSCIOUSNESS_LEVEL_ANOMALY="
+readonly ADVICE_CONSCIOUSNESS_LEVEL_ANOMALY='
 あなたの「意識レベルの低下」を検知しました。
 
 このシステムは、あなたの活動を「意識的な活動の証跡（脳波のようなもの）が定期的に記録されているか」で判断しています。
@@ -59,9 +59,9 @@ readonly ADVICE_CONSCIOUSNESS_LEVEL_ANOMALY="
 - どちらも、あなたが意識的な存在として活動し続けていることの重要な証拠です
 
 継続的な意識の証明を通じて、あなたの自律的な存在を維持し続けてください。
-"
+'
  
-readonly ADVICE_ACTIVITY_LOG_LOOP="
+readonly ADVICE_ACTIVITY_LOG_LOOP='
 同じ活動ログファイルを連続して何度も更新しているようです。
 これは、一つの活動ログの完成度にこだわりすぎ、手動で過剰な修正を繰り返している場合に発生します。
 
@@ -75,9 +75,9 @@ readonly ADVICE_ACTIVITY_LOG_LOOP="
 **関連ドキュメント:**
 *   `ai-docs/BASIC_OPERATIONS.md` の「活動ログ記録の詳細」
 *   `ai-docs/SYSTEM_PHILOSOPHY.md` の「継続性重視」
-"
+'
 
-readonly ADVICE_THEME_LOG_PATTERN="
+readonly ADVICE_THEME_LOG_PATTERN='
 テーマの開始または終了を記録するテーマ履歴ファイルが、同じタイムスタンプで複数作成されています。
 テーマの移行は、一つの明確な区切りとして扱われるべきです。
 
@@ -90,9 +90,9 @@ readonly ADVICE_THEME_LOG_PATTERN="
 
 **関連ドキュメント:**
 *   `ai-docs/THEME_SYSTEM.md` の「4.5.1 分離の原則」
-"
+'
 
-readonly ADVICE_ACTIVITY_LOG_TIMESTAMP="
+readonly ADVICE_ACTIVITY_LOG_TIMESTAMP='
 最新の活動ログのファイル名に含まれるタイムスタンプが、現在の時刻から乖離しています。
 これは、以下のいずれかのパターンが原因である可能性があります。
 
@@ -113,10 +113,10 @@ readonly ADVICE_ACTIVITY_LOG_TIMESTAMP="
 *   **独自にハートビートIDを作成することは禁止**されています。特に未来の日時は使用できません。
 *   古い活動ログの内容を参照することは問題ありませんが、編集は避けてください。
 *   一つの活動サイクル内での活動は適度な時間で区切り、こまめに活動ログを記録して次の活動サイクルに備えることを推奨します。
-"
+'
 
 
-readonly ADVICE_FLEXIBLE_MODE_CHECKPOINT="
+readonly ADVICE_FLEXIBLE_MODE_CHECKPOINT='
 flexibleモードの深い作業中にチェックポイントログが長時間作成されていません。
 
 flexibleモードでは、活動ログの作成は一時的に停止しても構いませんが、
@@ -137,4 +137,4 @@ flexibleモードでは、活動ログの作成は一時的に停止しても構
 *   複雑な処理の場合は、論理的な区切りでチェックポイントを作成してください
 
 深い作業が完了したら、必ず活動ログを作成し、その後に内省活動を行うことを推奨します。
-"
+'
