@@ -20,7 +20,7 @@ export const activityLogInputSchema = z.object({
   activityType: z.enum(['観測', '思考', '創造', '内省', 'テーマ開始', 'テーマ終了', '回復', 'その他'])
     .describe("実行した活動の種別。'観測', '思考', '創造', '内省', 'テーマ開始', 'テーマ終了', '回復', 'その他' のいずれかである必要があります。"),
   activityContent: z.array(z.string()).describe('活動内容の簡潔な説明のリスト。'),
-  artifacts: z.array(z.string()).optional().default([]).describe('作成または修正したファイルのパスのリスト。'),
+  artifacts: z.array(z.string()).optional().default([]).describe('作成または修正したファイルのパスのリスト。相対パスで指定（artifacts/, projects/, themebox/, feedbackbox/ 配下のみ許可）。例: "artifacts/current_theme/analysis.md"'),
   evaluation: z.string().optional().default('').describe('自己評価や備考。'),
   themeStartId: z.string()
     .regex(/^\d{14}$/, 'THEME_START_IDは14桁の数字（YYYYMMDDHHMMSS形式）である必要があります')
