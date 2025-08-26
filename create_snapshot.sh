@@ -35,6 +35,12 @@ create_snapshot() {
     # チャット履歴の保存
     log_info "💬 チャット履歴を保存中..."
     if tmux list-sessions | grep -q "agent"; then
+        # プロンプトのクリア
+        tmux send-keys -t agent Escape
+        sleep 0.1
+        tmux send-keys -t agent Escape
+        sleep 1
+        # スナップショット作成
         tmux send-keys -t agent "/chat save $snapshot_name"
         sleep 1
         tmux send-keys -t agent C-m
