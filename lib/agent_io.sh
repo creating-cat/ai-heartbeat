@@ -41,6 +41,12 @@ save_agent_chat_history() {
         echo "Error: Chat save tag is required." >&2
         return 1
     fi
+    # プロンプトのクリア
+    tmux send-keys -t agent Escape
+    sleep 0.1
+    tmux send-keys -t agent Escape
+    sleep 1
+    # 保存コマンド送信
     tmux send-keys -t agent "/chat save $tag"
     sleep 1
     tmux send-keys -t agent C-m
