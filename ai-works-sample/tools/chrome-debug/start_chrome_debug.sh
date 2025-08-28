@@ -38,6 +38,13 @@ if ! detect_chrome_binary; then
     exit 1
 fi
 
+# 依存コマンドの確認
+if ! command -v curl >/dev/null 2>&1; then
+    echo "エラー: このスクリプトの実行には 'curl' が必要です。" >&2
+    echo "macOSの場合: brew install curl" >&2
+    exit 1
+fi
+
 echo "Chrome リモートデバッグモードを起動しています..."
 echo "デバッグポート: $DEBUG_PORT"
 echo "Chrome実行ファイル: $CHROME_BINARY"
@@ -66,10 +73,34 @@ fi
 
 CHROME_PID=$!
 
-# プロセス起動確認
-sleep 2
-if ! kill -0 "$CHROME_PID" 2>/dev/null; then
-    echo "エラー: Chrome の起動に失敗しました" >&2
+# Chromeの起動とデバッグポートの準備を待機
+echo -n "Chromeの起動とデバッグポート($DEBUG_PORT)の準備を待機しています..."
+WAIT_TIMEOUT=300
+START_TIME=$(date +%s)
+READY=false
+
+while [ $(( $(date +%s) - START_TIME )) -lt $WAIT_TIMEOUT ]; do
+    # プロセスが生存しているか確認
+    if ! kill -0 "$CHROME_PID" 2>/dev/null; then
+        echo ""
+        echo "エラー: Chromeプロセスが予期せず終了しました" >&2
+        exit 1
+    fi
+
+    # デバッグポートがリクエストを受け付けるか確認
+    if curl -s "http://localhost:$DEBUG_PORT/json/version" >/dev/null 2>&1; then
+        READY=true
+        break
+    fi
+    echo -n "."
+    sleep 1
+done
+
+if [ "$READY" = false ]; then
+    echo ""
+    echo "エラー: タイムアウトしました。Chromeのデバッグポートが利用可能になりませんでした。" >&2
+    echo "プロセス($CHROME_PID)を終了します。" >&2
+    kill "$CHROME_PID" 2>/dev/null || true
     exit 1
 fi
 
@@ -81,6 +112,7 @@ echo "$CHROME_PID" > "$PID_FILE"
 TEMP_DIR_FILE="/tmp/chrome_debug_${DEBUG_PORT}.tmpdir"
 echo "$USER_DATA_DIR" > "$TEMP_DIR_FILE"
 
+echo " 完了"
 echo "Chrome プロセスが起動しました"
 echo "プロセスID: $CHROME_PID"
 echo "デバッグURL: http://localhost:$DEBUG_PORT"
