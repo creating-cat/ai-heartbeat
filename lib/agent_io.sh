@@ -16,6 +16,13 @@ send_message_to_agent() {
     tmux send-keys -t agent "$message"
     sleep 1
     tmux send-keys -t agent C-m
+
+    # 処理中でメッセージがキューイングされている場合、
+    # UPキーを送信しキューイングメッセージをキャンセルして、Ctrl-Zでメッセージを空にする
+    sleep 1
+    tmux send-keys -t agent UP
+    sleep 1
+    tmux send-keys -t agent C-z
 }
 
 # エージェントの現在の処理を中断させる（Escapeキーを2回送信）
